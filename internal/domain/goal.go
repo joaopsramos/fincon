@@ -12,9 +12,9 @@ const (
 )
 
 type Goal struct {
-	ID         uint `gorm:"primaryKey"`
-	Name       GoalName
-	Percentage uint
+	ID         uint     `json:"id" gorm:"primaryKey"`
+	Name       GoalName `json:"name"`
+	Percentage uint     `json:"percentage"`
 
 	Expenses []Expense
 }

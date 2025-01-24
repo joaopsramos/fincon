@@ -19,6 +19,21 @@ func NewExpenseController(repo domain.ExpenseRepository, goalRepo domain.GoalRep
 }
 
 func (c *ExpenseController) GetSummary(w http.ResponseWriter, r *http.Request) {
-	summary := c.repo.GetSummary(time.Now(), c.goalRepo, c.salaryRepo)
-	json.NewEncoder(w).Encode(summary)
+	encoder := json.NewEncoder(w)
+	query := r.URL.Query()
+	date := time.Now()
+
+	if queryDate := query.Get("date"); queryDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", queryDate)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			encoder.Encode(map[string]any{"error": "invalid date"})
+			return
+		}
+
+		date = parsedDate
+	}
+
+	summary := c.repo.GetSummary(date, c.goalRepo, c.salaryRepo)
+	encoder.Encode(summary)
 }
