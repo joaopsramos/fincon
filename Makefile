@@ -14,4 +14,4 @@ run:
 	go run ./cmd/fincon
 
 test:
-	APP_ENV=test go test
+	APP_ENV=test go test ./...

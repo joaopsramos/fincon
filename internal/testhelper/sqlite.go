@@ -2,6 +2,7 @@ package testhelper
 
 import (
 	"os"
+	"path"
 
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joho/godotenv"
@@ -10,6 +11,6 @@ import (
 
 func NewTestSQLiteDB() *gorm.DB {
 	os.Setenv("APP_ENV", "test")
-	godotenv.Load(".env.test")
+	godotenv.Load(path.Join("..", "..", ".env.test"))
 	return config.ConnectAndSetup()
 }

@@ -18,3 +18,7 @@ type Goal struct {
 
 	Expenses []Expense
 }
+
+type GoalRepository interface {
+	All() []Goal
+}

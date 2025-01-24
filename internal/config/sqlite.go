@@ -2,6 +2,8 @@ package config
 
 import (
 	"os"
+	"path"
+	"sync"
 
 	"github.com/joaopsramos/fincon/internal/domain"
 
@@ -9,7 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConnectAndSetup() *gorm.DB {
+var ConnectAndSetup = sync.OnceValue(connectAndSetup)
+
+func connectAndSetup() *gorm.DB {
 	db := connect()
 	setup(db)
 
@@ -17,7 +21,7 @@ func ConnectAndSetup() *gorm.DB {
 }
 
 func connect() *gorm.DB {
-	path := os.Getenv("SQLITE_PATH")
+	path := path.Join("..", "..", os.Getenv("SQLITE_PATH"))
 	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")

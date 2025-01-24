@@ -1,4 +1,5 @@
 fincon
 !cmd/*
 fincon.db
+fincon_test.db
 tmp/

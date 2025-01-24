@@ -10,11 +10,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteSalaryRepo(t *testing.T, tx *gorm.DB) domain.SalaryRepository {
-	return repository.NewSQLiteSalary(tx)
+func NewTestSQLiteGoalRepo(t *testing.T, tx *gorm.DB) domain.GoalRepository {
+	return repository.NewSQLiteGoal(tx)
 }
 
-func TestSQLiteSalary_Get(t *testing.T) {
+func TestSQLiteGoal_All(t *testing.T) {
 	t.Parallel()
 
 	tx := testhelper.NewTestSQLiteDB().Begin()
@@ -23,8 +23,12 @@ func TestSQLiteSalary_Get(t *testing.T) {
 	})
 
 	f := testhelper.NewFactory(tx)
-	f.InsertSalary(&domain.Salary{Amount: 200})
-	r := NewTestSQLiteSalaryRepo(t, tx)
 
-	assert.Equal(t, int64(200), r.Get().Amount)
+	goals := []domain.Goal{{Name: domain.Goals, Percentage: 20}, {Name: domain.Pleasures, Percentage: 80}}
+	for i := range len(goals) {
+		f.InsertGoal(&goals[i])
+	}
+
+	r := NewTestSQLiteGoalRepo(t, tx)
+	assert.Equal(t, goals, r.All())
 }

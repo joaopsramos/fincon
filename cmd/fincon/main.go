@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"os"
 
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/controller"
@@ -11,12 +10,7 @@ import (
 )
 
 func main() {
-	switch env := os.Getenv("APP_ENV"); env {
-	case "test":
-		godotenv.Load(".env.test")
-	default:
-		godotenv.Load(".env")
-	}
+	godotenv.Load(".env")
 
 	db := config.ConnectAndSetup()
 	r := repository.NewSQLiteSalary(db)
