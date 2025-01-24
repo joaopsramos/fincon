@@ -20,14 +20,23 @@ type Expense struct {
 }
 
 type SummaryEntry = struct {
-	Name      string
-	Spent     *money.Money
-	MustSpend *money.Money
-	Used      float64
-	Total     float64
+	Name      string  `json:"name"`
+	Spent     Money   `json:"spent"`
+	MustSpend Money   `json:"must_spend"`
+	Used      float64 `json:"used"`
+	Total     float64 `json:"total"`
+}
+
+type Money struct {
+	Amount   float64 `json:"amount"`
+	Currency string  `json:"currency"`
 }
 
 type Summary = []SummaryEntry
+
+func NewMoney(money *money.Money) Money {
+	return Money{Amount: money.AsMajorUnits(), Currency: money.Currency().Code}
+}
 
 type ExpenseRepository interface {
 	AllByGoalID(goalID uint, year int, month time.Month) []Expense

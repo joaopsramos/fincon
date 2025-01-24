@@ -29,7 +29,7 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	f := testhelper.NewFactory(tx)
 
 	salaryAmount := 10_000
-	f.InsertSalary(&domain.Salary{Amount: int64(salaryAmount)})
+	f.InsertSalary(&domain.Salary{Amount: int64(salaryAmount * 100)})
 
 	goalIDsByName := make(map[domain.GoalName]uint)
 
@@ -53,25 +53,25 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	now := time.Now().UTC()
 
 	expenses := []struct {
-		value  int64
+		value  float64
 		date   time.Time
 		goalID uint
 	}{
-		{50, now, goalIDsByName[domain.Comfort]},
-		{125, now, goalIDsByName[domain.Comfort]},
+		{50.5, now, goalIDsByName[domain.Comfort]},
+		{125.49, now, goalIDsByName[domain.Comfort]},
 		{400, now, goalIDsByName[domain.FixedCosts]},
 		{100, now, goalIDsByName[domain.FixedCosts]},
-		{190, now, goalIDsByName[domain.Pleasures]},
-		{340, now, goalIDsByName[domain.Pleasures]},
-		{900, now, goalIDsByName[domain.Knowledge]},
-		{125, now.AddDate(0, -1, 0), goalIDsByName[domain.Comfort]},
+		{190.89, now, goalIDsByName[domain.Pleasures]},
+		{340.15, now, goalIDsByName[domain.Pleasures]},
+		{900.99, now, goalIDsByName[domain.Knowledge]},
+		{125.74, now.AddDate(0, -1, 0), goalIDsByName[domain.Comfort]},
 		{500, now.AddDate(0, -1, 0), goalIDsByName[domain.Pleasures]},
-		{700, now.AddDate(0, 1, 0), goalIDsByName[domain.FinancialInvestments]},
+		{700.25, now.AddDate(0, 1, 0), goalIDsByName[domain.FinancialInvestments]},
 	}
 
 	for _, e := range expenses {
 		f.InsertExpense(&domain.Expense{
-			Value:     e.value,
+			Value:     int64(e.value * 100),
 			Date:      e.date,
 			GoalID:    e.goalID,
 			CreatedAt: now,
@@ -88,7 +88,7 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 		entriesByName[domain.GoalName(e.Name)] = e
 	}
 
-	assertSummaryEntry(domain.Comfort, 125, 2000, 6.25, 1.25, entriesByName, assert)
+	assertSummaryEntry(domain.Comfort, 125.74, 2000, 6.28, 1.25, entriesByName, assert)
 	assertSummaryEntry(domain.FixedCosts, 0, 4000, 0.0, 0.0, entriesByName, assert)
 	assertSummaryEntry(domain.Pleasures, 500, 500, 100.0, 5.0, entriesByName, assert)
 	assertSummaryEntry(domain.Knowledge, 0, 500, 0.0, 0.0, entriesByName, assert)
@@ -98,10 +98,10 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 		entriesByName[domain.GoalName(e.Name)] = e
 	}
 
-	assertSummaryEntry(domain.Comfort, 50+125, 2000, 8.75, 1.75, entriesByName, assert)
+	assertSummaryEntry(domain.Comfort, 50.5+125.49, 2000, 8.79, 1.75, entriesByName, assert)
 	assertSummaryEntry(domain.FixedCosts, 400+100, 4000, 12.5, 5.0, entriesByName, assert)
-	assertSummaryEntry(domain.Pleasures, 190+340, 500, 106.0, 5.3, entriesByName, assert)
-	assertSummaryEntry(domain.Knowledge, 900, 500, 180.0, 9.0, entriesByName, assert)
+	assertSummaryEntry(domain.Pleasures, 190.89+340.15, 500, 106.2, 5.31, entriesByName, assert)
+	assertSummaryEntry(domain.Knowledge, 900.99, 500, 180.19, 9.0, entriesByName, assert)
 	assertSummaryEntry(domain.FinancialInvestments, 0, 2500, 0.0, 0.0, entriesByName, assert)
 
 	for _, e := range r.GetSummary(now.AddDate(0, 1, 0), goalRepo, salaryRepo) {
@@ -110,9 +110,9 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 
 	assertSummaryEntry(domain.Comfort, 0, 2000, 0.0, 0.0, entriesByName, assert)
 	assertSummaryEntry(domain.FixedCosts, 0, 4000, 0.0, 0.0, entriesByName, assert)
-	assertSummaryEntry(domain.Pleasures, 30, 500, 6.0, 0.3, entriesByName, assert)
-	assertSummaryEntry(domain.Knowledge, 400, 500, 80.0, 4.0, entriesByName, assert)
-	assertSummaryEntry(domain.FinancialInvestments, 700, 2500, 28.0, 7.0, entriesByName, assert)
+	assertSummaryEntry(domain.Pleasures, 31.04, 500, 6.2, 0.31, entriesByName, assert)
+	assertSummaryEntry(domain.Knowledge, 400.99, 500, 80.19, 4.0, entriesByName, assert)
+	assertSummaryEntry(domain.FinancialInvestments, 700.25, 2500, 28.01, 7.0, entriesByName, assert)
 }
 
 func TestSQLiteExpense_GetByGoalID(t *testing.T) {
@@ -172,8 +172,8 @@ func TestSQLiteExpense_GetByGoalID(t *testing.T) {
 
 func assertSummaryEntry(
 	name domain.GoalName,
-	spent int,
-	mustSpend int,
+	spent float64,
+	mustSpend float64,
 	used float64,
 	total float64,
 	entriesByName map[domain.GoalName]domain.SummaryEntry,
@@ -182,8 +182,8 @@ func assertSummaryEntry(
 	entry := entriesByName[name]
 
 	assert.Equal(string(name), entry.Name)
-	assert.Equal(int64(spent), entry.Spent.Amount())
-	assert.Equal(int64(mustSpend), entry.MustSpend.Amount())
-	assert.Equal(used, entry.Used)
-	assert.Equal(total, entry.Total)
+	assert.Equal(spent, entry.Spent.Amount)
+	assert.Equal(mustSpend, entry.MustSpend.Amount)
+	assert.Equal(used, float64(int(entry.Used*100))/100)
+	assert.Equal(total, float64(int(entry.Total*100))/100)
 }

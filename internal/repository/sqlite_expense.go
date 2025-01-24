@@ -95,8 +95,8 @@ func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.Goal
 
 		s[i] = domain.SummaryEntry{
 			Name:      string(g.Name),
-			Spent:     valueSpent,
-			MustSpend: mustSpend,
+			Spent:     domain.NewMoney(valueSpent),
+			MustSpend: domain.NewMoney(mustSpend),
 			Used:      used,
 			Total:     float64(r.Spent*100) / float64(salary.Amount),
 		}

@@ -17,5 +17,5 @@ func NewSalaryController(salaryRepo domain.SalaryRepository) SalaryController {
 
 func (c *SalaryController) Get(w http.ResponseWriter, r *http.Request) {
 	salary := c.salaryRepo.Get()
-	json.NewEncoder(w).Encode(map[string]any{"salary": salary})
+	json.NewEncoder(w).Encode(map[string]any{"amount": salary.Amount})
 }
