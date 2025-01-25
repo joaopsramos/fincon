@@ -36,7 +36,9 @@ func main() {
 
 		r.Route("/expenses", func(r chi.Router) {
 			r.Post("/", expenseController.Create)
-			r.Put("/{id}", expenseController.Update)
+			r.Patch("/{id}", expenseController.Update)
+			r.Delete("/{id}", expenseController.Delete)
+			r.Patch("/{id}/update-goal", expenseController.UpdateGoal)
 			r.Get("/summary", expenseController.GetSummary)
 		})
 

@@ -50,6 +50,28 @@ func (r SQLiteExpenseRepository) Update(e domain.Expense) (*domain.Expense, erro
 	return &e, nil
 }
 
+func (r SQLiteExpenseRepository) ChangeGoal(e domain.Expense, goalID uint) (*domain.Expense, error) {
+	var goal domain.Goal
+	result := r.db.Take(&goal, goalID)
+	if result.Error != nil {
+		return &domain.Expense{}, result.Error
+	}
+
+	r.db.Model(&e).Update("goal_id", goal.ID)
+
+	return &e, nil
+}
+
+func (r SQLiteExpenseRepository) Delete(id uint) error {
+	result := r.db.Delete(&domain.Expense{}, id)
+
+	if result.RowsAffected == 0 {
+		return errors.New("expense not deleted, it may not exist or has already been deleted")
+	}
+
+	return nil
+}
+
 func (r SQLiteExpenseRepository) AllByGoalID(goalID uint, year int, month time.Month) []domain.Expense {
 	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 

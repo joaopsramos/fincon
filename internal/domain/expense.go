@@ -55,6 +55,8 @@ type ExpenseRepo interface {
 	Get(id uint) (*Expense, error)
 	Create(e Expense, goalRepo GoalRepo) (*Expense, error)
 	Update(e Expense) (*Expense, error)
+	Delete(id uint) error
+	ChangeGoal(e Expense, goalID uint) (*Expense, error)
 	AllByGoalID(goalID uint, year int, month time.Month) []Expense
 	GetSummary(date time.Time, goalRepo GoalRepo, salaryRepo SalaryRepo) Summary
 }

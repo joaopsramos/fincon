@@ -18,7 +18,11 @@ type ExpenseController struct {
 	salaryRepo  domain.SalaryRepo
 }
 
-func NewExpenseController(expenseRepo domain.ExpenseRepo, goalRepo domain.GoalRepo, salaryRepo domain.SalaryRepo) ExpenseController {
+func NewExpenseController(
+	expenseRepo domain.ExpenseRepo,
+	goalRepo domain.GoalRepo,
+	salaryRepo domain.SalaryRepo,
+) ExpenseController {
 	return ExpenseController{expenseRepo: expenseRepo, goalRepo: goalRepo, salaryRepo: salaryRepo}
 }
 
@@ -91,17 +95,17 @@ func (c *ExpenseController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewDecoder(r.Body).Decode(&params)
 
-	date, err := time.Parse("02/01/2006", params.Date)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(map[string]any{"error": "invalid date"})
-		return
-	}
-
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(map[string]any{"error": "invalid expense id"})
+		return
+	}
+
+	date, err := time.Parse("02/01/2006", params.Date)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(map[string]any{"error": "invalid date"})
 		return
 	}
 
@@ -128,4 +132,64 @@ func (c *ExpenseController) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	encoder.Encode(expense)
+}
+
+func (c *ExpenseController) UpdateGoal(w http.ResponseWriter, r *http.Request) {
+	encoder := json.NewEncoder(w)
+
+	var params struct {
+		GoalID uint `json:"goal_id"`
+	}
+	json.NewDecoder(r.Body).Decode(&params)
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(map[string]any{"error": "invalid expense id"})
+		return
+	}
+
+	toUpdate, err := c.expenseRepo.Get(uint(id))
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(map[string]any{"error": "expense not found"})
+		return
+	} else if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		encoder.Encode(map[string]any{"error": "internal server error"})
+		return
+	}
+
+	expense, err := c.expenseRepo.ChangeGoal(*toUpdate, params.GoalID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(map[string]any{"error": "goal not found"})
+		return
+	} else if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		encoder.Encode(map[string]any{"error": "internal server error"})
+		return
+	}
+
+	encoder.Encode(expense)
+}
+
+func (c *ExpenseController) Delete(w http.ResponseWriter, r *http.Request) {
+	encoder := json.NewEncoder(w)
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(map[string]any{"error": "invalid expense id"})
+		return
+	}
+
+	err = c.expenseRepo.Delete(uint(id))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(map[string]any{"error": err.Error()})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
