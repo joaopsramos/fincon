@@ -8,10 +8,10 @@ import (
 )
 
 type SalaryController struct {
-	salaryRepo domain.SalaryRepository
+	salaryRepo domain.SalaryRepo
 }
 
-func NewSalaryController(salaryRepo domain.SalaryRepository) SalaryController {
+func NewSalaryController(salaryRepo domain.SalaryRepo) SalaryController {
 	return SalaryController{salaryRepo: salaryRepo}
 }
 

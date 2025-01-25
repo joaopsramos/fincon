@@ -9,7 +9,7 @@ type SQLiteSalaryRepository struct {
 	db *gorm.DB
 }
 
-func NewSQLiteSalary(db *gorm.DB) domain.SalaryRepository {
+func NewSQLiteSalary(db *gorm.DB) domain.SalaryRepo {
 	return SQLiteSalaryRepository{db}
 }
 

@@ -19,6 +19,7 @@ type Goal struct {
 	Expenses []Expense
 }
 
-type GoalRepository interface {
+type GoalRepo interface {
 	All() []Goal
+	Get(id uint) (Goal, error)
 }

@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteSalaryRepo(t *testing.T, tx *gorm.DB) domain.SalaryRepository {
+func NewTestSQLiteSalaryRepo(t *testing.T, tx *gorm.DB) domain.SalaryRepo {
 	return repository.NewSQLiteSalary(tx)
 }
 

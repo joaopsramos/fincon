@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"time"
 
 	"github.com/Rhymond/go-money"
@@ -12,8 +13,41 @@ type SQLiteExpenseRepository struct {
 	db *gorm.DB
 }
 
-func NewSQLiteExpense(db *gorm.DB) domain.ExpenseRepository {
+func NewSQLiteExpense(db *gorm.DB) domain.ExpenseRepo {
 	return SQLiteExpenseRepository{db}
+}
+
+func (r SQLiteExpenseRepository) Get(id uint) (*domain.Expense, error) {
+	var e domain.Expense
+	result := r.db.Take(&e, id)
+	if result.Error != nil {
+		return &domain.Expense{}, result.Error
+	}
+
+	return &e, nil
+}
+
+func (r SQLiteExpenseRepository) Create(e domain.Expense, goalRepo domain.GoalRepo) (*domain.Expense, error) {
+	_, err := goalRepo.Get(e.GoalID)
+	if err != nil {
+		return &domain.Expense{}, err
+	}
+
+	result := r.db.Create(&e)
+	if result.Error != nil {
+		return &domain.Expense{}, result.Error
+	}
+
+	return &e, nil
+}
+
+func (r SQLiteExpenseRepository) Update(e domain.Expense) (*domain.Expense, error) {
+	result := r.db.Model(&e).Select("Name", "Value", "Date").Updates(e)
+	if result.RowsAffected == 0 {
+		return &domain.Expense{}, errors.New("expense not updated")
+	}
+
+	return &e, nil
 }
 
 func (r SQLiteExpenseRepository) AllByGoalID(goalID uint, year int, month time.Month) []domain.Expense {
@@ -29,7 +63,7 @@ func (r SQLiteExpenseRepository) AllByGoalID(goalID uint, year int, month time.M
 	return e
 }
 
-func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.GoalRepository, salaryRepo domain.SalaryRepository) domain.Summary {
+func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.GoalRepo, salaryRepo domain.SalaryRepo) domain.Summary {
 	salary := salaryRepo.Get()
 
 	type result struct {

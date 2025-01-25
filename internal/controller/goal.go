@@ -11,11 +11,11 @@ import (
 )
 
 type GoalController struct {
-	repo        domain.GoalRepository
-	expenseRepo domain.ExpenseRepository
+	repo        domain.GoalRepo
+	expenseRepo domain.ExpenseRepo
 }
 
-func NewGoalController(repo domain.GoalRepository, expenseRepo domain.ExpenseRepository) GoalController {
+func NewGoalController(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalController {
 	return GoalController{repo: repo, expenseRepo: expenseRepo}
 }
 

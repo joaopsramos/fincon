@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -27,11 +28,23 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Get("/api/salary", salaryController.Get)
-	r.Get("/api/expenses/summary", expenseController.GetSummary)
-	r.Get("/api/goals", goalController.Index)
-	r.Get("/api/goals/{id}/expenses", goalController.GetExpenses)
+	r.Route("/api", func(r chi.Router) {
+		r.Get("/salary", salaryController.Get)
+
+		r.Route("/expenses", func(r chi.Router) {
+			r.Post("/", expenseController.Create)
+			r.Put("/{id}", expenseController.Update)
+			r.Get("/summary", expenseController.GetSummary)
+		})
+
+		r.Route("/goals", func(r chi.Router) {
+			r.Get("/", goalController.Index)
+			r.Get("/{id}/expenses", goalController.GetExpenses)
+		})
+	})
 
 	slog.Info("Listening on port 3000")
 

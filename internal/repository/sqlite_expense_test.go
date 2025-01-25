@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteExpenseRepo(t *testing.T, tx *gorm.DB) domain.ExpenseRepository {
+func NewTestSQLiteExpenseRepo(t *testing.T, tx *gorm.DB) domain.ExpenseRepo {
 	t.Helper()
 
 	return repository.NewSQLiteExpense(tx)

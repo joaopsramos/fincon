@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteGoalRepo(t *testing.T, tx *gorm.DB) domain.GoalRepository {
+func NewTestSQLiteGoalRepo(t *testing.T, tx *gorm.DB) domain.GoalRepo {
 	return repository.NewSQLiteGoal(tx)
 }
 

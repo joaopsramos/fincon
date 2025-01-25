@@ -1,22 +1,23 @@
 package domain
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/Rhymond/go-money"
 )
 
 type Expense struct {
-	ID    uint `gorm:"primaryKey"`
-	Name  string
-	Value int64
-	Date  time.Time
+	ID    uint      `json:"id" gorm:"primaryKey"`
+	Name  string    `json:"name"`
+	Value int64     `json:"value"`
+	Date  time.Time `json:"date"`
 
-	GoalID uint
-	Goal   Goal
+	GoalID uint `json:"goal_id"`
+	Goal   Goal `json:"-"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type SummaryEntry = struct {
@@ -38,7 +39,22 @@ func NewMoney(money *money.Money) Money {
 	return Money{Amount: money.AsMajorUnits(), Currency: money.Currency().Code}
 }
 
-type ExpenseRepository interface {
+func (e *Expense) MarshalJSON() ([]byte, error) {
+	type Alias Expense
+
+	return json.Marshal(&struct {
+		Value Money `json:"value"`
+		*Alias
+	}{
+		Value: NewMoney(money.New(e.Value, money.BRL)),
+		Alias: (*Alias)(e),
+	})
+}
+
+type ExpenseRepo interface {
+	Get(id uint) (*Expense, error)
+	Create(e Expense, goalRepo GoalRepo) (*Expense, error)
+	Update(e Expense) (*Expense, error)
 	AllByGoalID(goalID uint, year int, month time.Month) []Expense
-	GetSummary(date time.Time, goalRepo GoalRepository, salaryRepo SalaryRepository) Summary
+	GetSummary(date time.Time, goalRepo GoalRepo, salaryRepo SalaryRepo) Summary
 }

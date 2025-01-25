@@ -4,6 +4,6 @@ type Salary struct {
 	Amount int64 `json:"amount"`
 }
 
-type SalaryRepository interface {
+type SalaryRepo interface {
 	Get() Salary
 }
