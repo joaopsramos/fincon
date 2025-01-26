@@ -1,13 +1,12 @@
 package controller
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/joaopsramos/fincon/internal/domain"
+	"github.com/labstack/echo/v4"
 )
 
 type GoalController struct {
@@ -19,14 +18,13 @@ func NewGoalController(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) Goa
 	return GoalController{repo: repo, expenseRepo: expenseRepo}
 }
 
-func (c *GoalController) Index(w http.ResponseWriter, r *http.Request) {
+func (c *GoalController) Index(ctx echo.Context) error {
 	goals := c.repo.All()
-	json.NewEncoder(w).Encode(goals)
+	return ctx.JSON(http.StatusOK, goals)
 }
 
-func (c *GoalController) GetExpenses(w http.ResponseWriter, r *http.Request) {
-	encoder := json.NewEncoder(w)
-	query := r.URL.Query()
+func (c *GoalController) GetExpenses(ctx echo.Context) error {
+	query := ctx.QueryParams()
 	now := time.Now()
 	year, month, _ := now.Date()
 
@@ -36,9 +34,7 @@ func (c *GoalController) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	if queryYear != "" {
 		parsedYear, err := strconv.Atoi(queryYear)
 		if err != nil || parsedYear < 1 {
-			w.WriteHeader(http.StatusBadRequest)
-			encoder.Encode(map[string]any{"error": "invalid year"})
-			return
+			return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid year"})
 		}
 
 		year = parsedYear
@@ -47,21 +43,17 @@ func (c *GoalController) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	if queryMonth != "" {
 		parsedMonth, err := strconv.Atoi(queryMonth)
 		if err != nil || parsedMonth < 1 || parsedMonth > 12 {
-			w.WriteHeader(http.StatusBadRequest)
-			encoder.Encode(map[string]any{"error": "invalid month"})
-			return
+			return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid month"})
 		}
 
 		month = time.Month(parsedMonth)
 	}
 
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id < 1 {
-		w.WriteHeader(http.StatusBadRequest)
-		encoder.Encode(map[string]any{"error": "invalid goal id"})
-		return
+		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid goal id"})
 	}
 
 	expenses := c.expenseRepo.AllByGoalID(uint(id), year, month)
-	encoder.Encode(expenses)
+	return ctx.JSON(http.StatusOK, expenses)
 }

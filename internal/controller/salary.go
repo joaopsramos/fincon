@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/joaopsramos/fincon/internal/domain"
+	"github.com/labstack/echo/v4"
 )
 
 type SalaryController struct {
@@ -15,7 +15,7 @@ func NewSalaryController(salaryRepo domain.SalaryRepo) SalaryController {
 	return SalaryController{salaryRepo: salaryRepo}
 }
 
-func (c *SalaryController) Get(w http.ResponseWriter, r *http.Request) {
+func (c *SalaryController) Get(ctx echo.Context) error {
 	salary := c.salaryRepo.Get()
-	json.NewEncoder(w).Encode(map[string]any{"amount": salary.Amount})
+	return ctx.JSON(http.StatusOK, map[string]any{"amount": salary.Amount})
 }
