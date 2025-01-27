@@ -20,7 +20,7 @@ type Expense struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type SummaryEntry = struct {
+type SummaryGoal = struct {
 	Name      string  `json:"name"`
 	Spent     Money   `json:"spent"`
 	MustSpend Money   `json:"must_spend"`
@@ -33,7 +33,12 @@ type Money struct {
 	Currency string  `json:"currency"`
 }
 
-type Summary = []SummaryEntry
+type Summary struct {
+	Goals     []SummaryGoal `json:"goals"`
+	Spent     Money         `json:"spent"`
+	MustSpend Money         `json:"must_spend"`
+	Used      float64       `json:"used"`
+}
 
 func NewMoney(money *money.Money) Money {
 	return Money{Amount: money.AsMajorUnits(), Currency: money.Currency().Code}

@@ -1,5 +1,6 @@
 fincon
 !cmd/*
+!frontend/*
 fincon.db
 fincon_test.db
 tmp/

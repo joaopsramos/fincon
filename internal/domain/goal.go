@@ -16,7 +16,7 @@ type Goal struct {
 	Name       GoalName `json:"name"`
 	Percentage uint     `json:"percentage"`
 
-	Expenses []Expense
+	Expenses []Expense `json:"-"`
 }
 
 type GoalRepo interface {

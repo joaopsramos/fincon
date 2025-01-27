@@ -132,7 +132,11 @@ func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.Goal
 
 	goals := goalRepo.All()
 
-	s := make(domain.Summary, len(goals))
+	totalSpent := money.New(0, money.BRL)
+	totalMustSpend := money.New(0, money.BRL)
+	totalUsed := 0.0
+
+	sg := make([]domain.SummaryGoal, len(goals))
 	for i, g := range goals {
 		percentage := int64(g.Percentage)
 
@@ -145,18 +149,22 @@ func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.Goal
 		mustSpendvalue := salary.Amount / 100 * percentage
 		mustSpend := money.New(mustSpendvalue, money.BRL)
 
-		var used float64
 		mustSpendvalueF := float64(mustSpendvalue)
-		used = 100 + ((float64(r.Spent) - mustSpendvalueF) * 100 / mustSpendvalueF)
+		used := 100 + ((float64(r.Spent) - mustSpendvalueF) * 100 / mustSpendvalueF)
+		total := float64(r.Spent*100) / float64(salary.Amount)
 
-		s[i] = domain.SummaryEntry{
+		sg[i] = domain.SummaryGoal{
 			Name:      string(g.Name),
 			Spent:     domain.NewMoney(valueSpent),
 			MustSpend: domain.NewMoney(mustSpend),
 			Used:      used,
-			Total:     float64(r.Spent*100) / float64(salary.Amount),
+			Total:     total,
 		}
+
+		totalSpent, _ = totalSpent.Add(valueSpent)
+		totalMustSpend = money.New(salary.Amount-totalSpent.Amount(), money.BRL)
+		totalUsed += total
 	}
 
-	return s
+	return domain.Summary{Goals: sg, Spent: domain.NewMoney(totalSpent), MustSpend: domain.NewMoney(totalMustSpend), Used: totalUsed}
 }

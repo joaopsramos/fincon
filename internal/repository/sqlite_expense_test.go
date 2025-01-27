@@ -82,10 +82,10 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	goalRepo := NewTestSQLiteGoalRepo(t, tx)
 	salaryRepo := NewTestSQLiteSalaryRepo(t, tx)
 
-	entriesByName := make(map[domain.GoalName]domain.SummaryEntry)
+	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
 
-	for _, e := range r.GetSummary(now.AddDate(0, -1, 0), goalRepo, salaryRepo) {
-		entriesByName[domain.GoalName(e.Name)] = e
+	for _, g := range r.GetSummary(now.AddDate(0, -1, 0), goalRepo, salaryRepo).Goals {
+		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
 	assertSummaryEntry(domain.Comfort, 125.74, 2000, 6.28, 1.25, entriesByName, assert)
@@ -94,8 +94,8 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	assertSummaryEntry(domain.Knowledge, 0, 500, 0.0, 0.0, entriesByName, assert)
 	assertSummaryEntry(domain.FinancialInvestments, 0, 2500, 0.0, 0.0, entriesByName, assert)
 
-	for _, e := range r.GetSummary(now, goalRepo, salaryRepo) {
-		entriesByName[domain.GoalName(e.Name)] = e
+	for _, g := range r.GetSummary(now, goalRepo, salaryRepo).Goals {
+		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
 	assertSummaryEntry(domain.Comfort, 50.5+125.49, 2000, 8.79, 1.75, entriesByName, assert)
@@ -104,8 +104,8 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	assertSummaryEntry(domain.Knowledge, 900.99, 500, 180.19, 9.0, entriesByName, assert)
 	assertSummaryEntry(domain.FinancialInvestments, 0, 2500, 0.0, 0.0, entriesByName, assert)
 
-	for _, e := range r.GetSummary(now.AddDate(0, 1, 0), goalRepo, salaryRepo) {
-		entriesByName[domain.GoalName(e.Name)] = e
+	for _, g := range r.GetSummary(now.AddDate(0, 1, 0), goalRepo, salaryRepo).Goals {
+		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
 	assertSummaryEntry(domain.Comfort, 0, 2000, 0.0, 0.0, entriesByName, assert)
@@ -176,7 +176,7 @@ func assertSummaryEntry(
 	mustSpend float64,
 	used float64,
 	total float64,
-	entriesByName map[domain.GoalName]domain.SummaryEntry,
+	entriesByName map[domain.GoalName]domain.SummaryGoal,
 	assert *assert.Assertions,
 ) {
 	entry := entriesByName[name]

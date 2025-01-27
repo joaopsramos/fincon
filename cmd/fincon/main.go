@@ -28,6 +28,7 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
 
 	apiG := e.Group("/api")
 
@@ -42,7 +43,7 @@ func main() {
 	apiG.GET("/goals", goalController.Index)
 	apiG.GET("/goals/:id/expenses", goalController.GetExpenses)
 
-	slog.Info("Listening on port 3000")
+	slog.Info("Listening on port 4000")
 
-	e.Logger.Fatal(e.Start(":3000"))
+	e.Logger.Fatal(e.Start(":4000"))
 }
