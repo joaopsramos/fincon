@@ -86,9 +86,13 @@ func (c *ExpenseController) Update(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid expense id"})
 	}
 
-	date, err := time.Parse("02/01/2006", params.Date)
-	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid date"})
+	var date time.Time
+
+	if params.Date != "" {
+		date, err = time.Parse("02/01/2006", params.Date)
+		if err != nil {
+			return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid date"})
+		}
 	}
 
 	toUpdate, err := c.expenseRepo.Get(uint(id))
@@ -100,7 +104,10 @@ func (c *ExpenseController) Update(ctx echo.Context) error {
 
 	toUpdate.Name = params.Name
 	toUpdate.Value = int64(params.Value * 100)
-	toUpdate.Date = date
+
+	if params.Date != "" {
+		toUpdate.Date = date
+	}
 
 	expense, err := c.expenseRepo.Update(*toUpdate)
 	if err != nil {
