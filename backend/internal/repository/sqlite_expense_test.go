@@ -21,11 +21,7 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	tx := testhelper.NewTestSQLiteDB().Begin()
-	t.Cleanup(func() {
-		tx.Rollback()
-	})
-
+	tx := testhelper.NewTestSQLiteTx(t)
 	f := testhelper.NewFactory(tx)
 
 	salaryAmount := 10_000
@@ -51,6 +47,8 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	}
 
 	now := time.Now().UTC()
+	// Use middle of month to avoid errors when subtracting/adding months
+	now = time.Date(now.Year(), now.Month(), 15, 0, 0, 0, 0, time.UTC)
 
 	expenses := []struct {
 		value  float64
@@ -119,11 +117,7 @@ func TestSQLiteExpense_GetByGoalID(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	tx := testhelper.NewTestSQLiteDB().Begin()
-	t.Cleanup(func() {
-		tx.Rollback()
-	})
-
+	tx := testhelper.NewTestSQLiteTx(t)
 	f := testhelper.NewFactory(tx)
 
 	goals := []domain.Goal{{Name: domain.Goals}, {Name: domain.Pleasures}, {Name: domain.Comfort}}

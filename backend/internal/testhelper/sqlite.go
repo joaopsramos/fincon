@@ -3,14 +3,23 @@ package testhelper
 import (
 	"os"
 	"path"
+	"testing"
 
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteDB() *gorm.DB {
+func NewTestSQLiteTx(t *testing.T) *gorm.DB {
 	os.Setenv("APP_ENV", "test")
 	godotenv.Load(path.Join("..", "..", ".env.test"))
-	return config.ConnectAndSetup(path.Join("..", "..", os.Getenv("SQLITE_PATH")))
+	db := config.ConnectAndSetup(path.Join("..", "..", os.Getenv("SQLITE_PATH")))
+
+	tx := db.Begin()
+
+	t.Cleanup(func() {
+		tx.Rollback()
+	})
+
+	return tx
 }

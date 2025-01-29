@@ -17,11 +17,7 @@ func NewTestSQLiteGoalRepo(t *testing.T, tx *gorm.DB) domain.GoalRepo {
 func TestSQLiteGoal_All(t *testing.T) {
 	t.Parallel()
 
-	tx := testhelper.NewTestSQLiteDB().Begin()
-	t.Cleanup(func() {
-		tx.Rollback()
-	})
-
+	tx := testhelper.NewTestSQLiteTx(t)
 	f := testhelper.NewFactory(tx)
 
 	goals := []domain.Goal{{Name: domain.Goals, Percentage: 20}, {Name: domain.Pleasures, Percentage: 80}}

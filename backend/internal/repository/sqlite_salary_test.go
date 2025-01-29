@@ -17,10 +17,7 @@ func NewTestSQLiteSalaryRepo(t *testing.T, tx *gorm.DB) domain.SalaryRepo {
 func TestSQLiteSalary_Get(t *testing.T) {
 	t.Parallel()
 
-	tx := testhelper.NewTestSQLiteDB().Begin()
-	t.Cleanup(func() {
-		tx.Rollback()
-	})
+	tx := testhelper.NewTestSQLiteTx(t)
 
 	f := testhelper.NewFactory(tx)
 	f.InsertSalary(&domain.Salary{Amount: 200})
