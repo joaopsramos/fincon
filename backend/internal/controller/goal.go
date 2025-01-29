@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/joaopsramos/fincon/internal/domain"
-	"github.com/labstack/echo/v4"
 )
 
 type GoalController struct {
@@ -18,42 +18,39 @@ func NewGoalController(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) Goa
 	return GoalController{repo: repo, expenseRepo: expenseRepo}
 }
 
-func (c *GoalController) Index(ctx echo.Context) error {
+func (c *GoalController) Index(ctx fiber.Ctx) error {
 	goals := c.repo.All()
-	return ctx.JSON(http.StatusOK, goals)
+	return ctx.Status(http.StatusOK).JSON(goals)
 }
 
-func (c *GoalController) GetExpenses(ctx echo.Context) error {
-	query := ctx.QueryParams()
+func (c *GoalController) GetExpenses(ctx fiber.Ctx) error {
+	query := ctx.Queries()
 	now := time.Now()
 	year, month, _ := now.Date()
 
-	queryYear := query.Get("year")
-	queryMonth := query.Get("month")
-
-	if queryYear != "" {
+	if queryYear, ok := query["year"]; ok {
 		parsedYear, err := strconv.Atoi(queryYear)
 		if err != nil || parsedYear < 1 {
-			return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid year"})
+			return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid year"})
 		}
 
 		year = parsedYear
 	}
 
-	if queryMonth != "" {
+	if queryMonth, ok := query["month"]; ok {
 		parsedMonth, err := strconv.Atoi(queryMonth)
 		if err != nil || parsedMonth < 1 || parsedMonth > 12 {
-			return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid month"})
+			return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid month"})
 		}
 
 		month = time.Month(parsedMonth)
 	}
 
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil || id < 1 {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid goal id"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid goal id"})
 	}
 
 	expenses := c.expenseRepo.AllByGoalID(uint(id), year, month)
-	return ctx.JSON(http.StatusOK, expenses)
+	return ctx.Status(http.StatusOK).JSON(expenses)
 }

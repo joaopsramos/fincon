@@ -3,8 +3,8 @@ package controller
 import (
 	"net/http"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/joaopsramos/fincon/internal/domain"
-	"github.com/labstack/echo/v4"
 )
 
 type SalaryController struct {
@@ -15,7 +15,7 @@ func NewSalaryController(salaryRepo domain.SalaryRepo) SalaryController {
 	return SalaryController{salaryRepo: salaryRepo}
 }
 
-func (c *SalaryController) Get(ctx echo.Context) error {
+func (c *SalaryController) Get(ctx fiber.Ctx) error {
 	salary := c.salaryRepo.Get()
-	return ctx.JSON(http.StatusOK, map[string]any{"amount": salary.Amount})
+	return ctx.Status(http.StatusOK).JSON(map[string]any{"amount": salary.Amount})
 }

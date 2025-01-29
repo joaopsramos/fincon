@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/joaopsramos/fincon/internal/domain"
-	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
@@ -26,34 +26,34 @@ func NewExpenseController(
 	return ExpenseController{expenseRepo: expenseRepo, goalRepo: goalRepo, salaryRepo: salaryRepo}
 }
 
-func (c *ExpenseController) GetSummary(ctx echo.Context) error {
+func (c *ExpenseController) GetSummary(ctx fiber.Ctx) error {
 	date := time.Now()
 
-	if queryDate := ctx.QueryParam("date"); queryDate != "" {
+	if queryDate := ctx.Query("date"); queryDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", queryDate)
 		if err != nil {
-			return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid date"})
+			return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid date"})
 		}
 
 		date = parsedDate
 	}
 
 	summary := c.expenseRepo.GetSummary(date, c.goalRepo, c.salaryRepo)
-	return ctx.JSON(http.StatusOK, summary)
+	return ctx.Status(http.StatusOK).JSON(summary)
 }
 
-func (c *ExpenseController) Create(ctx echo.Context) error {
+func (c *ExpenseController) Create(ctx fiber.Ctx) error {
 	var params struct {
 		Name   string  `json:"name"`
 		Value  float64 `json:"value"`
 		Date   string  `json:"date"`
 		GoalID uint    `json:"goal_id"`
 	}
-	json.NewDecoder(ctx.Request().Body).Decode(&params)
+	json.Unmarshal(ctx.Body(), &params)
 
 	date, err := time.Parse("02/01/2006", params.Date)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid date"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid date"})
 	}
 
 	toCreate := domain.Expense{
@@ -65,25 +65,25 @@ func (c *ExpenseController) Create(ctx echo.Context) error {
 
 	expense, err := c.expenseRepo.Create(toCreate, c.goalRepo)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "goal not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "goal not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
-	return ctx.JSON(http.StatusCreated, expense)
+	return ctx.Status(http.StatusCreated).JSON(expense)
 }
 
-func (c *ExpenseController) Update(ctx echo.Context) error {
+func (c *ExpenseController) Update(ctx fiber.Ctx) error {
 	var params struct {
 		Name  string  `json:"name"`
 		Value float64 `json:"value"`
 		Date  string  `json:"date"`
 	}
-	json.NewDecoder(ctx.Request().Body).Decode(&params)
+	json.Unmarshal(ctx.Body(), &params)
 
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid expense id"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid expense id"})
 	}
 
 	var date time.Time
@@ -91,13 +91,13 @@ func (c *ExpenseController) Update(ctx echo.Context) error {
 	if params.Date != "" {
 		date, err = time.Parse("02/01/2006", params.Date)
 		if err != nil {
-			return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid date"})
+			return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid date"})
 		}
 	}
 
 	toUpdate, err := c.expenseRepo.Get(uint(id))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "expense not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "expense not found"})
 	} else if err != nil {
 		panic(err)
 	}
@@ -114,47 +114,47 @@ func (c *ExpenseController) Update(ctx echo.Context) error {
 		panic(err)
 	}
 
-	return ctx.JSON(http.StatusOK, expense)
+	return ctx.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseController) UpdateGoal(ctx echo.Context) error {
+func (c *ExpenseController) UpdateGoal(ctx fiber.Ctx) error {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
-	json.NewDecoder(ctx.Request().Body).Decode(&params)
+	json.Unmarshal(ctx.Body(), &params)
 
-	id, err := strconv.Atoi(ctx.Param("id"))
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid expense id"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid expense id"})
 	}
 
 	toUpdate, err := c.expenseRepo.Get(uint(id))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "expense not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "expense not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
 	expense, err := c.expenseRepo.ChangeGoal(*toUpdate, params.GoalID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "goal not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "goal not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
-	return ctx.JSON(http.StatusOK, expense)
+	return ctx.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseController) Delete(ctx echo.Context) error {
-	id, err := strconv.Atoi(ctx.Param("id"))
+func (c *ExpenseController) Delete(ctx fiber.Ctx) error {
+	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": "invalid expense id"})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid expense id"})
 	}
 
 	err = c.expenseRepo.Delete(uint(id))
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
+		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": err.Error()})
 	}
 
-	return ctx.NoContent(http.StatusNoContent)
+	return ctx.Status(http.StatusNoContent).Send(nil)
 }
