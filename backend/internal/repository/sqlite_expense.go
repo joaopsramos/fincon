@@ -127,7 +127,6 @@ func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.Goal
 		} else {
 			resultsByGoalID[r.ID] = &r
 		}
-
 	}
 
 	goals := goalRepo.All()

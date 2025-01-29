@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/gofiber/fiber/v3"
 	"github.com/joaopsramos/fincon/internal/domain"
+	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +19,13 @@ type ExpenseController struct {
 	goalRepo    domain.GoalRepo
 	salaryRepo  domain.SalaryRepo
 }
+
+var expenseCreateSchema = z.Struct(z.Schema{
+	"name":   z.String().Min(2).Required(),
+	"value":  z.Float().GTE(1).Required(),
+	"date":   z.Time(z.Time.Format("2006-01-02")).Required(),
+	"goalID": z.Int().Required(),
+})
 
 func NewExpenseController(
 	expenseRepo domain.ExpenseRepo,
@@ -44,23 +53,21 @@ func (c *ExpenseController) GetSummary(ctx fiber.Ctx) error {
 
 func (c *ExpenseController) Create(ctx fiber.Ctx) error {
 	var params struct {
-		Name   string  `json:"name"`
-		Value  float64 `json:"value"`
-		Date   string  `json:"date"`
-		GoalID uint    `json:"goal_id"`
+		Name   string
+		Value  float64
+		Date   time.Time
+		GoalID int `zog:"goal_id"`
 	}
-	json.Unmarshal(ctx.Body(), &params)
 
-	date, err := time.Parse("02/01/2006", params.Date)
-	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid date"})
+	if err := util.ParseZodSchema(expenseCreateSchema, ctx.Body(), &params); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(err)
 	}
 
 	toCreate := domain.Expense{
 		Name:   params.Name,
 		Value:  int64(params.Value * 100),
-		Date:   date,
-		GoalID: params.GoalID,
+		Date:   params.Date,
+		GoalID: uint(params.GoalID),
 	}
 
 	expense, err := c.expenseRepo.Create(toCreate, c.goalRepo)
@@ -89,7 +96,7 @@ func (c *ExpenseController) Update(ctx fiber.Ctx) error {
 	var date time.Time
 
 	if params.Date != "" {
-		date, err = time.Parse("02/01/2006", params.Date)
+		date, err = time.Parse("2006-01-02", params.Date)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid date"})
 		}
