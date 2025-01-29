@@ -2,8 +2,8 @@ import { Goal } from "@/api/goals"
 
 export default function Goals({ goals }: { goals: Goal[] }) {
   return (
-    <div className="bg-slate-200 rounded-md p-4 max-w-md h-full">
-      <h1 className="text-xl font-bold">Metas</h1>
+    <div className="bg-slate-200 rounded-md p-4 w-ull h-full">
+      <h1 className="text-xl font-bold">Goals</h1>
 
       <div className="mt-4">
         <ul>

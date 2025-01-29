@@ -1,3 +1,4 @@
+import api from "@/api"
 import { Money } from "@/util/money"
 import dayjs from "dayjs"
 
@@ -18,9 +19,7 @@ export type Summary = {
 
 export async function getSummary({ queryKey }: { queryKey: [string, Date] }) {
   const [_, date] = queryKey
-  const params = new URLSearchParams({ date: dayjs(date).format("YYYY-MM-DD") })
-  const resp = await fetch(`http://127.0.0.1:4000/api/expenses/summary?${params}`)
-  const data = await resp.json()
+  const resp = await api.get(`/expenses/summary`, { params: { date: dayjs(date).format("YYYY-MM-DD") } })
 
-  return data as Summary
+  return resp.data as Summary
 }
