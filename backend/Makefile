@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := build
 
-.PHONY:fmt vet build
+.PHONY:fmt vet build run setup-db test
 
 fmt:
 	go fmt ./...
@@ -13,6 +13,9 @@ build: vet
 
 run:
 	go run ./cmd/fincon
+
+setup-db:
+	go run ./cmd/setup_db
 
 test:
 	APP_ENV=test go test ./...

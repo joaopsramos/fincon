@@ -1,18 +1,19 @@
-package main
+package testhelper
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"path"
+	"testing"
 
-	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/config"
-
 	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 )
 
-func main() {
-	godotenv.Load(".env")
+func NewTestPGTx(t *testing.T) *gorm.DB {
+	os.Setenv("APP_ENV", "test")
+	godotenv.Load(path.Join("..", "..", ".env.test"))
 
 	dns := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -24,7 +25,11 @@ func main() {
 	)
 	db := config.NewPGConn(dns)
 
-	api := api.NewApi(db)
-	api.Setup()
-	log.Fatal(api.Listen())
+	tx := db.Begin()
+
+	t.Cleanup(func() {
+		tx.Rollback()
+	})
+
+	return tx
 }

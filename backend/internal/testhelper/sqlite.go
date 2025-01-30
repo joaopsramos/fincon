@@ -13,7 +13,7 @@ import (
 func NewTestSQLiteTx(t *testing.T) *gorm.DB {
 	os.Setenv("APP_ENV", "test")
 	godotenv.Load(path.Join("..", "..", ".env.test"))
-	db := config.ConnectAndSetup(path.Join("..", "..", os.Getenv("SQLITE_PATH")))
+	db := config.NewSQLiteConn(path.Join("..", "..", os.Getenv("SQLITE_PATH")))
 
 	tx := db.Begin()
 
