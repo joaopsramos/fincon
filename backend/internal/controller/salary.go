@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/joaopsramos/fincon/internal/domain"
+	"github.com/joaopsramos/fincon/internal/util"
 )
 
 type SalaryController struct {
@@ -17,5 +18,5 @@ func NewSalaryController(salaryRepo domain.SalaryRepo) SalaryController {
 
 func (c *SalaryController) Get(ctx fiber.Ctx) error {
 	salary := c.salaryRepo.Get()
-	return ctx.Status(http.StatusOK).JSON(map[string]any{"amount": salary.Amount})
+	return ctx.Status(http.StatusOK).JSON(util.M{"amount": salary.Amount})
 }

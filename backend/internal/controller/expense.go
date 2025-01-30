@@ -41,7 +41,7 @@ func (c *ExpenseController) GetSummary(ctx fiber.Ctx) error {
 	if queryDate := ctx.Query("date"); queryDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", queryDate)
 		if err != nil {
-			return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid date"})
+			return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
 		}
 
 		date = parsedDate
@@ -72,7 +72,7 @@ func (c *ExpenseController) Create(ctx fiber.Ctx) error {
 
 	expense, err := c.expenseRepo.Create(toCreate, c.goalRepo)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "goal not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
 	} else if err != nil {
 		panic(err)
 	}
@@ -90,7 +90,7 @@ func (c *ExpenseController) Update(ctx fiber.Ctx) error {
 
 	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid expense id"})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
 	var date time.Time
@@ -98,13 +98,13 @@ func (c *ExpenseController) Update(ctx fiber.Ctx) error {
 	if params.Date != "" {
 		date, err = time.Parse("2006-01-02", params.Date)
 		if err != nil {
-			return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid date"})
+			return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
 		}
 	}
 
 	toUpdate, err := c.expenseRepo.Get(uint(id))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "expense not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
 	} else if err != nil {
 		panic(err)
 	}
@@ -132,19 +132,19 @@ func (c *ExpenseController) UpdateGoal(ctx fiber.Ctx) error {
 
 	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid expense id"})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
 	toUpdate, err := c.expenseRepo.Get(uint(id))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "expense not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
 	expense, err := c.expenseRepo.ChangeGoal(*toUpdate, params.GoalID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "goal not found"})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
 	} else if err != nil {
 		panic(err)
 	}
@@ -155,12 +155,12 @@ func (c *ExpenseController) UpdateGoal(ctx fiber.Ctx) error {
 func (c *ExpenseController) Delete(ctx fiber.Ctx) error {
 	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": "invalid expense id"})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
 	err = c.expenseRepo.Delete(uint(id))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(map[string]any{"error": err.Error()})
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": err.Error()})
 	}
 
 	return ctx.Status(http.StatusNoContent).Send(nil)

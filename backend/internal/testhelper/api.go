@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/joaopsramos/fincon/internal/api"
+	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -22,7 +23,7 @@ func NewTestApi(tx *gorm.DB) *TestApi {
 	return &TestApi{api: api}
 }
 
-func (t *TestApi) Test(method string, path string, body map[string]any) *http.Response {
+func (t *TestApi) Test(method string, path string, body util.M) *http.Response {
 	var bodyReader io.Reader
 
 	if body != nil {

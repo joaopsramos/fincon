@@ -7,6 +7,7 @@ import (
 
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/testhelper"
+	"github.com/joaopsramos/fincon/internal/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,19 +18,19 @@ func TestExpenseController_Create(t *testing.T) {
 	api := testhelper.NewTestApi(tx)
 	f := testhelper.NewFactory(tx)
 
-	var respBody map[string]any
+	var respBody util.M
 
 	data := []struct {
 		name     string
-		body     map[string]any
+		body     util.M
 		status   int
-		expected map[string]any
+		expected util.M
 	}{
 		{
 			"ensure required fields",
-			map[string]any{},
+			util.M{},
 			400,
-			map[string]any{"errors": map[string]any{
+			util.M{"errors": util.M{
 				"name":    []any{"is required"},
 				"value":   []any{"is required"},
 				"date":    []any{"is required"},
@@ -38,15 +39,15 @@ func TestExpenseController_Create(t *testing.T) {
 		},
 		{
 			"invalid date",
-			map[string]any{"name": "Food", "value": 123.45, "date": "2025-13-25", "goal_id": 1},
+			util.M{"name": "Food", "value": 123.45, "date": "2025-13-25", "goal_id": 1},
 			400,
-			map[string]any{"errors": map[string]any{"date": []any{"time is invalid"}}},
+			util.M{"errors": util.M{"date": []any{"time is invalid"}}},
 		},
 		{
 			"goal not found",
-			map[string]any{"name": "Food", "value": 123.45, "date": "2025-12-15", "goal_id": 10},
+			util.M{"name": "Food", "value": 123.45, "date": "2025-12-15", "goal_id": 10},
 			400,
-			map[string]any{"error": "goal not found"},
+			util.M{"error": "goal not found"},
 		},
 	}
 
@@ -65,26 +66,19 @@ func TestExpenseController_Create(t *testing.T) {
 	resp := api.Test(
 		http.MethodPost,
 		"/api/expenses",
-		map[string]any{"name": "Food", "value": 123.45, "date": "2025-01-15", "goal_id": 1},
+		util.M{"name": "Food", "value": 123.45, "date": "2025-01-15", "goal_id": 1},
 	)
 	json.NewDecoder(resp.Body).Decode(&respBody)
 
 	assert.Equal(resp.StatusCode, 201)
-	assert.Equal("Food", respBody["name"])
-	assert.Equal(map[string]any{"amount": 123.45, "currency": "BRL"}, respBody["value"])
-	assert.Equal("2025-01-15T00:00:00Z", respBody["date"])
-	assert.Equal(1.0, respBody["goal_id"])
+
 	assert.Contains(respBody, "id")
+	delete(respBody, "id")
 
-	expectedKeys := map[string]struct{}{
-		"id":      {},
-		"name":    {},
-		"value":   {},
-		"date":    {},
-		"goal_id": {},
-	}
-
-	for k := range respBody {
-		assert.Contains(expectedKeys, k)
-	}
+	assert.Equal(util.M{
+		"name":    "Food",
+		"value":   util.M{"amount": 123.45, "currency": "BRL"},
+		"date":    "2025-01-15T00:00:00Z",
+		"goal_id": 1.0,
+	}, respBody)
 }
