@@ -37,10 +37,9 @@ func NewApi(db *gorm.DB) *Api {
 	}
 }
 
-func (a *Api) SetupAndListen() error {
+func (a *Api) Setup() {
 	a.SetupMiddlewares()
 	a.SetupRoutes()
-	return a.Listen()
 }
 
 func (a *Api) Listen() error {

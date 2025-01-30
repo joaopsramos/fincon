@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/joaopsramos/fincon/internal/api"
@@ -15,5 +16,6 @@ func main() {
 	db := config.ConnectAndSetup(os.Getenv("SQLITE_PATH"))
 
 	api := api.NewApi(db)
-	api.SetupAndListen()
+	api.Setup()
+	log.Fatal(api.Listen())
 }

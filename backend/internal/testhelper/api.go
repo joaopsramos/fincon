@@ -17,8 +17,7 @@ type TestApi struct {
 
 func NewTestApi(tx *gorm.DB) *TestApi {
 	api := api.NewApi(tx)
-	api.SetupMiddlewares()
-	api.SetupRoutes()
+	api.Setup()
 
 	return &TestApi{api: api}
 }
