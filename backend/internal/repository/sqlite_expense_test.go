@@ -11,17 +11,17 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteExpenseRepo(t *testing.T, tx *gorm.DB) domain.ExpenseRepo {
+func NewTestPostgresExpenseRepo(t *testing.T, tx *gorm.DB) domain.ExpenseRepo {
 	t.Helper()
 
-	return repository.NewSQLiteExpense(tx)
+	return repository.NewPostgresExpense(tx)
 }
 
-func TestSQLiteExpense_GetSummary(t *testing.T) {
+func TestPostgresExpense_GetSummary(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	tx := testhelper.NewTestSQLiteTx(t)
+	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 
 	salaryAmount := 10_000
@@ -76,9 +76,9 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 		})
 	}
 
-	r := NewTestSQLiteExpenseRepo(t, tx)
-	goalRepo := NewTestSQLiteGoalRepo(t, tx)
-	salaryRepo := NewTestSQLiteSalaryRepo(t, tx)
+	r := NewTestPostgresExpenseRepo(t, tx)
+	goalRepo := NewTestPostgresGoalRepo(t, tx)
+	salaryRepo := NewTestPostgresSalaryRepo(t, tx)
 
 	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
 
@@ -113,11 +113,11 @@ func TestSQLiteExpense_GetSummary(t *testing.T) {
 	assertSummaryEntry(domain.FinancialInvestments, 700.25, 2500, 28.01, 7.0, entriesByName, assert)
 }
 
-func TestSQLiteExpense_GetByGoalID(t *testing.T) {
+func TestPostgresExpense_AllByGoalID(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	tx := testhelper.NewTestSQLiteTx(t)
+	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 
 	goals := []domain.Goal{{Name: domain.Goals}, {Name: domain.Pleasures}, {Name: domain.Comfort}}
@@ -140,7 +140,7 @@ func TestSQLiteExpense_GetByGoalID(t *testing.T) {
 		f.InsertExpense(&expenses[i])
 	}
 
-	r := NewTestSQLiteExpenseRepo(t, tx)
+	r := NewTestPostgresExpenseRepo(t, tx)
 	year, month, _ := monthStart.Date()
 	var actual []domain.Expense
 

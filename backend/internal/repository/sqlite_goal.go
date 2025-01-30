@@ -5,22 +5,22 @@ import (
 	"gorm.io/gorm"
 )
 
-type SQLiteGoalRepository struct {
+type PostgresGoalRepository struct {
 	db *gorm.DB
 }
 
-func NewSQLiteGoal(db *gorm.DB) domain.GoalRepo {
-	return SQLiteGoalRepository{db}
+func NewPostgresGoal(db *gorm.DB) domain.GoalRepo {
+	return PostgresGoalRepository{db}
 }
 
-func (r SQLiteGoalRepository) All() []domain.Goal {
+func (r PostgresGoalRepository) All() []domain.Goal {
 	var g []domain.Goal
 	r.db.Find(&g)
 
 	return g
 }
 
-func (r SQLiteGoalRepository) Get(id uint) (domain.Goal, error) {
+func (r PostgresGoalRepository) Get(id uint) (domain.Goal, error) {
 	goal := domain.Goal{ID: id}
 	result := r.db.Take(&goal)
 

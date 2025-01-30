@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var NewPGConn = func(dns string) *gorm.DB {
+var NewPostgresConn = func(dns string) *gorm.DB {
 	return sync.OnceValue(func() *gorm.DB {
 		db, err := gorm.Open(postgres.Open(dns), &gorm.Config{})
 		if err != nil {

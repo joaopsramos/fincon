@@ -10,18 +10,18 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteSalaryRepo(t *testing.T, tx *gorm.DB) domain.SalaryRepo {
-	return repository.NewSQLiteSalary(tx)
+func NewTestPostgresSalaryRepo(t *testing.T, tx *gorm.DB) domain.SalaryRepo {
+	return repository.NewPostgresSalary(tx)
 }
 
-func TestSQLiteSalary_Get(t *testing.T) {
+func TestPostgresSalary_Get(t *testing.T) {
 	t.Parallel()
 
-	tx := testhelper.NewTestSQLiteTx(t)
+	tx := testhelper.NewTestPostgresTx(t)
 
 	f := testhelper.NewFactory(tx)
 	f.InsertSalary(&domain.Salary{Amount: 200})
-	r := NewTestSQLiteSalaryRepo(t, tx)
+	r := NewTestPostgresSalaryRepo(t, tx)
 
 	assert.Equal(t, int64(200), r.Get().Amount)
 }

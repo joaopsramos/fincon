@@ -21,9 +21,9 @@ type Api struct {
 }
 
 func NewApi(db *gorm.DB) *Api {
-	salaryRepo := repository.NewSQLiteSalary(db)
-	goalRepo := repository.NewSQLiteGoal(db)
-	expenseRepo := repository.NewSQLiteExpense(db)
+	salaryRepo := repository.NewPostgresSalary(db)
+	goalRepo := repository.NewPostgresGoal(db)
+	expenseRepo := repository.NewPostgresExpense(db)
 
 	salaryController := controller.NewSalaryController(salaryRepo)
 	goalController := controller.NewGoalController(goalRepo, expenseRepo)

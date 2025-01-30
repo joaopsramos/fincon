@@ -10,14 +10,14 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestSQLiteGoalRepo(t *testing.T, tx *gorm.DB) domain.GoalRepo {
-	return repository.NewSQLiteGoal(tx)
+func NewTestPostgresGoalRepo(t *testing.T, tx *gorm.DB) domain.GoalRepo {
+	return repository.NewPostgresGoal(tx)
 }
 
-func TestSQLiteGoal_All(t *testing.T) {
+func TestPostgresGoal_All(t *testing.T) {
 	t.Parallel()
 
-	tx := testhelper.NewTestSQLiteTx(t)
+	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 
 	goals := []domain.Goal{{Name: domain.Goals, Percentage: 20}, {Name: domain.Pleasures, Percentage: 80}}
@@ -25,6 +25,6 @@ func TestSQLiteGoal_All(t *testing.T) {
 		f.InsertGoal(&goals[i])
 	}
 
-	r := NewTestSQLiteGoalRepo(t, tx)
+	r := NewTestPostgresGoalRepo(t, tx)
 	assert.Equal(t, goals, r.All())
 }

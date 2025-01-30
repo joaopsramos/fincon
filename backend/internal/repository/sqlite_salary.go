@@ -5,15 +5,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type SQLiteSalaryRepository struct {
+type PostgresSalaryRepository struct {
 	db *gorm.DB
 }
 
-func NewSQLiteSalary(db *gorm.DB) domain.SalaryRepo {
-	return SQLiteSalaryRepository{db}
+func NewPostgresSalary(db *gorm.DB) domain.SalaryRepo {
+	return PostgresSalaryRepository{db}
 }
 
-func (r SQLiteSalaryRepository) Get() domain.Salary {
+func (r PostgresSalaryRepository) Get() domain.Salary {
 	var s domain.Salary
 	r.db.First(&s)
 	return s

@@ -11,7 +11,7 @@ type Expense struct {
 	ID    uint      `json:"id" gorm:"primaryKey"`
 	Name  string    `json:"name"`
 	Value int64     `json:"value"`
-	Date  time.Time `json:"date"`
+	Date  time.Time `gorm:"type:timestamp without time zone" json:"date"`
 
 	GoalID uint `json:"goal_id"`
 	Goal   Goal `json:"-"`

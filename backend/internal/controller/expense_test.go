@@ -14,7 +14,7 @@ import (
 func TestExpenseController_Create(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	tx := testhelper.NewTestSQLiteTx(t)
+	tx := testhelper.NewTestPostgresTx(t)
 	api := testhelper.NewTestApi(tx)
 	f := testhelper.NewFactory(tx)
 
@@ -61,12 +61,13 @@ func TestExpenseController_Create(t *testing.T) {
 		})
 	}
 
-	f.InsertGoal(&domain.Goal{Name: "Comfort"})
+	goal := domain.Goal{Name: "Comfort"}
+	f.InsertGoal(&goal)
 
 	resp := api.Test(
 		http.MethodPost,
 		"/api/expenses",
-		util.M{"name": "Food", "value": 123.45, "date": "2025-01-15", "goal_id": 1},
+		util.M{"name": "Food", "value": 123.45, "date": "2025-01-15", "goal_id": goal.ID},
 	)
 	json.NewDecoder(resp.Body).Decode(&respBody)
 
@@ -79,6 +80,6 @@ func TestExpenseController_Create(t *testing.T) {
 		"name":    "Food",
 		"value":   util.M{"amount": 123.45, "currency": "BRL"},
 		"date":    "2025-01-15T00:00:00Z",
-		"goal_id": 1.0,
+		"goal_id": float64(goal.ID),
 	}, respBody)
 }

@@ -25,12 +25,12 @@ func main() {
 		os.Getenv("POSTGRES_PASS"),
 	)
 
-	db := config.NewPGConn(dns)
+	db := config.NewPostgresConn(dns)
 
 	log.Info("Creating datbase...")
 	db.Exec("CREATE DATABASE " + os.Getenv("POSTGRES_DB"))
 
-	db = config.NewPGConn(fmt.Sprintf("%s dbname=%s", dns, os.Getenv("POSTGRES_DB")))
+	db = config.NewPostgresConn(fmt.Sprintf("%s dbname=%s", dns, os.Getenv("POSTGRES_DB")))
 
 	log.Info("Auto migrating...")
 	db.AutoMigrate(&domain.Goal{}, &domain.Salary{}, &domain.Expense{})

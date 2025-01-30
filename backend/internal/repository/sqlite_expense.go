@@ -9,15 +9,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type SQLiteExpenseRepository struct {
+type PostgresExpenseRepository struct {
 	db *gorm.DB
 }
 
-func NewSQLiteExpense(db *gorm.DB) domain.ExpenseRepo {
-	return SQLiteExpenseRepository{db}
+func NewPostgresExpense(db *gorm.DB) domain.ExpenseRepo {
+	return PostgresExpenseRepository{db}
 }
 
-func (r SQLiteExpenseRepository) Get(id uint) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) Get(id uint) (*domain.Expense, error) {
 	var e domain.Expense
 	result := r.db.Take(&e, id)
 	if result.Error != nil {
@@ -27,7 +27,7 @@ func (r SQLiteExpenseRepository) Get(id uint) (*domain.Expense, error) {
 	return &e, nil
 }
 
-func (r SQLiteExpenseRepository) Create(e domain.Expense, goalRepo domain.GoalRepo) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) Create(e domain.Expense, goalRepo domain.GoalRepo) (*domain.Expense, error) {
 	_, err := goalRepo.Get(e.GoalID)
 	if err != nil {
 		return &domain.Expense{}, err
@@ -41,7 +41,7 @@ func (r SQLiteExpenseRepository) Create(e domain.Expense, goalRepo domain.GoalRe
 	return &e, nil
 }
 
-func (r SQLiteExpenseRepository) Update(e domain.Expense) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) Update(e domain.Expense) (*domain.Expense, error) {
 	result := r.db.Model(&e).Select("Name", "Value", "Date").Updates(e)
 	if result.RowsAffected == 0 {
 		return &domain.Expense{}, errors.New("expense not updated")
@@ -50,7 +50,7 @@ func (r SQLiteExpenseRepository) Update(e domain.Expense) (*domain.Expense, erro
 	return &e, nil
 }
 
-func (r SQLiteExpenseRepository) ChangeGoal(e domain.Expense, goalID uint) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) ChangeGoal(e domain.Expense, goalID uint) (*domain.Expense, error) {
 	var goal domain.Goal
 	result := r.db.Take(&goal, goalID)
 	if result.Error != nil {
@@ -62,7 +62,7 @@ func (r SQLiteExpenseRepository) ChangeGoal(e domain.Expense, goalID uint) (*dom
 	return &e, nil
 }
 
-func (r SQLiteExpenseRepository) Delete(id uint) error {
+func (r PostgresExpenseRepository) Delete(id uint) error {
 	result := r.db.Delete(&domain.Expense{}, id)
 
 	if result.RowsAffected == 0 {
@@ -72,20 +72,20 @@ func (r SQLiteExpenseRepository) Delete(id uint) error {
 	return nil
 }
 
-func (r SQLiteExpenseRepository) AllByGoalID(goalID uint, year int, month time.Month) []domain.Expense {
+func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time.Month) []domain.Expense {
 	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 
 	var e []domain.Expense
 	r.db.
 		Where("goal_id = ?", goalID).
-		Where("date(date, 'start of month') = date(?, 'start of month')", date).
+		Where("date_trunc('month', date) = date_trunc('month', ?::timestamp)", date).
 		Order("date DESC, created_at DESC").
 		Find(&e)
 
 	return e
 }
 
-func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.GoalRepo, salaryRepo domain.SalaryRepo) domain.Summary {
+func (r PostgresExpenseRepository) GetSummary(date time.Time, goalRepo domain.GoalRepo, salaryRepo domain.SalaryRepo) domain.Summary {
 	salary := salaryRepo.Get()
 
 	type result struct {
@@ -93,14 +93,14 @@ func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.Goal
 		Name       string
 		Percentage int
 		Spent      int64
-		Date       string
+		Date       time.Time
 	}
 
 	var results []result
 	r.db.Model(&domain.Goal{}).
-		Joins("Expenses").
-		Select("goals.id, goals.name, goals.percentage, COALESCE(date(expenses.date, 'start of month'), date('now')) date, SUM(expenses.value) spent").
-		Where("date(expenses.date, 'start of month') <= date(?, 'start of month')", date).
+		Joins("JOIN expenses ON goals.id = expenses.goal_id").
+		Select("goals.id, goals.name, goals.percentage, date_trunc('month', expenses.date) date, SUM(expenses.value) spent").
+		Where("date_trunc('month', expenses.date) <= date_trunc('month', ?::date)", date).
 		Group("1, 2, 3, 4").
 		Scan(&results)
 
@@ -108,7 +108,7 @@ func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.Goal
 
 	resultsByGoalID := make(map[uint]*result)
 	for _, r := range results {
-		date, _ := time.Parse(time.DateOnly, r.Date)
+		date = r.Date
 		goalLimit := int64(r.Percentage) * (salary.Amount / 100)
 
 		if r.Spent <= goalLimit && date.Before(monthStart) {
@@ -165,5 +165,10 @@ func (r SQLiteExpenseRepository) GetSummary(date time.Time, goalRepo domain.Goal
 		totalUsed += total
 	}
 
-	return domain.Summary{Goals: sg, Spent: domain.NewMoney(totalSpent), MustSpend: domain.NewMoney(totalMustSpend), Used: totalUsed}
+	return domain.Summary{
+		Goals:     sg,
+		Spent:     domain.NewMoney(totalSpent),
+		MustSpend: domain.NewMoney(totalMustSpend),
+		Used:      totalUsed,
+	}
 }

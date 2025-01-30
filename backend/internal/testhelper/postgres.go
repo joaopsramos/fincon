@@ -11,19 +11,19 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestPGTx(t *testing.T) *gorm.DB {
+func NewTestPostgresTx(t *testing.T) *gorm.DB {
 	os.Setenv("APP_ENV", "test")
 	godotenv.Load(path.Join("..", "..", ".env.test"))
 
 	dns := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=UCT",
 		os.Getenv("POSTGRES_HOST"),
 		os.Getenv("POSTGRES_PORT"),
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASS"),
 		os.Getenv("POSTGRES_DB"),
 	)
-	db := config.NewPGConn(dns)
+	db := config.NewPostgresConn(dns)
 
 	tx := db.Begin()
 

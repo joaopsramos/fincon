@@ -22,7 +22,7 @@ func main() {
 		os.Getenv("POSTGRES_PASS"),
 		os.Getenv("POSTGRES_DB"),
 	)
-	db := config.NewPGConn(dns)
+	db := config.NewPostgresConn(dns)
 
 	api := api.NewApi(db)
 	api.Setup()
