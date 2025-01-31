@@ -1,6 +1,5 @@
 fincon
 !cmd/*
-!frontend/*
 tmp/
 
 .prod.env

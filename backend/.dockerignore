@@ -1,0 +1,7 @@
+# flyctl launch added from .gitignore
+**/fincon
+!**/cmd/*
+**/tmp
+
+**/.prod.env
+fly.toml

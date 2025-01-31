@@ -8,6 +8,7 @@ RUN go mod download
 COPY . .
 
 RUN go build -o fincon ./cmd/fincon
+RUN go build -o fincon_setup_db ./cmd/setup_db
 
 EXPOSE 4000
 
