@@ -7,13 +7,13 @@ import (
 
 	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/config"
-
-	"github.com/joho/godotenv"
 )
 
-func main() {
-	godotenv.Load(".env")
+func init() {
+	config.LoadEnv(".")
+}
 
+func main() {
 	dns := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("POSTGRES_HOST"),

@@ -27,7 +27,7 @@ export async function createExpense(formData: FormData, goalId: number) {
   await api.post("/expenses", {
     name: formData.get("name"),
     value: parseFloat(formData.get("value") as string),
-    date: dayjs().format("DD/MM/YYYY"),
+    date: dayjs().format("YYYY-MM-DD"),
     goal_id: goalId,
   })
 }

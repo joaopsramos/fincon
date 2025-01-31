@@ -7,13 +7,12 @@ import (
 	"testing"
 
 	"github.com/joaopsramos/fincon/internal/config"
-	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
 
 func NewTestPostgresTx(t *testing.T) *gorm.DB {
 	os.Setenv("APP_ENV", "test")
-	godotenv.Load(path.Join("..", "..", ".env.test"))
+	config.LoadEnv(path.Join("..", ".."))
 
 	dns := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=UCT",

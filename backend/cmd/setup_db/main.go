@@ -7,16 +7,13 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/domain"
-	"github.com/joho/godotenv"
 )
 
-func main() {
-	if os.Getenv("APP_ENV") == "test" {
-		godotenv.Load(".env.test")
-	} else {
-		godotenv.Load(".env")
-	}
+func init() {
+	config.LoadEnv(".")
+}
 
+func main() {
 	dns := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s sslmode=disable",
 		os.Getenv("POSTGRES_HOST"),
