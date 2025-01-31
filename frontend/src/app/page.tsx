@@ -16,8 +16,8 @@ export default function Index() {
 
   return (
     <div className="m-4">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        <div className="lg:col-span-2">
           <Summary date={date} />
         </div>
         <div className="">
@@ -26,7 +26,7 @@ export default function Index() {
 
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-4">
+      <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
         {goals?.map(goal => (
           <Expense key={goal.id} goal={goal} />
         ))}
