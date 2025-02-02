@@ -17,6 +17,13 @@ func NewPostgresExpense(db *gorm.DB) domain.ExpenseRepo {
 	return PostgresExpenseRepository{db}
 }
 
+func (r PostgresExpenseRepository) FindMatchingNames(name string) []string {
+	var names []string
+	r.db.Model(&domain.Expense{}).Where("unaccent(name) ILIKE unaccent(?)", "%"+name+"%").Distinct("name").Pluck("name", &names)
+
+	return names
+}
+
 func (r PostgresExpenseRepository) Get(id uint) (*domain.Expense, error) {
 	var e domain.Expense
 	result := r.db.Take(&e, id)

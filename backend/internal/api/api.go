@@ -64,6 +64,7 @@ func (a *Api) SetupRoutes() {
 	api.Delete("/expenses/:id", a.expenseHandler.Delete)
 	api.Patch("/expenses/:id/update-goal", a.expenseHandler.UpdateGoal)
 	api.Get("/expenses/summary", a.expenseHandler.GetSummary)
+	api.Get("/expenses/matching-names", a.expenseHandler.FindMatchingNames)
 
 	api.Get("/goals", a.goalHandler.Index)
 	api.Get("/goals/:id/expenses", a.goalHandler.GetExpenses)

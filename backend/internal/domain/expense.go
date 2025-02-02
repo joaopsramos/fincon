@@ -63,5 +63,6 @@ type ExpenseRepo interface {
 	Delete(id uint) error
 	ChangeGoal(e Expense, goalID uint) (*Expense, error)
 	AllByGoalID(goalID uint, year int, month time.Month) []Expense
+	FindMatchingNames(name string) []string
 	GetSummary(date time.Time, goalRepo GoalRepo, salaryRepo SalaryRepo) Summary
 }

@@ -35,6 +35,17 @@ func NewExpenseHandler(
 	return ExpenseHandler{expenseRepo: expenseRepo, goalRepo: goalRepo, salaryRepo: salaryRepo}
 }
 
+func (c *ExpenseHandler) FindMatchingNames(ctx fiber.Ctx) error {
+	query := ctx.Query("query")
+	if len(query) < 2 {
+		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "query must be present and have at least 2 characters"})
+	}
+
+	names := c.expenseRepo.FindMatchingNames(query)
+
+	return ctx.Status(http.StatusOK).JSON(names)
+}
+
 func (c *ExpenseHandler) GetSummary(ctx fiber.Ctx) error {
 	date := time.Now()
 

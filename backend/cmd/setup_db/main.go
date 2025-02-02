@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/joaopsramos/fincon/internal/config"
-	"github.com/joaopsramos/fincon/internal/domain"
+	"golang.org/x/exp/slog"
 )
 
 func init() {
@@ -24,11 +23,9 @@ func main() {
 
 	db := config.NewPostgresConn(dns)
 
-	log.Info("Creating datbase...")
-	db.Exec("CREATE DATABASE " + os.Getenv("POSTGRES_DB"))
-
-	db = config.NewPostgresConn(fmt.Sprintf("%s dbname=%s", dns, os.Getenv("POSTGRES_DB")))
-
-	log.Info("Auto migrating...")
-	db.AutoMigrate(&domain.Goal{}, &domain.Salary{}, &domain.Expense{})
+	slog.Info("Creating datbase...")
+	tx := db.Exec("CREATE DATABASE " + os.Getenv("POSTGRES_DB"))
+	if tx.Error != nil {
+		panic(tx.Error)
+	}
 }

@@ -1,7 +1,6 @@
 package testhelper
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -14,15 +13,7 @@ func NewTestPostgresTx(t *testing.T) *gorm.DB {
 	os.Setenv("APP_ENV", "test")
 	config.LoadEnv(path.Join("..", ".."))
 
-	dns := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=UCT",
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASS"),
-		os.Getenv("POSTGRES_DB"),
-	)
-	db := config.NewPostgresConn(dns)
+	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
 
 	tx := db.Begin()
 

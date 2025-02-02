@@ -17,5 +17,8 @@ run:
 setup-db:
 	go run ./cmd/setup_db
 
+migrate:
+	go run ./cmd/migrate_db
+
 test:
 	APP_ENV=test go test ./...
