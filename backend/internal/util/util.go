@@ -9,6 +9,8 @@ import (
 
 type M = map[string]any
 
+const ApiDateLayout = "2006-01-02"
+
 func ParseZodSchema(schema *z.StructSchema, body []byte, dest any) M {
 	err := schema.Parse(zjson.Decode(bytes.NewReader(body)), dest)
 	if err != nil {

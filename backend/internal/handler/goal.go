@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"net/http"
@@ -10,21 +10,21 @@ import (
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
-type GoalController struct {
+type GoalHandler struct {
 	repo        domain.GoalRepo
 	expenseRepo domain.ExpenseRepo
 }
 
-func NewGoalController(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalController {
-	return GoalController{repo: repo, expenseRepo: expenseRepo}
+func NewGoalHandler(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalHandler {
+	return GoalHandler{repo: repo, expenseRepo: expenseRepo}
 }
 
-func (c *GoalController) Index(ctx fiber.Ctx) error {
+func (c *GoalHandler) Index(ctx fiber.Ctx) error {
 	goals := c.repo.All()
 	return ctx.Status(http.StatusOK).JSON(goals)
 }
 
-func (c *GoalController) GetExpenses(ctx fiber.Ctx) error {
+func (c *GoalHandler) GetExpenses(ctx fiber.Ctx) error {
 	query := ctx.Queries()
 	now := time.Now()
 	year, month, _ := now.Date()

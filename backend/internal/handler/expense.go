@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ExpenseController struct {
+type ExpenseHandler struct {
 	expenseRepo domain.ExpenseRepo
 	goalRepo    domain.GoalRepo
 	salaryRepo  domain.SalaryRepo
@@ -23,23 +23,23 @@ type ExpenseController struct {
 var expenseCreateSchema = z.Struct(z.Schema{
 	"name":   z.String().Min(2).Required(),
 	"value":  z.Float().GTE(1).Required(),
-	"date":   z.Time(z.Time.Format("2006-01-02")).Required(),
+	"date":   z.Time(z.Time.Format(util.ApiDateLayout)).Required(),
 	"goalID": z.Int().Required(),
 })
 
-func NewExpenseController(
+func NewExpenseHandler(
 	expenseRepo domain.ExpenseRepo,
 	goalRepo domain.GoalRepo,
 	salaryRepo domain.SalaryRepo,
-) ExpenseController {
-	return ExpenseController{expenseRepo: expenseRepo, goalRepo: goalRepo, salaryRepo: salaryRepo}
+) ExpenseHandler {
+	return ExpenseHandler{expenseRepo: expenseRepo, goalRepo: goalRepo, salaryRepo: salaryRepo}
 }
 
-func (c *ExpenseController) GetSummary(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) GetSummary(ctx fiber.Ctx) error {
 	date := time.Now()
 
 	if queryDate := ctx.Query("date"); queryDate != "" {
-		parsedDate, err := time.Parse("2006-01-02", queryDate)
+		parsedDate, err := time.Parse(util.ApiDateLayout, queryDate)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
 		}
@@ -51,7 +51,7 @@ func (c *ExpenseController) GetSummary(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(summary)
 }
 
-func (c *ExpenseController) Create(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) Create(ctx fiber.Ctx) error {
 	var params struct {
 		Name   string
 		Value  float64
@@ -80,7 +80,7 @@ func (c *ExpenseController) Create(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusCreated).JSON(expense)
 }
 
-func (c *ExpenseController) Update(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) Update(ctx fiber.Ctx) error {
 	var params struct {
 		Name  string  `json:"name"`
 		Value float64 `json:"value"`
@@ -96,7 +96,7 @@ func (c *ExpenseController) Update(ctx fiber.Ctx) error {
 	var date time.Time
 
 	if params.Date != "" {
-		date, err = time.Parse("2006-01-02", params.Date)
+		date, err = time.Parse(util.ApiDateLayout, params.Date)
 		if err != nil {
 			return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
 		}
@@ -124,7 +124,7 @@ func (c *ExpenseController) Update(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseController) UpdateGoal(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) UpdateGoal(ctx fiber.Ctx) error {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
@@ -152,7 +152,7 @@ func (c *ExpenseController) UpdateGoal(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseController) Delete(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) Delete(ctx fiber.Ctx) error {
 	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})

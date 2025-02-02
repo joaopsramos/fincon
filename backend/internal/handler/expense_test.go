@@ -1,4 +1,4 @@
-package controller_test
+package handler_test
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestExpenseController_Create(t *testing.T) {
+func TestExpenseHandler_Create(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
