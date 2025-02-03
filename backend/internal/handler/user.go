@@ -35,18 +35,18 @@ func NewUserHandler(userRepo domain.UserRepo) UserHandler {
 	}
 }
 
-func (h *UserHandler) Create(ctx *fiber.Ctx) error {
+func (h *UserHandler) Create(c *fiber.Ctx) error {
 	var params struct {
 		Email    string
 		Password string
 	}
 
-	if errs := util.ParseZodSchema(userCreateSchema, ctx.Body(), &params); errs != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"errors": errs})
+	if errs := util.ParseZodSchema(userCreateSchema, c.Body(), &params); errs != nil {
+		return c.Status(http.StatusBadRequest).JSON(util.M{"errors": errs})
 	}
 
 	if _, err := h.userRepo.GetByEmail(params.Email); err == nil {
-		return ctx.Status(http.StatusConflict).JSON(util.M{"error": "email already in use"})
+		return c.Status(http.StatusConflict).JSON(util.M{"error": "email already in use"})
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		panic(err)
 	}
@@ -62,31 +62,31 @@ func (h *UserHandler) Create(ctx *fiber.Ctx) error {
 		panic(err)
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(util.M{"user": user, "token": user.CreateToken()})
+	return c.Status(http.StatusCreated).JSON(util.M{"user": user, "token": user.CreateToken()})
 }
 
-func (h *UserHandler) Login(ctx *fiber.Ctx) error {
+func (h *UserHandler) Login(c *fiber.Ctx) error {
 	var params struct {
 		Email    string
 		Password string
 	}
 
-	if errs := util.ParseZodSchema(userLoginSchema, ctx.Body(), &params); errs != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"errors": errs})
+	if errs := util.ParseZodSchema(userLoginSchema, c.Body(), &params); errs != nil {
+		return c.Status(http.StatusBadRequest).JSON(util.M{"errors": errs})
 	}
 
 	user, err := h.userRepo.GetByEmail(params.Email)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
+		return c.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
 	} else if err != nil {
 		panic(err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.HashPassword), []byte(params.Password)); err != nil {
-		return ctx.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
+		return c.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(util.M{"token": user.CreateToken()})
+	return c.Status(http.StatusCreated).JSON(util.M{"token": user.CreateToken()})
 }
 
 func (h *UserHandler) ValidateTokenMiddleware() fiber.Handler {

@@ -16,7 +16,7 @@ func NewSalaryHandler(salaryRepo domain.SalaryRepo) SalaryHandler {
 	return SalaryHandler{salaryRepo: salaryRepo}
 }
 
-func (c *SalaryHandler) Get(ctx *fiber.Ctx) error {
-	salary := c.salaryRepo.Get()
-	return ctx.Status(http.StatusOK).JSON(util.M{"amount": salary.Amount})
+func (h *SalaryHandler) Get(c *fiber.Ctx) error {
+	salary := h.salaryRepo.Get()
+	return c.Status(http.StatusOK).JSON(util.M{"amount": salary.Amount})
 }

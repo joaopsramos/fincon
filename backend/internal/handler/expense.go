@@ -35,34 +35,34 @@ func NewExpenseHandler(
 	return ExpenseHandler{expenseRepo: expenseRepo, goalRepo: goalRepo, salaryRepo: salaryRepo}
 }
 
-func (c *ExpenseHandler) FindMatchingNames(ctx *fiber.Ctx) error {
-	query := ctx.Query("query")
+func (h *ExpenseHandler) FindMatchingNames(c *fiber.Ctx) error {
+	query := c.Query("query")
 	if len(query) < 2 {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "query must be present and have at least 2 characters"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "query must be present and have at least 2 characters"})
 	}
 
-	names := c.expenseRepo.FindMatchingNames(query)
+	names := h.expenseRepo.FindMatchingNames(query)
 
-	return ctx.Status(http.StatusOK).JSON(names)
+	return c.Status(http.StatusOK).JSON(names)
 }
 
-func (c *ExpenseHandler) GetSummary(ctx *fiber.Ctx) error {
+func (h *ExpenseHandler) GetSummary(c *fiber.Ctx) error {
 	date := time.Now()
 
-	if queryDate := ctx.Query("date"); queryDate != "" {
+	if queryDate := c.Query("date"); queryDate != "" {
 		parsedDate, err := time.Parse(util.ApiDateLayout, queryDate)
 		if err != nil {
-			return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
+			return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
 		}
 
 		date = parsedDate
 	}
 
-	summary := c.expenseRepo.GetSummary(date, c.goalRepo, c.salaryRepo)
-	return ctx.Status(http.StatusOK).JSON(summary)
+	summary := h.expenseRepo.GetSummary(date, h.goalRepo, h.salaryRepo)
+	return c.Status(http.StatusOK).JSON(summary)
 }
 
-func (c *ExpenseHandler) Create(ctx *fiber.Ctx) error {
+func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 	var params struct {
 		Name   string
 		Value  float64
@@ -70,8 +70,8 @@ func (c *ExpenseHandler) Create(ctx *fiber.Ctx) error {
 		GoalID int `zog:"goal_id"`
 	}
 
-	if err := util.ParseZodSchema(expenseCreateSchema, ctx.Body(), &params); err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(err)
+	if err := util.ParseZodSchema(expenseCreateSchema, c.Body(), &params); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err)
 	}
 
 	toCreate := domain.Expense{
@@ -81,27 +81,27 @@ func (c *ExpenseHandler) Create(ctx *fiber.Ctx) error {
 		GoalID: uint(params.GoalID),
 	}
 
-	expense, err := c.expenseRepo.Create(toCreate, c.goalRepo)
+	expense, err := h.expenseRepo.Create(toCreate, h.goalRepo)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
-	return ctx.Status(http.StatusCreated).JSON(expense)
+	return c.Status(http.StatusCreated).JSON(expense)
 }
 
-func (c *ExpenseHandler) Update(ctx *fiber.Ctx) error {
+func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 	var params struct {
 		Name  string  `json:"name"`
 		Value float64 `json:"value"`
 		Date  string  `json:"date"`
 	}
-	json.Unmarshal(ctx.Body(), &params)
+	json.Unmarshal(c.Body(), &params)
 
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
 	var date time.Time
@@ -109,13 +109,13 @@ func (c *ExpenseHandler) Update(ctx *fiber.Ctx) error {
 	if params.Date != "" {
 		date, err = time.Parse(util.ApiDateLayout, params.Date)
 		if err != nil {
-			return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
+			return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
 		}
 	}
 
-	toUpdate, err := c.expenseRepo.Get(uint(id))
+	toUpdate, err := h.expenseRepo.Get(uint(id))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
 	} else if err != nil {
 		panic(err)
 	}
@@ -127,52 +127,52 @@ func (c *ExpenseHandler) Update(ctx *fiber.Ctx) error {
 		toUpdate.Date = date
 	}
 
-	expense, err := c.expenseRepo.Update(*toUpdate)
+	expense, err := h.expenseRepo.Update(*toUpdate)
 	if err != nil {
 		panic(err)
 	}
 
-	return ctx.Status(http.StatusOK).JSON(expense)
+	return c.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseHandler) UpdateGoal(ctx *fiber.Ctx) error {
+func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
-	json.Unmarshal(ctx.Body(), &params)
+	json.Unmarshal(c.Body(), &params)
 
-	id, err := strconv.Atoi(ctx.Params("id"))
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
-	toUpdate, err := c.expenseRepo.Get(uint(id))
+	toUpdate, err := h.expenseRepo.Get(uint(id))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
-	expense, err := c.expenseRepo.ChangeGoal(*toUpdate, params.GoalID)
+	expense, err := h.expenseRepo.ChangeGoal(*toUpdate, params.GoalID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
-	return ctx.Status(http.StatusOK).JSON(expense)
+	return c.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseHandler) Delete(ctx *fiber.Ctx) error {
-	id, err := strconv.Atoi(ctx.Params("id"))
+func (h *ExpenseHandler) Delete(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
-	err = c.expenseRepo.Delete(uint(id))
+	err = h.expenseRepo.Delete(uint(id))
 	if err != nil {
-		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": err.Error()})
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": err.Error()})
 	}
 
-	return ctx.Status(http.StatusNoContent).Send(nil)
+	return c.Status(http.StatusNoContent).Send(nil)
 }
