@@ -43,3 +43,7 @@ export async function deleteExpense(expenseId: number) {
   await api.delete(`/expenses/${expenseId}`)
 }
 
+export async function findMatchingNames(query: string) {
+  const resp = await api.get(`/expenses/matching-names?query=${query}`)
+  return resp.data as string[]
+}

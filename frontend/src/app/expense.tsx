@@ -3,11 +3,11 @@ import dayjs from "dayjs"
 import type { Expense } from "@/api/expense"
 import utc from "dayjs/plugin/utc"
 import { Goal } from "@/api/goals"
-import { createExpense, deleteExpense, editExpense, getExpenses } from "@/api/expense"
+import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
 import { moneyToString } from "@/util/money"
 import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { CheckIcon, PencilIcon, PlusCircleIcon, TrashIcon } from "@heroicons/react/24/solid"
-import { KeyboardEvent, useState } from "react"
+import { KeyboardEvent, useEffect, useState } from "react"
 
 export default function Expense({ goal }: { goal: Goal }) {
   dayjs.extend(utc)
@@ -19,11 +19,6 @@ export default function Expense({ goal }: { goal: Goal }) {
     queryKey: ["expense", goal.id],
     queryFn: getExpenses,
     refetchOnWindowFocus: false
-  })
-
-  const createExpenseMut = useMutation({
-    mutationFn: (formData: FormData) => createExpense(formData, goal.id),
-    onSuccess: invalidateQueries
   })
 
   const thClass = "text-slate-700 pb-2"
@@ -52,17 +47,7 @@ export default function Expense({ goal }: { goal: Goal }) {
       </div>
 
       <div className="mt-4">
-        <Form action={createExpenseMut.mutate}>
-          <div className="flex items-center">
-            <input className="rounded-md p-1 w-6/12" name="name" type="text" placeholder="Name" />
-            <input className="ml-2 sm:ml-12 lg:ml-12 xl:ml-2 2xl:ml-2 rounded-md p-1 w-6/12" name="value" type="number" placeholder="Value" step="0.01" />
-            <input hidden name="goal_id" value={goal.id} readOnly />
-
-            <button type="submit" className="ml-1 -mr-1 sm:ml-4 sm:mr-0">
-              <PlusCircleIcon className="size-9 text-sky-500" />
-            </button>
-          </div>
-        </Form>
+        <CreateExpense goal={goal} invalidateQueries={invalidateQueries} />
       </div>
     </div >
   )
@@ -151,6 +136,71 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
         </div>
       </td>
     </tr>
+  )
+}
+
+function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQueries: () => Promise<void> }) {
+  const [name, setName] = useState("")
+  const [nameFocused, setNameFocused] = useState(false)
+  const [matchingNames, setMatchingNames] = useState<string[]>([])
+
+  const createExpenseMut = useMutation({
+    mutationFn: (formData: FormData) => createExpense(formData, goal.id),
+    onSuccess: () => {
+      setName("")
+      invalidateQueries()
+    }
+  })
+
+  useEffect(() => {
+    const find = async () => {
+      const names = await findMatchingNames(name)
+
+      setMatchingNames(names)
+    }
+
+    if (name.length >= 2) {
+      find()
+    } else {
+      setMatchingNames([])
+    }
+  }, [name])
+
+  return (
+    <Form action={createExpenseMut.mutate}>
+      <div className="flex items-center">
+        <input
+          className="rounded-md p-1 w-6/12"
+          name="name"
+          type="text"
+          placeholder="Name"
+          autoComplete="off"
+          onFocus={() => setNameFocused(true)}
+          onBlur={() => setTimeout(() => setNameFocused(false), 200)}
+          onChange={e => setName(e.target.value)}
+          value={name}
+        />
+        <input className="ml-2 sm:ml-12 lg:ml-12 xl:ml-2 2xl:ml-2 rounded-md p-1 w-6/12" name="value" type="number" placeholder="Value" step="0.01" />
+        <input hidden name="goal_id" value={goal.id} readOnly />
+
+        <button type="submit" className="ml-1 -mr-1 sm:ml-4 sm:mr-0">
+          <PlusCircleIcon className="size-9 text-sky-500" />
+        </button>
+      </div>
+      <div className="absolute z-10 bg-white rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll">
+        <ul>
+          {matchingNames.length > 0 && nameFocused && matchingNames.map(name => (
+            <li
+              key={name}
+              className="px-2 py-1 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+              onClick={() => {
+                setName(name)
+                setNameFocused(false)
+              }}>{name}</li>
+          ))}
+        </ul>
+      </div>
+    </Form>
   )
 }
 
