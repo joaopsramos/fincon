@@ -1,14 +1,16 @@
 package api
 
 import (
+	"errors"
 	"log/slog"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/cors"
-	"github.com/gofiber/fiber/v3/middleware/logger"
-	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joaopsramos/fincon/internal/handler"
 	"github.com/joaopsramos/fincon/internal/repository"
+	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -33,7 +35,7 @@ func NewApi(db *gorm.DB) *Api {
 	expenseHandler := handler.NewExpenseHandler(expenseRepo, goalRepo, salaryRepo)
 
 	return &Api{
-		Router:         fiber.New(),
+		Router:         newFiber(),
 		userHandler:    userHandler,
 		salaryHandler:  salaryHandler,
 		goalHandler:    goalHandler,
@@ -54,15 +56,17 @@ func (a *Api) Listen() error {
 
 func (a *Api) SetupMiddlewares() {
 	a.Router.Use(logger.New())
-	a.Router.Use(recover.New())
 	a.Router.Use(cors.New())
+	a.Router.Use(recover.New())
 }
 
 func (a *Api) SetupRoutes() {
-	api := a.Router.Group("/api")
+	a.Router.Post("/api/users", a.userHandler.Create)
+	a.Router.Post("/api/sessions", a.userHandler.Login)
 
-	api.Post("/users", a.userHandler.Create)
-	api.Post("/sessions", a.userHandler.Login)
+	api := a.Router.Group("/api")
+	api.Use(a.userHandler.ValidateTokenMiddleware())
+	api.Use(a.userHandler.PutUserMiddleware())
 
 	api.Get("/salary", a.salaryHandler.Get)
 
@@ -75,4 +79,21 @@ func (a *Api) SetupRoutes() {
 
 	api.Get("/goals", a.goalHandler.Index)
 	api.Get("/goals/:id/expenses", a.goalHandler.GetExpenses)
+}
+
+func newFiber() *fiber.App {
+	return fiber.New(fiber.Config{
+		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+			code := fiber.StatusInternalServerError
+
+			var e *fiber.Error
+			if errors.As(err, &e) {
+				code = e.Code
+			}
+
+			slog.Error(err.Error())
+
+			return ctx.Status(code).JSON(util.M{"error": "internal server error"})
+		},
+	})
 }

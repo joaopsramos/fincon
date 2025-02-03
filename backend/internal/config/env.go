@@ -3,9 +3,16 @@ package config
 import (
 	"os"
 	"path"
+	"sync"
 
 	"github.com/joho/godotenv"
 )
+
+var SecretKey = sync.OnceValue(secretKey)
+
+func secretKey() []byte {
+	return []byte(os.Getenv("SECRET_KEY"))
+}
 
 func LoadEnv(rootDir string) {
 	var envFile string

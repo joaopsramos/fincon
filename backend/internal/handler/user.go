@@ -5,7 +5,10 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
-	"github.com/gofiber/fiber/v3"
+	jwtware "github.com/gofiber/contrib/jwt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
 	"golang.org/x/crypto/bcrypt"
@@ -32,7 +35,7 @@ func NewUserHandler(userRepo domain.UserRepo) UserHandler {
 	}
 }
 
-func (h *UserHandler) Create(ctx fiber.Ctx) error {
+func (h *UserHandler) Create(ctx *fiber.Ctx) error {
 	var params struct {
 		Email    string
 		Password string
@@ -59,15 +62,10 @@ func (h *UserHandler) Create(ctx fiber.Ctx) error {
 		panic(err)
 	}
 
-	token, err := user.CreateToken()
-	if err != nil {
-		panic(err)
-	}
-
-	return ctx.Status(http.StatusCreated).JSON(util.M{"user": user, "token": token})
+	return ctx.Status(http.StatusCreated).JSON(util.M{"user": user, "token": user.CreateToken()})
 }
 
-func (h *UserHandler) Login(ctx fiber.Ctx) error {
+func (h *UserHandler) Login(ctx *fiber.Ctx) error {
 	var params struct {
 		Email    string
 		Password string
@@ -88,10 +86,37 @@ func (h *UserHandler) Login(ctx fiber.Ctx) error {
 		return ctx.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
 	}
 
-	token, err := user.CreateToken()
-	if err != nil {
-		panic(err)
-	}
+	return ctx.Status(http.StatusCreated).JSON(util.M{"token": user.CreateToken()})
+}
 
-	return ctx.Status(http.StatusCreated).JSON(util.M{"token": token})
+func (h *UserHandler) ValidateTokenMiddleware() fiber.Handler {
+	return jwtware.New(jwtware.Config{
+		SigningKey: jwtware.SigningKey{Key: config.SecretKey()},
+		ContextKey: "token",
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			if err.Error() == jwtware.ErrJWTMissingOrMalformed.Error() {
+				return c.Status(fiber.StatusBadRequest).JSON(util.M{"error": jwtware.ErrJWTMissingOrMalformed.Error()})
+			}
+			return c.Status(fiber.StatusUnauthorized).JSON(util.M{"error": "invalid or expired JWT"})
+		},
+	})
+}
+
+func (h *UserHandler) PutUserMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := c.Locals("token").(*jwt.Token)
+		email, err := token.Claims.GetSubject()
+		if err != nil {
+			panic(err)
+		}
+
+		user, err := h.userRepo.GetByEmail(email)
+		if err != nil {
+			panic(err)
+		}
+
+		c.Locals("user", user)
+
+		return c.Next()
+	}
 }

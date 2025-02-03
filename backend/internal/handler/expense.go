@@ -8,7 +8,7 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
@@ -35,7 +35,7 @@ func NewExpenseHandler(
 	return ExpenseHandler{expenseRepo: expenseRepo, goalRepo: goalRepo, salaryRepo: salaryRepo}
 }
 
-func (c *ExpenseHandler) FindMatchingNames(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) FindMatchingNames(ctx *fiber.Ctx) error {
 	query := ctx.Query("query")
 	if len(query) < 2 {
 		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "query must be present and have at least 2 characters"})
@@ -46,7 +46,7 @@ func (c *ExpenseHandler) FindMatchingNames(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(names)
 }
 
-func (c *ExpenseHandler) GetSummary(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) GetSummary(ctx *fiber.Ctx) error {
 	date := time.Now()
 
 	if queryDate := ctx.Query("date"); queryDate != "" {
@@ -62,7 +62,7 @@ func (c *ExpenseHandler) GetSummary(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(summary)
 }
 
-func (c *ExpenseHandler) Create(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) Create(ctx *fiber.Ctx) error {
 	var params struct {
 		Name   string
 		Value  float64
@@ -91,7 +91,7 @@ func (c *ExpenseHandler) Create(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusCreated).JSON(expense)
 }
 
-func (c *ExpenseHandler) Update(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) Update(ctx *fiber.Ctx) error {
 	var params struct {
 		Name  string  `json:"name"`
 		Value float64 `json:"value"`
@@ -135,7 +135,7 @@ func (c *ExpenseHandler) Update(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseHandler) UpdateGoal(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) UpdateGoal(ctx *fiber.Ctx) error {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
@@ -163,7 +163,7 @@ func (c *ExpenseHandler) UpdateGoal(ctx fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(expense)
 }
 
-func (c *ExpenseHandler) Delete(ctx fiber.Ctx) error {
+func (c *ExpenseHandler) Delete(ctx *fiber.Ctx) error {
 	id, err := strconv.Atoi(ctx.Params("id"))
 	if err != nil {
 		return ctx.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})

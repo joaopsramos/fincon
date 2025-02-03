@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
 )
@@ -19,12 +19,12 @@ func NewGoalHandler(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalHa
 	return GoalHandler{repo: repo, expenseRepo: expenseRepo}
 }
 
-func (c *GoalHandler) Index(ctx fiber.Ctx) error {
+func (c *GoalHandler) Index(ctx *fiber.Ctx) error {
 	goals := c.repo.All()
 	return ctx.Status(http.StatusOK).JSON(goals)
 }
 
-func (c *GoalHandler) GetExpenses(ctx fiber.Ctx) error {
+func (c *GoalHandler) GetExpenses(ctx *fiber.Ctx) error {
 	query := ctx.Queries()
 	now := time.Now()
 	year, month, _ := now.Date()
