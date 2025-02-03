@@ -7,8 +7,10 @@ RUN go mod download
 
 COPY . .
 
+ENV APP_ENV="prod"
+
 RUN go build -o fincon ./cmd/fincon
-RUN go build -o fincon_setup_db ./cmd/setup_db
+RUN go build -o fincon_migrate_db ./cmd/migrate_db
 
 EXPOSE 4000
 
