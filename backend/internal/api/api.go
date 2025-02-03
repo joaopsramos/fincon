@@ -15,22 +15,26 @@ import (
 type Api struct {
 	Router *fiber.App
 
+	userHandler    handler.UserHandler
 	salaryHandler  handler.SalaryHandler
 	goalHandler    handler.GoalHandler
 	expenseHandler handler.ExpenseHandler
 }
 
 func NewApi(db *gorm.DB) *Api {
+	userRepo := repository.NewPostgresUser(db)
 	salaryRepo := repository.NewPostgresSalary(db)
 	goalRepo := repository.NewPostgresGoal(db)
 	expenseRepo := repository.NewPostgresExpense(db)
 
+	userHandler := handler.NewUserHandler(userRepo)
 	salaryHandler := handler.NewSalaryHandler(salaryRepo)
 	goalHandler := handler.NewGoalHandler(goalRepo, expenseRepo)
 	expenseHandler := handler.NewExpenseHandler(expenseRepo, goalRepo, salaryRepo)
 
 	return &Api{
 		Router:         fiber.New(),
+		userHandler:    userHandler,
 		salaryHandler:  salaryHandler,
 		goalHandler:    goalHandler,
 		expenseHandler: expenseHandler,
@@ -56,6 +60,9 @@ func (a *Api) SetupMiddlewares() {
 
 func (a *Api) SetupRoutes() {
 	api := a.Router.Group("/api")
+
+	api.Post("/users", a.userHandler.Create)
+	api.Post("/sessions", a.userHandler.Login)
 
 	api.Get("/salary", a.salaryHandler.Get)
 

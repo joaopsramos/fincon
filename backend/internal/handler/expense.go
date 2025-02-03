@@ -21,7 +21,7 @@ type ExpenseHandler struct {
 }
 
 var expenseCreateSchema = z.Struct(z.Schema{
-	"name":   z.String().Min(2).Required(),
+	"name":   z.String().Trim().Min(2).Required(),
 	"value":  z.Float().GTE(1).Required(),
 	"date":   z.Time(z.Time.Format(util.ApiDateLayout)).Required(),
 	"goalID": z.Int().Required(),

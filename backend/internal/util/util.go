@@ -11,7 +11,7 @@ type M = map[string]any
 
 const ApiDateLayout = "2006-01-02"
 
-func ParseZodSchema(schema *z.StructSchema, body []byte, dest any) M {
+func ParseZodSchema(schema *z.StructSchema, body []byte, dest any) map[string]any {
 	err := schema.Parse(zjson.Decode(bytes.NewReader(body)), dest)
 	if err != nil {
 		sanitized := z.Errors.SanitizeMap(err)
