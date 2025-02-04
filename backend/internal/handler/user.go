@@ -3,11 +3,13 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	z "github.com/Oudwins/zog"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -18,6 +20,11 @@ import (
 type UserHandler struct {
 	userRepo domain.UserRepo
 }
+
+var (
+	tokenExpiresIn = time.Hour * 24 * 7
+	jwtContextKey  = "token"
+)
 
 var userCreateSchema = z.Struct(z.Schema{
 	"email":    z.String().Trim().Max(160).Email().Required(),
@@ -62,7 +69,7 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	return c.Status(http.StatusCreated).JSON(util.M{"user": user, "token": user.CreateToken()})
+	return c.Status(http.StatusCreated).JSON(util.M{"user": user, "token": h.generateToken(user.ID)})
 }
 
 func (h *UserHandler) Login(c *fiber.Ctx) error {
@@ -86,13 +93,13 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
 	}
 
-	return c.Status(http.StatusCreated).JSON(util.M{"token": user.CreateToken()})
+	return c.Status(http.StatusCreated).JSON(util.M{"token": h.generateToken(user.ID)})
 }
 
 func (h *UserHandler) ValidateTokenMiddleware() fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: config.SecretKey()},
-		ContextKey: "token",
+		ContextKey: jwtContextKey,
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			if err.Error() == jwtware.ErrJWTMissingOrMalformed.Error() {
 				return c.Status(fiber.StatusBadRequest).JSON(util.M{"error": jwtware.ErrJWTMissingOrMalformed.Error()})
@@ -102,21 +109,20 @@ func (h *UserHandler) ValidateTokenMiddleware() fiber.Handler {
 	})
 }
 
-func (h *UserHandler) PutUserMiddleware() fiber.Handler {
+func (h *UserHandler) PutUserIDMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		token := c.Locals("token").(*jwt.Token)
-		email, err := token.Claims.GetSubject()
+		token := c.Locals(jwtContextKey).(*jwt.Token)
+		id, err := token.Claims.GetSubject()
 		if err != nil {
 			panic(err)
 		}
 
-		user, err := h.userRepo.GetByEmail(email)
-		if err != nil {
-			panic(err)
-		}
-
-		c.Locals("user", user)
+		c.Locals("user_id", id)
 
 		return c.Next()
 	}
+}
+
+func (h *UserHandler) generateToken(userID uuid.UUID) string {
+	return domain.CreateToken(userID, tokenExpiresIn)
 }

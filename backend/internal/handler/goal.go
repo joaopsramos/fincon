@@ -20,8 +20,8 @@ func NewGoalHandler(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalHa
 }
 
 func (h *GoalHandler) Index(c *fiber.Ctx) error {
-	user := util.GetUserFromCtx(c)
-	goals := h.repo.All(user.ID)
+	userID := util.GetUserIDFromCtx(c)
+	goals := h.repo.All(userID)
 	return c.Status(http.StatusOK).JSON(goals)
 }
 
@@ -53,8 +53,8 @@ func (h *GoalHandler) GetExpenses(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid goal id"})
 	}
 
-	user := util.GetUserFromCtx(c)
+	userID := util.GetUserIDFromCtx(c)
 
-	expenses := h.expenseRepo.AllByGoalID(uint(id), year, month, user.ID)
+	expenses := h.expenseRepo.AllByGoalID(uint(id), year, month, userID)
 	return c.Status(http.StatusOK).JSON(expenses)
 }

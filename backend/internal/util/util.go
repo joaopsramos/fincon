@@ -6,15 +6,16 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/Oudwins/zog/parsers/zjson"
 	"github.com/gofiber/fiber/v2"
-	"github.com/joaopsramos/fincon/internal/domain"
+	"github.com/google/uuid"
 )
 
 type M = map[string]any
 
 const ApiDateLayout = "2006-01-02"
 
-func GetUserFromCtx(c *fiber.Ctx) domain.User {
-	return c.Locals("user").(domain.User)
+func GetUserIDFromCtx(c *fiber.Ctx) uuid.UUID {
+	id := c.Locals("user_id").(string)
+	return uuid.MustParse(id)
 }
 
 func ParseZodSchema(schema *z.StructSchema, body []byte, dest any) map[string]any {

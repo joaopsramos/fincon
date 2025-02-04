@@ -66,7 +66,7 @@ func (a *Api) SetupRoutes() {
 
 	api := a.Router.Group("/api")
 	api.Use(a.userHandler.ValidateTokenMiddleware())
-	api.Use(a.userHandler.PutUserMiddleware())
+	api.Use(a.userHandler.PutUserIDMiddleware())
 
 	api.Get("/salary", a.salaryHandler.Get)
 
