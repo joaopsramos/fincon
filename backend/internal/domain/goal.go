@@ -1,5 +1,7 @@
 package domain
 
+import "github.com/google/uuid"
+
 type GoalName string
 
 const (
@@ -16,10 +18,12 @@ type Goal struct {
 	Name       GoalName `json:"name"`
 	Percentage uint     `json:"percentage"`
 
+	UserID uuid.UUID `json:"-" gorm:"type:uuid"`
+
 	Expenses []Expense `json:"-"`
 }
 
 type GoalRepo interface {
-	All() []Goal
-	Get(id uint) (Goal, error)
+	All(userID uuid.UUID) []Goal
+	Get(id uint, userID uuid.UUID) (Goal, error)
 }

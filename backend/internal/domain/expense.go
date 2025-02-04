@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Rhymond/go-money"
+	"github.com/google/uuid"
 )
 
 type Expense struct {
@@ -12,6 +13,8 @@ type Expense struct {
 	Name  string    `json:"name"`
 	Value int64     `json:"value"`
 	Date  time.Time `gorm:"type:timestamp without time zone" json:"date"`
+
+	UserID uuid.UUID `json:"-" gorm:"type:uuid"`
 
 	GoalID uint `json:"goal_id"`
 	Goal   Goal `json:"-"`
@@ -57,12 +60,12 @@ func (e *Expense) MarshalJSON() ([]byte, error) {
 }
 
 type ExpenseRepo interface {
-	Get(id uint) (*Expense, error)
-	Create(e Expense, goalRepo GoalRepo) (*Expense, error)
+	Get(id uint, userID uuid.UUID) (*Expense, error)
+	Create(e Expense, userID uuid.UUID, goalRepo GoalRepo) (*Expense, error)
 	Update(e Expense) (*Expense, error)
-	Delete(id uint) error
-	ChangeGoal(e Expense, goalID uint) (*Expense, error)
-	AllByGoalID(goalID uint, year int, month time.Month) []Expense
-	FindMatchingNames(name string) []string
-	GetSummary(date time.Time, goalRepo GoalRepo, salaryRepo SalaryRepo) Summary
+	Delete(id uint, userID uuid.UUID) error
+	ChangeGoal(e Expense, goalID uint, userID uuid.UUID) (*Expense, error)
+	AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) []Expense
+	FindMatchingNames(name string, userID uuid.UUID) []string
+	GetSummary(date time.Time, userID uuid.UUID, goalRepo GoalRepo, salaryRepo SalaryRepo) Summary
 }

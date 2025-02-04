@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Rhymond/go-money"
+	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"gorm.io/gorm"
 )
@@ -17,16 +18,16 @@ func NewPostgresExpense(db *gorm.DB) domain.ExpenseRepo {
 	return PostgresExpenseRepository{db}
 }
 
-func (r PostgresExpenseRepository) FindMatchingNames(name string) []string {
+func (r PostgresExpenseRepository) FindMatchingNames(name string, userID uuid.UUID) []string {
 	var names []string
-	r.db.Model(&domain.Expense{}).Where("unaccent(name) ILIKE unaccent(?)", "%"+name+"%").Distinct("name").Pluck("name", &names)
+	r.db.Model(&domain.Expense{}).Where("user_id = ?", userID).Where("unaccent(name) ILIKE unaccent(?)", "%"+name+"%").Distinct("name").Pluck("name", &names)
 
 	return names
 }
 
-func (r PostgresExpenseRepository) Get(id uint) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) Get(id uint, userID uuid.UUID) (*domain.Expense, error) {
 	var e domain.Expense
-	result := r.db.Take(&e, id)
+	result := r.db.Where("user_id = ?", userID).Take(&e, id)
 	if result.Error != nil {
 		return &domain.Expense{}, result.Error
 	}
@@ -34,8 +35,8 @@ func (r PostgresExpenseRepository) Get(id uint) (*domain.Expense, error) {
 	return &e, nil
 }
 
-func (r PostgresExpenseRepository) Create(e domain.Expense, goalRepo domain.GoalRepo) (*domain.Expense, error) {
-	_, err := goalRepo.Get(e.GoalID)
+func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, goalRepo domain.GoalRepo) (*domain.Expense, error) {
+	_, err := goalRepo.Get(e.GoalID, userID)
 	if err != nil {
 		return &domain.Expense{}, err
 	}
@@ -57,9 +58,9 @@ func (r PostgresExpenseRepository) Update(e domain.Expense) (*domain.Expense, er
 	return &e, nil
 }
 
-func (r PostgresExpenseRepository) ChangeGoal(e domain.Expense, goalID uint) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) ChangeGoal(e domain.Expense, goalID uint, userID uuid.UUID) (*domain.Expense, error) {
 	var goal domain.Goal
-	result := r.db.Take(&goal, goalID)
+	result := r.db.Where("user_id = ?", userID).Take(&goal, goalID)
 	if result.Error != nil {
 		return &domain.Expense{}, result.Error
 	}
@@ -69,8 +70,8 @@ func (r PostgresExpenseRepository) ChangeGoal(e domain.Expense, goalID uint) (*d
 	return &e, nil
 }
 
-func (r PostgresExpenseRepository) Delete(id uint) error {
-	result := r.db.Delete(&domain.Expense{}, id)
+func (r PostgresExpenseRepository) Delete(id uint, userID uuid.UUID) error {
+	result := r.db.Where("user_id = ?", userID).Delete(&domain.Expense{}, id)
 
 	if result.RowsAffected == 0 {
 		return errors.New("expense not deleted, it may not exist or has already been deleted")
@@ -79,11 +80,12 @@ func (r PostgresExpenseRepository) Delete(id uint) error {
 	return nil
 }
 
-func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time.Month) []domain.Expense {
+func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) []domain.Expense {
 	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 
 	var e []domain.Expense
 	r.db.
+		Where("user_id = ?", userID).
 		Where("goal_id = ?", goalID).
 		Where("date_trunc('month', date) = date_trunc('month', ?::timestamp)", date).
 		Order("date DESC, created_at DESC").
@@ -92,8 +94,8 @@ func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time
 	return e
 }
 
-func (r PostgresExpenseRepository) GetSummary(date time.Time, goalRepo domain.GoalRepo, salaryRepo domain.SalaryRepo) domain.Summary {
-	salary := salaryRepo.Get()
+func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, goalRepo domain.GoalRepo, salaryRepo domain.SalaryRepo) domain.Summary {
+	salary := salaryRepo.Get(userID)
 
 	type result struct {
 		ID         uint
@@ -108,6 +110,7 @@ func (r PostgresExpenseRepository) GetSummary(date time.Time, goalRepo domain.Go
 		Joins("JOIN expenses ON goals.id = expenses.goal_id").
 		Select("goals.id, goals.name, goals.percentage, date_trunc('month', expenses.date) date, SUM(expenses.value) spent").
 		Where("date_trunc('month', expenses.date) <= date_trunc('month', ?::date)", date).
+		Where("goals.user_id = ?", userID).
 		Group("1, 2, 3, 4").
 		Scan(&results)
 
@@ -136,7 +139,7 @@ func (r PostgresExpenseRepository) GetSummary(date time.Time, goalRepo domain.Go
 		}
 	}
 
-	goals := goalRepo.All()
+	goals := goalRepo.All(userID)
 
 	totalSpent := money.New(0, money.BRL)
 	totalMustSpend := money.New(0, money.BRL)

@@ -41,7 +41,8 @@ func (h *ExpenseHandler) FindMatchingNames(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "query must be present and have at least 2 characters"})
 	}
 
-	names := h.expenseRepo.FindMatchingNames(query)
+	user := util.GetUserFromCtx(c)
+	names := h.expenseRepo.FindMatchingNames(query, user.ID)
 
 	return c.Status(http.StatusOK).JSON(names)
 }
@@ -58,7 +59,8 @@ func (h *ExpenseHandler) GetSummary(c *fiber.Ctx) error {
 		date = parsedDate
 	}
 
-	summary := h.expenseRepo.GetSummary(date, h.goalRepo, h.salaryRepo)
+	user := util.GetUserFromCtx(c)
+	summary := h.expenseRepo.GetSummary(date, user.ID, h.goalRepo, h.salaryRepo)
 	return c.Status(http.StatusOK).JSON(summary)
 }
 
@@ -81,7 +83,8 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 		GoalID: uint(params.GoalID),
 	}
 
-	expense, err := h.expenseRepo.Create(toCreate, h.goalRepo)
+	user := util.GetUserFromCtx(c)
+	expense, err := h.expenseRepo.Create(toCreate, user.ID, h.goalRepo)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
 	} else if err != nil {
@@ -113,7 +116,9 @@ func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 		}
 	}
 
-	toUpdate, err := h.expenseRepo.Get(uint(id))
+	user := util.GetUserFromCtx(c)
+
+	toUpdate, err := h.expenseRepo.Get(uint(id), user.ID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
 	} else if err != nil {
@@ -146,14 +151,16 @@ func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
-	toUpdate, err := h.expenseRepo.Get(uint(id))
+	user := util.GetUserFromCtx(c)
+
+	toUpdate, err := h.expenseRepo.Get(uint(id), user.ID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
 	} else if err != nil {
 		panic(err)
 	}
 
-	expense, err := h.expenseRepo.ChangeGoal(*toUpdate, params.GoalID)
+	expense, err := h.expenseRepo.ChangeGoal(*toUpdate, params.GoalID, user.ID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
 	} else if err != nil {
@@ -169,7 +176,9 @@ func (h *ExpenseHandler) Delete(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
 	}
 
-	err = h.expenseRepo.Delete(uint(id))
+	user := util.GetUserFromCtx(c)
+
+	err = h.expenseRepo.Delete(uint(id), user.ID)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": err.Error()})
 	}
