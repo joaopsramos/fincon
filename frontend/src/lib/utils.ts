@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-const TOKEN_KEY = "@fincon:token"
+export const TOKEN_KEY = "fincon-token"
 
 export function getAuthCookie() {
   return Cookies.get(TOKEN_KEY)
@@ -14,6 +14,10 @@ export function getAuthCookie() {
 
 export function setAuthCookie(token: string) {
   return Cookies.set(TOKEN_KEY, token)
+}
+
+export function deleteAuthCookie() {
+  return Cookies.remove(TOKEN_KEY)
 }
 
 export type Money = {

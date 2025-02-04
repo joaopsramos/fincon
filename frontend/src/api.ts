@@ -1,5 +1,5 @@
 import axios from "axios"
-import { getAuthCookie } from "./lib/utils"
+import { deleteAuthCookie, getAuthCookie } from "./lib/utils"
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL
@@ -21,8 +21,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (resp) => resp,
   (error) => {
-    console.log(error)
     if (error.response?.status === 401) {
+      deleteAuthCookie()
       window.location.href = "/login"
     }
 
