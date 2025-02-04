@@ -1,4 +1,4 @@
-import { Money } from "@/util/money"
+import { Money } from "@/lib/utils"
 import api from "@/api"
 import dayjs from "dayjs"
 

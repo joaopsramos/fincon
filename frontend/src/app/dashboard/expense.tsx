@@ -4,10 +4,10 @@ import type { Expense } from "@/api/expense"
 import utc from "dayjs/plugin/utc"
 import { Goal } from "@/api/goals"
 import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
-import { moneyToString } from "@/util/money"
+import { moneyToString } from "@/lib/utils"
 import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { CheckIcon, PencilIcon, PlusCircleIcon, TrashIcon } from "@heroicons/react/24/solid"
-import { KeyboardEvent, useEffect, useState } from "react"
+import { KeyboardEvent, useState } from "react"
 
 export default function Expense({ goal }: { goal: Goal }) {
   dayjs.extend(utc)
@@ -142,7 +142,6 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
 function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQueries: () => Promise<void> }) {
   const [name, setName] = useState("")
   const [nameFocused, setNameFocused] = useState(false)
-  const [matchingNames, setMatchingNames] = useState<string[]>([])
 
   const createExpenseMut = useMutation({
     mutationFn: (formData: FormData) => createExpense(formData, goal.id),
@@ -152,19 +151,13 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
     }
   })
 
-  useEffect(() => {
-    const find = async () => {
-      const names = await findMatchingNames(name)
-
-      setMatchingNames(names)
-    }
-
-    if (name.length >= 2) {
-      find()
-    } else {
-      setMatchingNames([])
-    }
-  }, [name])
+  const { data: matchingNames = [] } = useQuery({
+    queryKey: ['matchingNames', name],
+    queryFn: () => findMatchingNames(name),
+    enabled: name.length >= 2,
+    placeholderData: [],
+    refetchOnWindowFocus: false
+  })
 
   return (
     <Form action={createExpenseMut.mutate}>
@@ -176,7 +169,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
           placeholder="Name"
           autoComplete="off"
           onFocus={() => setNameFocused(true)}
-          onBlur={() => setTimeout(() => setNameFocused(false), 200)}
+          onBlur={() => setNameFocused(false)}
           onChange={e => setName(e.target.value)}
           value={name}
         />
@@ -193,6 +186,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
             <li
               key={name}
               className="px-2 py-1 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 setName(name)
                 setNameFocused(false)

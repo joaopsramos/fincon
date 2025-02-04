@@ -1,5 +1,5 @@
 import { getSummary, SummaryGoal } from "@/api/summary"
-import { moneyToString } from "@/util/money"
+import { moneyToString } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
 
 type SummaryTotalParams = {
