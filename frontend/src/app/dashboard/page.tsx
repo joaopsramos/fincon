@@ -28,7 +28,7 @@ export default function Index() {
 
       <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
         {goals?.map(goal => (
-          <Expense key={goal.id} goal={goal} />
+          <Expense key={goal.id} goal={goal} date={date} />
         ))}
       </div>
     </div>

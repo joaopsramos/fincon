@@ -25,7 +25,7 @@ export default function Summary({ date }: { date: Date }) {
 
       <CardContent>
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-slate-100">
             <TableRow>
               <TableHead>Budget</TableHead>
               <TableHead>Spent</TableHead>

@@ -6,50 +6,55 @@ import { Goal } from "@/api/goals"
 import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
 import { moneyToString } from "@/lib/utils"
 import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CheckIcon, PencilIcon, PlusCircleIcon, TrashIcon } from "@heroicons/react/24/solid"
+import { CheckIcon, PencilIcon, PlusCircleIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid"
 import { KeyboardEvent, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
 
-export default function Expense({ goal }: { goal: Goal }) {
+export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
   dayjs.extend(utc)
 
   const queryClient = useQueryClient()
-  const invalidateQueries = buildInvalidateQueriesFn(queryClient, goal.id)
+  const invalidateQueries = buildInvalidateQueriesFn(queryClient, date, goal.id)
 
   const { data: expenses } = useQuery({
-    queryKey: ["expense", goal.id],
+    queryKey: ["expense", date, goal.id],
     queryFn: getExpenses,
     refetchOnWindowFocus: false
   })
 
-  const thClass = "text-slate-700 pb-2"
-
   return (
-    <div className="bg-slate-200 rounded-md p-4 h-full">
-      <h1 className="text-xl font-bold">{goal.name}</h1>
+    <Card>
+      <CardHeader>
+        <CardTitle>{goal.name}</CardTitle>
+      </CardHeader>
 
-      <div className="mt-4 max-h-72 overflow-auto scroll">
-        <table className="w-full text-left table-auto sm:table-fixed">
-          <thead className="sticky top-0 bg-slate-200">
-            <tr>
-              <th className={`min-w-24 sm:w-5/12 xl:w-4/12 2xl:w-5/12 ${thClass}`}>Expense</th>
-              <th className={`min-w-24 sm:w-2/12 lg:w-3/12 2xl:w-2/12 ${thClass}`}>Amount</th>
-              <th className={`min-w-20 sm:w-2/12 ${thClass}`}>Date</th>
-              <th className="sm:w-1/12 lg:w-2/12"></th>
-            </tr>
-          </thead>
+      <CardContent>
+        <div className="max-h-72 overflow-auto scroll">
+          <Table withoutWrapper>
+            <TableHeader className="sticky top-0 bg-slate-100">
+              <TableRow>
+                <TableHead className="min-w-24 lg:w-5/12 xl:w-4/12 2xl:w-5/12">Expense</TableHead>
+                <TableHead className="min-w-24 lg:w-3/12 2xl:w-2/12">Amount</TableHead>
+                <TableHead className="min-w-20">Date</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
 
-          <tbody>
-            {expenses?.map(e => (
-              <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+            <TableBody>
+              {expenses?.map(e => (
+                <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
 
-      <div className="mt-4">
-        <CreateExpense goal={goal} invalidateQueries={invalidateQueries} />
-      </div>
-    </div >
+        <div className="mt-4">
+          <CreateExpense goal={goal} invalidateQueries={invalidateQueries} />
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -68,7 +73,10 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
 
   const deleteExpenseMut = useMutation({
     mutationFn: () => deleteExpense(expense.id),
-    onSuccess: invalidateQueries
+    onSuccess: () => {
+      setIsEditing(false)
+      invalidateQueries()
+    }
   })
 
   const editExpenseOnEnter = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -77,14 +85,13 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
     }
   }
 
-  const tdClass = "py-1 border-b border-slate-300"
-  const inputClass = "w-10/12 rounded-md p-1 text-sm"
+  const inputClass = "w-10/12 rounded-md px-2 text-sm h-auto"
 
   return (
-    <tr className="group">
-      <td className={`pr-1 ${tdClass}`}>
-        {!isEditing ? expense.name : (
-          <input
+    <TableRow className="group hover:bg-inherit">
+      <TableCell>
+        {!isEditing ? <span className="py-1 inline-block">{expense.name}</span> : (
+          <Input
             type="text"
             className={inputClass}
             value={name}
@@ -92,10 +99,10 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
             onKeyDown={editExpenseOnEnter}
           />
         )}
-      </td>
-      <td className={tdClass}>
+      </TableCell>
+      <TableCell>
         {!isEditing ? moneyToString(expense.value) : (
-          <input
+          <Input
             type="number"
             step="0.01"
             className={inputClass}
@@ -104,10 +111,10 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
             onKeyDown={editExpenseOnEnter}
           />
         )}
-      </td>
-      <td className={tdClass}>{dayjs(expense.date).utc().format("DD/MM/YY")}</td>
-      <td className={tdClass}>
-        <div className={`flex justify-center gap-1 ${isEditing ? "" : "invisible group-hover:visible"}`}>
+      </TableCell>
+      <TableCell>{dayjs(expense.date).utc().format("DD/MM/YY")}</TableCell>
+      <TableCell>
+        <div className={`flex justify-end gap-1 ${isEditing ? "" : "invisible group-hover:visible"}`}>
           {!isEditing ? (
             <div
               className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
@@ -134,8 +141,8 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
             <TrashIcon className="size-4 text-white" />
           </div>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -162,7 +169,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
   return (
     <Form action={createExpenseMut.mutate}>
       <div className="flex items-center">
-        <input
+        <Input
           className="rounded-md p-1 w-6/12"
           name="name"
           type="text"
@@ -173,11 +180,11 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
           onChange={e => setName(e.target.value)}
           value={name}
         />
-        <input className="ml-2 sm:ml-12 lg:ml-12 xl:ml-2 2xl:ml-2 rounded-md p-1 w-6/12" name="value" type="number" placeholder="Value" step="0.01" />
+        <Input className="ml-2 rounded-md p-1 w-6/12" name="value" type="number" placeholder="Value" step="0.01" />
         <input hidden name="goal_id" value={goal.id} readOnly />
 
-        <button type="submit" className="ml-1 -mr-1 sm:ml-4 sm:mr-0">
-          <PlusCircleIcon className="size-9 text-sky-500" />
+        <button type="submit" className="ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 rounded-full">
+          <PlusIcon className="size-6 text-white" />
         </button>
       </div>
       <div className="absolute z-10 bg-white rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll">
@@ -198,9 +205,9 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
   )
 }
 
-function buildInvalidateQueriesFn(queryClient: QueryClient, goalId: number) {
+function buildInvalidateQueriesFn(queryClient: QueryClient, date: Date, goalId: number) {
   return async () => {
-    await queryClient.invalidateQueries({ queryKey: ["expense", goalId] })
+    await queryClient.invalidateQueries({ queryKey: ["expense", date, goalId] })
     await queryClient.invalidateQueries({ queryKey: ["summary"] })
   }
 }

@@ -16,9 +16,9 @@ type EditParams = {
   value: number,
 }
 
-export async function getExpenses({ queryKey }: { queryKey: [string, number] }) {
-  const [_, goalID] = queryKey
-  const resp = await api.get(`/goals/${goalID}/expenses`)
+export async function getExpenses({ queryKey }: { queryKey: [string, Date, number] }) {
+  const [_, date, goalID] = queryKey
+  const resp = await api.get(`/goals/${goalID}/expenses?year=${date.getFullYear()}&month=${date.getMonth() + 1}`)
 
   return resp.data as Expense[]
 }

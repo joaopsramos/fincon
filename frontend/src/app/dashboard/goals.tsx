@@ -11,7 +11,7 @@ export default function Goals({ goals }: { goals: Goal[] }) {
       <CardContent>
         <ul>
           {goals?.map(goal => (
-            <li key={goal.id} className="flex justify-between my-2">
+            <li key={goal.id} className="flex justify-between my-2 border-b pb-1">
               <span>{goal.name}</span>
               <span>{goal.percentage}%</span>
             </li>

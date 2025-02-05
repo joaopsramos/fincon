@@ -35,8 +35,6 @@ export async function login(formData: FormData) {
       throw new Error(e.response.data.error)
     }
 
-    console.log(e, "oi")
-
     throw new Error("Failed to login. Please try again.")
   }
 }
