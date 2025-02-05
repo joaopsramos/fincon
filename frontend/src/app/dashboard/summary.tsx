@@ -1,6 +1,8 @@
 import { getSummary, SummaryGoal } from "@/api/summary"
 import { moneyToString } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 type SummaryTotalParams = {
   value: string,
@@ -15,32 +17,32 @@ export default function Summary({ date }: { date: Date }) {
     refetchOnWindowFocus: false
   })
 
-  const thClass = "text-slate-700 pb-2"
-
   return (
-    <div className="bg-slate-200 rounded-md p-4 pb-1 w-full">
-      <h1 className="text-xl font-bold">Summary</h1>
+    <Card>
+      <CardHeader>
+        <CardTitle>Summary</CardTitle>
+      </CardHeader>
 
-      <div className="mt-4 overflow-auto pb-1">
-        <table className="w-full text-left table-auto">
-          <thead>
-            <tr>
-              <th className={`min-w-28 ${thClass}`}>Budget</th>
-              <th className={`min-w-28 ${thClass}`}>Spent</th>
-              <th className={`min-w-28 ${thClass}`}>Must spend</th>
-              <th className={`min-w-20 ${thClass}`}>Used</th>
-              <th className={thClass}>Total</th>
-            </tr>
-          </thead>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Budget</TableHead>
+              <TableHead>Spent</TableHead>
+              <TableHead>Must spend</TableHead>
+              <TableHead>Used</TableHead>
+              <TableHead>Total</TableHead>
+            </TableRow>
+          </TableHeader>
 
-          <tbody>
-            {summary?.goals.map(entry => (
-              <Row entry={entry} key={entry.name} />
-            ))}
-          </tbody>
-        </table>
+          <TableBody>
+            {summary?.goals.map(goal => <Row key={goal.name} goal={goal} />)}
+          </TableBody>
+        </Table>
+      </CardContent>
 
-        <div className="mt-6 flex gap-8">
+      <CardFooter>
+        <div className="flex gap-x-4 gap-y-2 flex-wrap">
           {summary && (
             <>
               <SummaryTotal value={moneyToString(summary.spent)} text="Total spent" valueColor="text-red-500" />
@@ -49,22 +51,20 @@ export default function Summary({ date }: { date: Date }) {
             </>
           )}
         </div>
-      </div>
-    </div>
+      </CardFooter>
+    </Card >
   )
 }
 
-function Row({ entry }: { entry: SummaryGoal }) {
-  const tdClass = "py-1 border-b border-slate-300"
-
+function Row({ goal }: { goal: SummaryGoal }) {
   return (
-    <tr>
-      <td className={tdClass}>{entry.name}</td>
-      <td className={tdClass}>{moneyToString(entry.spent)}</td>
-      <td className={tdClass}>{moneyToString(entry.must_spend)}</td>
-      <td className={tdClass}>{entry.used.toFixed(2)}%</td>
-      <td className={tdClass}>{entry.total.toFixed(2)}%</td>
-    </tr>
+    <TableRow>
+      <TableCell>{goal.name}</TableCell>
+      <TableCell>{moneyToString(goal.spent)}</TableCell>
+      <TableCell>{moneyToString(goal.must_spend)}</TableCell>
+      <TableCell>{goal.used.toFixed(2)}%</TableCell>
+      <TableCell>{goal.total.toFixed(2)}%</TableCell>
+    </TableRow>
   )
 }
 
