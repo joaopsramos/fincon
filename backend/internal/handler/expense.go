@@ -76,6 +76,8 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(err)
 	}
 
+	userID := util.GetUserIDFromCtx(c)
+
 	toCreate := domain.Expense{
 		Name:   params.Name,
 		Value:  int64(params.Value * 100),
@@ -83,7 +85,6 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 		GoalID: uint(params.GoalID),
 	}
 
-	userID := util.GetUserIDFromCtx(c)
 	expense, err := h.expenseRepo.Create(toCreate, userID, h.goalRepo)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})

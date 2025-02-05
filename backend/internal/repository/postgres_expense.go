@@ -41,6 +41,8 @@ func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, go
 		return &domain.Expense{}, err
 	}
 
+	e.UserID = userID
+
 	result := r.db.Create(&e)
 	if result.Error != nil {
 		return &domain.Expense{}, result.Error
