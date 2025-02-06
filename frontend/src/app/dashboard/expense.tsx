@@ -1,16 +1,19 @@
-import Form from "next/form"
 import dayjs from "dayjs"
-import type { Expense } from "@/api/expense"
+import type { CreateExpenseParams, Expense } from "@/api/expense"
 import utc from "dayjs/plugin/utc"
 import { Goal } from "@/api/goals"
 import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
 import { moneyToString } from "@/lib/utils"
 import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CheckIcon, PencilIcon, PlusCircleIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid"
+import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid"
 import { KeyboardEvent, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 
 export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
   dayjs.extend(utc)
@@ -46,6 +49,14 @@ export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
               {expenses?.map(e => (
                 <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
               ))}
+
+              {expenses?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="pt-6 text-center text-gray-500">
+                    Nothing here yet...
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -146,17 +157,49 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
   )
 }
 
+const createExpenseSchema = z.object({
+  name: z.string().min(2, "Name must have at least 2 characters"),
+  value: z.string().min(0.01, "Value must be greater than 0").transform(val => parseFloat(val))
+})
+
+type CreateExpenseSchema = z.infer<typeof createExpenseSchema>
+
 function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQueries: () => Promise<void> }) {
-  const [name, setName] = useState("")
   const [nameFocused, setNameFocused] = useState(false)
+  const { toast } = useToast()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<CreateExpenseSchema>({ resolver: zodResolver(createExpenseSchema) })
+  const name = watch("name", "")
 
   const createExpenseMut = useMutation({
-    mutationFn: (formData: FormData) => createExpense(formData, goal.id),
+    mutationFn: async (data: CreateExpenseParams) => await createExpense(data),
     onSuccess: () => {
-      setName("")
+      reset()
       invalidateQueries()
-    }
+    },
+    onError: () => toast(
+      {
+        title: "Error",
+        description: "Something went wrong, please try again.",
+        variant: "destructive"
+      })
   })
+
+  const handleCreateExpense = (data: CreateExpenseSchema) => {
+    const params: CreateExpenseParams = {
+      ...data,
+      date: new Date(),
+      goal_id: goal.id
+    }
+
+    createExpenseMut.mutate(params)
+  }
 
   const { data: matchingNames = [] } = useQuery({
     queryKey: ['matchingNames', name],
@@ -167,27 +210,45 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
   })
 
   return (
-    <Form action={createExpenseMut.mutate}>
-      <div className="flex items-center">
-        <Input
-          className="rounded-md p-1 w-6/12"
-          name="name"
-          type="text"
-          placeholder="Name"
-          autoComplete="off"
-          onFocus={() => setNameFocused(true)}
-          onBlur={() => setNameFocused(false)}
-          onChange={e => setName(e.target.value)}
-          value={name}
-        />
-        <Input className="ml-2 rounded-md p-1 w-6/12" name="value" type="number" placeholder="Value" step="0.01" />
+    <form onSubmit={handleSubmit(handleCreateExpense)} className="relative">
+      <div className="grid grid-cols-11 gap-1">
+        <div className="col-span-5">
+          <Input
+            className={`rounded-md p-1 w-full ${errors.name ? 'border-red-500' : ''}`}
+            {...register("name")}
+            type="text"
+            placeholder="Name"
+            autoComplete="off"
+            onFocus={() => setNameFocused(true)}
+            onBlur={() => setNameFocused(false)}
+            value={name}
+          />
+        </div>
+        <div className="col-span-5">
+          <Input
+            className={`rounded-md p-1 w-full ${errors.value ? 'border-red-500' : ''}`}
+            {...register("value")}
+            type="number"
+            placeholder="Value"
+            step="0.01"
+          />
+        </div>
         <input hidden name="goal_id" value={goal.id} readOnly />
 
-        <button type="submit" className="ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 rounded-full">
+        <button type="submit" className="self-center w-min h-min ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 rounded-full">
           <PlusIcon className="size-6 text-white" />
         </button>
+
+        {errors.name && (
+          <span className="row-start-2 col-span-5 text-red-500 text-xs">{errors.name.message}</span>
+        )}
+
+        {errors.value && (
+          <span className="row-start-2 col-start-6 col-span-5 text-red-500 text-xs">{errors.value.message}</span>
+        )}
       </div>
-      <div className="absolute z-10 bg-white rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll">
+
+      <div className="absolute top-10 z-10 bg-white rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll border border-slate-300 shadow">
         <ul>
           {matchingNames.length > 0 && nameFocused && matchingNames.map(name => (
             <li
@@ -195,13 +256,13 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
               className="px-2 py-1 border-b cursor-pointer hover:bg-gray-100 transition-colors"
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                setName(name)
+                setValue("name", name)
                 setNameFocused(false)
               }}>{name}</li>
           ))}
         </ul>
       </div>
-    </Form>
+    </form>
   )
 }
 

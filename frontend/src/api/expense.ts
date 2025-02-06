@@ -11,6 +11,13 @@ export type Expense = {
 
 }
 
+export type CreateExpenseParams = {
+  name: string,
+  value: number,
+  date: Date,
+  goal_id: number,
+}
+
 type EditParams = {
   name: string,
   value: number,
@@ -23,13 +30,8 @@ export async function getExpenses({ queryKey }: { queryKey: [string, Date, numbe
   return resp.data as Expense[]
 }
 
-export async function createExpense(formData: FormData, goalId: number) {
-  await api.post("/expenses", {
-    name: formData.get("name"),
-    value: parseFloat(formData.get("value") as string),
-    date: dayjs().format("YYYY-MM-DD"),
-    goal_id: goalId,
-  })
+export async function createExpense(params: CreateExpenseParams) {
+  await api.post("/expenses", { ...params, date: dayjs(params.date).format("YYYY-MM-DD") })
 }
 
 export async function editExpense({ name, value }: EditParams, expenseId: number) {
