@@ -20,11 +20,15 @@ func TestPostgresGoal_All(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 
-	goals := []domain.Goal{{Name: domain.Goals, Percentage: 20}, {Name: domain.Pleasures, Percentage: 80}}
-	for i := range len(goals) {
+	user := f.InsertUser()
+	goals := []domain.Goal{
+		{Name: domain.Goals, Percentage: 20, UserID: user.ID},
+		{Name: domain.Pleasures, Percentage: 80, UserID: user.ID},
+	}
+	for i := range goals {
 		f.InsertGoal(&goals[i])
 	}
 
 	r := NewTestPostgresGoalRepo(t, tx)
-	assert.Equal(t, goals, r.All())
+	assert.Equal(t, goals, r.All(user.ID))
 }

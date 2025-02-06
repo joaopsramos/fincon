@@ -15,8 +15,9 @@ func TestExpenseHandler_Create(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := testhelper.NewTestApi(tx)
 	f := testhelper.NewFactory(tx)
+	user := f.InsertUser()
+	api := testhelper.NewTestApi(user.ID, tx)
 
 	var respBody util.M
 
@@ -61,7 +62,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 		})
 	}
 
-	goal := domain.Goal{Name: "Comfort"}
+	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
 	f.InsertGoal(&goal)
 
 	resp := api.Test(

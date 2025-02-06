@@ -23,9 +23,10 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
+	user := f.InsertUser()
 
 	salaryAmount := 10_000
-	f.InsertSalary(&domain.Salary{Amount: int64(salaryAmount * 100)})
+	f.InsertSalary(&domain.Salary{Amount: int64(salaryAmount * 100), UserID: user.ID})
 
 	goalIDsByName := make(map[domain.GoalName]uint)
 
@@ -41,7 +42,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		{domain.Knowledge, 5},
 	}
 	for _, g := range goalsToInsert {
-		goal := domain.Goal{Name: g.name, Percentage: g.percentage}
+		goal := domain.Goal{Name: g.name, Percentage: g.percentage, UserID: user.ID}
 		f.InsertGoal(&goal)
 		goalIDsByName[goal.Name] = goal.ID
 	}
@@ -82,7 +83,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
 
-	for _, g := range r.GetSummary(now.AddDate(0, -1, 0), goalRepo, salaryRepo).Goals {
+	for _, g := range r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, salaryRepo).Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
@@ -92,7 +93,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 	assertSummaryEntry(domain.Knowledge, 0, 500, 0.0, 0.0, entriesByName, assert)
 	assertSummaryEntry(domain.FinancialInvestments, 0, 2500, 0.0, 0.0, entriesByName, assert)
 
-	for _, g := range r.GetSummary(now, goalRepo, salaryRepo).Goals {
+	for _, g := range r.GetSummary(now, user.ID, goalRepo, salaryRepo).Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
@@ -102,7 +103,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 	assertSummaryEntry(domain.Knowledge, 900.99, 500, 180.19, 9.0, entriesByName, assert)
 	assertSummaryEntry(domain.FinancialInvestments, 0, 2500, 0.0, 0.0, entriesByName, assert)
 
-	for _, g := range r.GetSummary(now.AddDate(0, 1, 0), goalRepo, salaryRepo).Goals {
+	for _, g := range r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, salaryRepo).Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
@@ -119,6 +120,9 @@ func TestPostgresExpense_AllByGoalID(t *testing.T) {
 
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
+
+	var user domain.User
+	f.InsertUser(&user)
 
 	goals := []domain.Goal{{Name: domain.Goals}, {Name: domain.Pleasures}, {Name: domain.Comfort}}
 	for i := range len(goals) {
@@ -137,6 +141,7 @@ func TestPostgresExpense_AllByGoalID(t *testing.T) {
 		{Name: "Expense 6", GoalID: goals[2].ID, Date: monthStart.AddDate(0, -1, 0), CreatedAt: now},
 	}
 	for i := range len(expenses) {
+		expenses[i].UserID = user.ID
 		f.InsertExpense(&expenses[i])
 	}
 
@@ -144,21 +149,21 @@ func TestPostgresExpense_AllByGoalID(t *testing.T) {
 	year, month, _ := monthStart.Date()
 	var actual []domain.Expense
 
-	actual = r.AllByGoalID(goals[0].ID, year, month)
+	actual = r.AllByGoalID(goals[0].ID, year, month, user.ID)
 	assert.Equal(actual[0].Name, "Expense 2")
 	assert.Equal(actual[1].Name, "Expense 1")
 	assert.Equal(actual[2].Name, "Expense 3")
 
-	actual = r.AllByGoalID(goals[1].ID, year, month)
+	actual = r.AllByGoalID(goals[1].ID, year, month, user.ID)
 	assert.Equal(actual[0].Name, "Expense 4")
 
 	t.Run("filter by date", func(t *testing.T) {
-		actual = r.AllByGoalID(goals[2].ID, year, month)
+		actual = r.AllByGoalID(goals[2].ID, year, month, user.ID)
 		assert.Len(actual, 1)
 		assert.Equal(actual[0].Name, "Expense 5")
 
 		year, month, _ := monthStart.AddDate(0, -1, 0).Date()
-		actual = r.AllByGoalID(goals[2].ID, year, month)
+		actual = r.AllByGoalID(goals[2].ID, year, month, user.ID)
 		assert.Len(actual, 1)
 		assert.Equal(actual[0].Name, "Expense 6")
 	})

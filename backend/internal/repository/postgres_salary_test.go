@@ -20,8 +20,10 @@ func TestPostgresSalary_Get(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 
 	f := testhelper.NewFactory(tx)
-	f.InsertSalary(&domain.Salary{Amount: 200})
+
+	user := f.InsertUser()
+	f.InsertSalary(&domain.Salary{Amount: 200, UserID: user.ID})
 	r := NewTestPostgresSalaryRepo(t, tx)
 
-	assert.Equal(t, int64(200), r.Get().Amount)
+	assert.Equal(t, int64(200), r.Get(user.ID).Amount)
 }

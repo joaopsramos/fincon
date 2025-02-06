@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := build
 
-.PHONY:fmt vet build run setup-db test
+.PHONY:fmt vet build run setup-db test test-cover
 
 fmt:
 	go fmt ./...
@@ -22,3 +22,6 @@ migrate:
 
 test:
 	APP_ENV=test go test ./...
+
+test-cover:
+	APP_ENV=test go test ./... -cover

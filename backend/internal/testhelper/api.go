@@ -6,21 +6,25 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/api"
+	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
 
 type TestApi struct {
-	api *api.Api
+	api   *api.Api
+	token string
 }
 
-func NewTestApi(tx *gorm.DB) *TestApi {
+func NewTestApi(userID uuid.UUID, tx *gorm.DB) *TestApi {
 	api := api.NewApi(tx)
 	api.Setup()
 
-	return &TestApi{api: api}
+	return &TestApi{api: api, token: domain.CreateToken(userID, time.Minute*1)}
 }
 
 func (t *TestApi) Test(method string, path string, body util.M) *http.Response {
@@ -32,6 +36,8 @@ func (t *TestApi) Test(method string, path string, body util.M) *http.Response {
 	}
 
 	req := httptest.NewRequest("POST", "/api/expenses", bodyReader)
+	req.Header.Set("Authorization", "Bearer "+t.token)
+
 	resp, _ := t.api.Router.Test(req)
 	return resp
 }
