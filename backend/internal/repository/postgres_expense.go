@@ -149,7 +149,11 @@ func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, 
 			r.Spent = max(0, r.Spent-int64(monthDiff)*goalLimit)
 		}
 
-		resultsByGoalID[r.ID] = &r
+		if entry, ok := resultsByGoalID[r.ID]; ok {
+			entry.Spent += r.Spent
+		} else {
+			resultsByGoalID[r.ID] = &r
+		}
 	}
 
 	goals := goalRepo.All(userID)
