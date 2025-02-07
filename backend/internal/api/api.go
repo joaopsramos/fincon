@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,6 +20,7 @@ import (
 type Api struct {
 	Router *fiber.App
 
+	logger         *slog.Logger
 	userHandler    handler.UserHandler
 	salaryHandler  handler.SalaryHandler
 	goalHandler    handler.GoalHandler
@@ -36,8 +38,11 @@ func NewApi(db *gorm.DB) *Api {
 	goalHandler := handler.NewGoalHandler(goalRepo, expenseRepo)
 	expenseHandler := handler.NewExpenseHandler(expenseRepo, goalRepo, salaryRepo)
 
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	return &Api{
 		Router:         newFiber(),
+		logger:         logger,
 		userHandler:    userHandler,
 		salaryHandler:  salaryHandler,
 		goalHandler:    goalHandler,

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -22,6 +23,7 @@ func NewGoalHandler(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalHa
 func (h *GoalHandler) Index(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
 	goals := h.repo.All(userID)
+	fmt.Println(goals)
 	return c.Status(http.StatusOK).JSON(goals)
 }
 
@@ -56,5 +58,11 @@ func (h *GoalHandler) GetExpenses(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
 
 	expenses := h.expenseRepo.AllByGoalID(uint(id), year, month, userID)
-	return c.Status(http.StatusOK).JSON(expenses)
+
+	var expenseViews []domain.ExpenseView
+	for _, e := range expenses {
+		expenseViews = append(expenseViews, e.View())
+	}
+
+	return c.Status(http.StatusOK).JSON(expenseViews)
 }

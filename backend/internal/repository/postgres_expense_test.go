@@ -47,9 +47,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		goalIDsByName[goal.Name] = goal.ID
 	}
 
-	now := time.Now().UTC()
-	// Use middle of month to avoid errors when subtracting/adding months
-	now = time.Date(now.Year(), now.Month(), 15, 0, 0, 0, 0, time.UTC)
+	now := testhelper.MiddleOfMonth()
 
 	expenses := []struct {
 		value  float64

@@ -57,7 +57,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 		{
 			"goal not found",
 			util.M{"name": "Food", "value": 123.45, "date": "2025-12-15", "goal_id": goal.ID + 1},
-			400,
+			404,
 			util.M{"error": "goal not found"},
 		},
 	}
@@ -66,7 +66,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			resp := api.Test(http.MethodPost, "/api/expenses", d.body)
 			api.UnmarshalBody(resp.Body, &respBody)
-			assert.Equal(resp.StatusCode, 400)
+			assert.Equal(resp.StatusCode, d.status)
 			assert.Equal(d.expected, respBody)
 			clear(respBody)
 		})
@@ -142,10 +142,8 @@ func TestExpenseHandler_FindMatchingNames(t *testing.T) {
 		api.UnmarshalBody(resp.Body, &respBody)
 
 		assert.Equal(200, resp.StatusCode)
+		assert.ElementsMatch(d.expected, respBody)
 
-		for _, name := range d.expected {
-			assert.Contains(respBody, name)
-		}
 		clear(respBody)
 	}
 
@@ -299,7 +297,7 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 		{
 			"goal not found",
 			util.M{"goal_id": goal1.ID + 10},
-			400,
+			404,
 			util.M{"error": "goal not found"},
 		},
 		{
@@ -310,7 +308,7 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 				"id":      float64(expense.ID),
 				"name":    expense.Name,
 				"value":   util.M{"amount": 1.23, "currency": "BRL"},
-				"date":    expense.Date.Format("2006-01-02T15:04:05.999999Z"),
+				"date":    testhelper.DateToJsonString(expense.Date),
 				"goal_id": float64(goal2.ID),
 			},
 		},
@@ -334,9 +332,10 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 	otherUserApi := testhelper.NewTestApi(uuid.New(), tx)
 	resp = otherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), util.M{"goal_id": goal1.ID})
 	api.UnmarshalBody(resp.Body, &respBody)
-	assert.Equal(400, resp.StatusCode)
+	assert.Equal(404, resp.StatusCode)
 	assert.Equal(util.M{"error": "expense not found"}, respBody)
 }
+
 func TestExpenseHandler_Delete(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)

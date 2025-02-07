@@ -2,12 +2,12 @@ package repository
 
 import (
 	"errors"
-	"log/slog"
 	"time"
 
 	"github.com/Rhymond/go-money"
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
+	errs "github.com/joaopsramos/fincon/internal/error"
 	"gorm.io/gorm"
 )
 
@@ -31,10 +31,9 @@ func (r PostgresExpenseRepository) Get(id uint, userID uuid.UUID) (domain.Expens
 	result := r.db.Where("user_id = ?", userID).Take(&e, id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return domain.Expense{}, errors.New("expense not found")
+			return domain.Expense{}, errs.NewNotFound("expense")
 		}
 
-		slog.Error(result.Error.Error())
 		return domain.Expense{}, errors.New("expense could not be retrieved")
 	}
 
@@ -51,7 +50,6 @@ func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, go
 
 	result := r.db.Create(&e)
 	if result.Error != nil {
-		slog.Error(result.Error.Error())
 		return &domain.Expense{}, errors.New("expense could not be created")
 	}
 
@@ -61,7 +59,6 @@ func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, go
 func (r PostgresExpenseRepository) Update(e domain.Expense) (*domain.Expense, error) {
 	result := r.db.Model(&e).Select("Name", "Value", "Date").Updates(e)
 	if result.Error != nil {
-		slog.Error(result.Error.Error())
 		return &domain.Expense{}, errors.New("expense could not be updated")
 	}
 
@@ -81,7 +78,6 @@ func (r PostgresExpenseRepository) ChangeGoal(
 
 	result := r.db.Model(&e).Update("goal_id", goal.ID)
 	if result.Error != nil {
-		slog.Error(result.Error.Error())
 		return &domain.Expense{}, errors.New("expense goal could not be changed")
 	}
 
@@ -91,12 +87,11 @@ func (r PostgresExpenseRepository) ChangeGoal(
 func (r PostgresExpenseRepository) Delete(id uint, userID uuid.UUID) error {
 	result := r.db.Where("user_id = ?", userID).Delete(&domain.Expense{}, id)
 	if result.Error != nil {
-		slog.Error(result.Error.Error())
 		return errors.New("expense could not be deleted")
 	}
 
 	if result.RowsAffected == 0 {
-		return errors.New("expense not found")
+		return errs.NewNotFound("expense")
 	}
 
 	return nil
@@ -154,11 +149,7 @@ func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, 
 			r.Spent = max(0, r.Spent-int64(monthDiff)*goalLimit)
 		}
 
-		if entry, ok := resultsByGoalID[r.ID]; ok {
-			entry.Spent += r.Spent
-		} else {
-			resultsByGoalID[r.ID] = &r
-		}
+		resultsByGoalID[r.ID] = &r
 	}
 
 	goals := goalRepo.All(userID)

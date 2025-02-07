@@ -91,7 +91,7 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 
 	expense, err := h.expenseRepo.Create(toCreate, userID, h.goalRepo)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "goal not found"})
+		return handleError(c, err)
 	}
 
 	return c.Status(http.StatusCreated).JSON(expense.View())
@@ -118,7 +118,7 @@ func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 
 	toUpdate, err := h.expenseRepo.Get(uint(id), userID)
 	if err != nil {
-		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		return handleError(c, err)
 	}
 
 	util.UpdateIfNotZero(&toUpdate.Name, params.Name)
@@ -127,7 +127,7 @@ func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 
 	expense, err := h.expenseRepo.Update(toUpdate)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return handleError(c, err)
 	}
 
 	return c.Status(http.StatusOK).JSON(expense.View())
@@ -148,12 +148,12 @@ func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
 
 	toUpdate, err := h.expenseRepo.Get(uint(id), userID)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return handleError(c, err)
 	}
 
 	expense, err := h.expenseRepo.ChangeGoal(toUpdate, params.GoalID, userID, h.goalRepo)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return handleError(c, err)
 	}
 
 	return c.Status(http.StatusOK).JSON(expense.View())
@@ -169,7 +169,7 @@ func (h *ExpenseHandler) Delete(c *fiber.Ctx) error {
 
 	err = h.expenseRepo.Delete(uint(id), userID)
 	if err != nil {
-		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+		return handleError(c, err)
 	}
 
 	return c.Status(http.StatusNoContent).Send(nil)
