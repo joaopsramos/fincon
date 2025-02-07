@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"encoding/json"
 
 	z "github.com/Oudwins/zog"
 	"github.com/Oudwins/zog/parsers/zjson"
@@ -27,4 +28,28 @@ func ParseZodSchema(schema *z.StructSchema, body []byte, dest any) map[string]an
 	}
 
 	return nil
+}
+
+func Must[T any](result T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+
+	return result
+}
+
+func IsZero[T comparable](v T) bool {
+	var zero T
+	return zero == v
+}
+
+func UpdateIfNotZero[T comparable](dst *T, src T) {
+	if !IsZero(src) {
+		*dst = src
+	}
+}
+
+func Merge(a, b any) {
+	ja := Must(json.Marshal(a))
+	Must(0, json.Unmarshal(ja, b))
 }

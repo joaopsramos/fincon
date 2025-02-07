@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
-	"gorm.io/gorm"
 )
 
 type ExpenseHandler struct {
@@ -21,10 +19,16 @@ type ExpenseHandler struct {
 }
 
 var expenseCreateSchema = z.Struct(z.Schema{
-	"name":   z.String().Trim().Min(2).Required(),
-	"value":  z.Float().GTE(1).Required(),
+	"name":   z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Required(),
+	"value":  z.Float().GTE(0.01, z.Message("value must be greater than 0.01")).Required(),
 	"date":   z.Time(z.Time.Format(util.ApiDateLayout)).Required(),
 	"goalID": z.Int().Required(),
+})
+
+var expenseUpdateSchema = z.Struct(z.Schema{
+	"name":  z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Optional(),
+	"value": z.Float().GTE(0.01, z.Message("value must be greater than 0.01")).Optional(),
+	"date":  z.Time(z.Time.Format(util.ApiDateLayout)).Optional(),
 })
 
 func NewExpenseHandler(
@@ -38,7 +42,7 @@ func NewExpenseHandler(
 func (h *ExpenseHandler) FindMatchingNames(c *fiber.Ctx) error {
 	query := c.Query("query")
 	if len(query) < 2 {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "query must be present and have at least 2 characters"})
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "query must be present and have at least 2 characters"})
 	}
 
 	userID := util.GetUserIDFromCtx(c)
@@ -53,7 +57,7 @@ func (h *ExpenseHandler) GetSummary(c *fiber.Ctx) error {
 	if queryDate := c.Query("date"); queryDate != "" {
 		parsedDate, err := time.Parse(util.ApiDateLayout, queryDate)
 		if err != nil {
-			return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid date"})
 		}
 
 		date = parsedDate
@@ -86,59 +90,47 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 	}
 
 	expense, err := h.expenseRepo.Create(toCreate, userID, h.goalRepo)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
-	} else if err != nil {
-		panic(err)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "goal not found"})
 	}
 
-	return c.Status(http.StatusCreated).JSON(expense)
+	return c.Status(http.StatusCreated).JSON(expense.View())
 }
 
 func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 	var params struct {
-		Name  string  `json:"name"`
-		Value float64 `json:"value"`
-		Date  string  `json:"date"`
+		Name  string    `json:"name"`
+		Value float64   `json:"value"`
+		Date  time.Time `json:"date"`
 	}
 	json.Unmarshal(c.Body(), &params)
 
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
 	}
 
-	var date time.Time
-
-	if params.Date != "" {
-		date, err = time.Parse(util.ApiDateLayout, params.Date)
-		if err != nil {
-			return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid date"})
-		}
+	if err := util.ParseZodSchema(expenseUpdateSchema, c.Body(), &params); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(err)
 	}
 
 	userID := util.GetUserIDFromCtx(c)
 
 	toUpdate, err := h.expenseRepo.Get(uint(id), userID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
-	} else if err != nil {
-		panic(err)
-	}
-
-	toUpdate.Name = params.Name
-	toUpdate.Value = int64(params.Value * 100)
-
-	if params.Date != "" {
-		toUpdate.Date = date
-	}
-
-	expense, err := h.expenseRepo.Update(*toUpdate)
 	if err != nil {
-		panic(err)
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(http.StatusOK).JSON(expense)
+	util.UpdateIfNotZero(&toUpdate.Name, params.Name)
+	util.UpdateIfNotZero(&toUpdate.Value, int64(params.Value*100))
+	util.UpdateIfNotZero(&toUpdate.Date, params.Date)
+
+	expense, err := h.expenseRepo.Update(toUpdate)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(http.StatusOK).JSON(expense.View())
 }
 
 func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
@@ -149,39 +141,35 @@ func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
 
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
 	}
 
 	userID := util.GetUserIDFromCtx(c)
 
 	toUpdate, err := h.expenseRepo.Get(uint(id), userID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "expense not found"})
-	} else if err != nil {
-		panic(err)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	expense, err := h.expenseRepo.ChangeGoal(*toUpdate, params.GoalID, userID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "goal not found"})
-	} else if err != nil {
-		panic(err)
+	expense, err := h.expenseRepo.ChangeGoal(toUpdate, params.GoalID, userID, h.goalRepo)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	return c.Status(http.StatusOK).JSON(expense)
+	return c.Status(http.StatusOK).JSON(expense.View())
 }
 
 func (h *ExpenseHandler) Delete(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid expense id"})
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
 	}
 
 	userID := util.GetUserIDFromCtx(c)
 
 	err = h.expenseRepo.Delete(uint(id), userID)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": err.Error()})
+		return c.Status(http.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.Status(http.StatusNoContent).Send(nil)

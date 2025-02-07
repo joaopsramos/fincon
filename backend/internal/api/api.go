@@ -3,9 +3,11 @@ package api
 import (
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joaopsramos/fincon/internal/handler"
@@ -61,10 +63,22 @@ func (a *Api) SetupMiddlewares() {
 }
 
 func (a *Api) SetupRoutes() {
-	a.Router.Post("/api/users", a.userHandler.Create)
-	a.Router.Post("/api/sessions", a.userHandler.Login)
-
 	api := a.Router.Group("/api")
+
+	api.Post("/users", limiter.New(limiter.Config{
+		Max:                5,
+		Expiration:         1 * time.Hour,
+		SkipFailedRequests: true,
+		LimitReached:       a.limitReached,
+	}), a.userHandler.Create)
+
+	api.Post("/sessions", limiter.New(limiter.Config{
+		Max:               10,
+		Expiration:        5 * time.Minute,
+		LimiterMiddleware: limiter.SlidingWindow{},
+		LimitReached:      a.limitReached,
+	}), a.userHandler.Login)
+
 	api.Use(a.userHandler.ValidateTokenMiddleware())
 	api.Use(a.userHandler.PutUserIDMiddleware())
 
@@ -79,6 +93,10 @@ func (a *Api) SetupRoutes() {
 
 	api.Get("/goals", a.goalHandler.Index)
 	api.Get("/goals/:id/expenses", a.goalHandler.GetExpenses)
+}
+
+func (a *Api) limitReached(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusTooManyRequests).JSON(util.M{"error": "too many requests"})
 }
 
 func newFiber() *fiber.App {

@@ -27,17 +27,25 @@ func NewTestApi(userID uuid.UUID, tx *gorm.DB) *TestApi {
 	return &TestApi{api: api, token: domain.CreateToken(userID, time.Minute*1)}
 }
 
-func (t *TestApi) Test(method string, path string, body util.M) *http.Response {
+func (t *TestApi) Test(method string, path string, body ...util.M) *http.Response {
 	var bodyReader io.Reader
 
-	if body != nil {
-		encodedBody, _ := json.Marshal(body)
+	if len(body) > 0 {
+		encodedBody, _ := json.Marshal(body[0])
 		bodyReader = bytes.NewReader(encodedBody)
 	}
 
-	req := httptest.NewRequest("POST", "/api/expenses", bodyReader)
+	req := httptest.NewRequest(method, path, bodyReader)
 	req.Header.Set("Authorization", "Bearer "+t.token)
 
-	resp, _ := t.api.Router.Test(req)
+	resp, err := t.api.Router.Test(req)
+	if err != nil {
+		panic(err)
+	}
+
 	return resp
+}
+
+func (t *TestApi) UnmarshalBody(body io.ReadCloser, dst any) {
+	json.NewDecoder(body).Decode(dst)
 }

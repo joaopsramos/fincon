@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/Rhymond/go-money"
@@ -25,14 +26,19 @@ func (r PostgresExpenseRepository) FindMatchingNames(name string, userID uuid.UU
 	return names
 }
 
-func (r PostgresExpenseRepository) Get(id uint, userID uuid.UUID) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) Get(id uint, userID uuid.UUID) (domain.Expense, error) {
 	var e domain.Expense
 	result := r.db.Where("user_id = ?", userID).Take(&e, id)
 	if result.Error != nil {
-		return &domain.Expense{}, result.Error
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return domain.Expense{}, errors.New("expense not found")
+		}
+
+		slog.Error(result.Error.Error())
+		return domain.Expense{}, errors.New("expense could not be retrieved")
 	}
 
-	return &e, nil
+	return e, nil
 }
 
 func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, goalRepo domain.GoalRepo) (*domain.Expense, error) {
@@ -45,7 +51,8 @@ func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, go
 
 	result := r.db.Create(&e)
 	if result.Error != nil {
-		return &domain.Expense{}, result.Error
+		slog.Error(result.Error.Error())
+		return &domain.Expense{}, errors.New("expense could not be created")
 	}
 
 	return &e, nil
@@ -53,30 +60,43 @@ func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, go
 
 func (r PostgresExpenseRepository) Update(e domain.Expense) (*domain.Expense, error) {
 	result := r.db.Model(&e).Select("Name", "Value", "Date").Updates(e)
-	if result.RowsAffected == 0 {
-		return &domain.Expense{}, errors.New("expense not updated")
+	if result.Error != nil {
+		slog.Error(result.Error.Error())
+		return &domain.Expense{}, errors.New("expense could not be updated")
 	}
 
 	return &e, nil
 }
 
-func (r PostgresExpenseRepository) ChangeGoal(e domain.Expense, goalID uint, userID uuid.UUID) (*domain.Expense, error) {
-	var goal domain.Goal
-	result := r.db.Where("user_id = ?", userID).Take(&goal, goalID)
-	if result.Error != nil {
-		return &domain.Expense{}, result.Error
+func (r PostgresExpenseRepository) ChangeGoal(
+	e domain.Expense,
+	goalID uint,
+	userID uuid.UUID,
+	goalRepo domain.GoalRepo,
+) (*domain.Expense, error) {
+	goal, err := goalRepo.Get(goalID, userID)
+	if err != nil {
+		return &domain.Expense{}, err
 	}
 
-	r.db.Model(&e).Update("goal_id", goal.ID)
+	result := r.db.Model(&e).Update("goal_id", goal.ID)
+	if result.Error != nil {
+		slog.Error(result.Error.Error())
+		return &domain.Expense{}, errors.New("expense goal could not be changed")
+	}
 
 	return &e, nil
 }
 
 func (r PostgresExpenseRepository) Delete(id uint, userID uuid.UUID) error {
 	result := r.db.Where("user_id = ?", userID).Delete(&domain.Expense{}, id)
+	if result.Error != nil {
+		slog.Error(result.Error.Error())
+		return errors.New("expense could not be deleted")
+	}
 
 	if result.RowsAffected == 0 {
-		return errors.New("expense not deleted, it may not exist or has already been deleted")
+		return errors.New("expense not found")
 	}
 
 	return nil

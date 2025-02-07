@@ -29,8 +29,8 @@ func (f *Factory) InsertGoal(g ...*domain.Goal) domain.Goal {
 	return insert(f, g, domain.Goal{Percentage: f.faker.UintRange(1, 100)})
 }
 
-func (f *Factory) InsertExpense(e *domain.Expense) {
-	f.tx.Create(e)
+func (f *Factory) InsertExpense(e ...*domain.Expense) domain.Expense {
+	return insert(f, e, domain.Expense{Name: f.faker.ProductName(), Value: f.faker.Int64(), Date: f.faker.Date()})
 }
 
 func insert[T any](f *Factory, given []*T, fake T) T {

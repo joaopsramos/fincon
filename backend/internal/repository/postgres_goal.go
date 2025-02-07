@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"errors"
+	"log/slog"
+
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"gorm.io/gorm"
@@ -25,5 +28,14 @@ func (r PostgresGoalRepository) Get(id uint, userID uuid.UUID) (domain.Goal, err
 	goal := domain.Goal{ID: id}
 	result := r.db.Where("user_id = ?", userID).Take(&goal)
 
-	return goal, result.Error
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return domain.Goal{}, errors.New("goal not found")
+		}
+
+		slog.Error(result.Error.Error())
+		return domain.Goal{}, errors.New("goal could not be retrieved")
+	}
+
+	return goal, nil
 }

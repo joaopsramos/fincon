@@ -24,4 +24,5 @@ test:
 	APP_ENV=test go test ./...
 
 test-cover:
-	APP_ENV=test go test ./... -cover
+	APP_ENV=test go test ./... -cover -coverprofile=coverage.out
+	go tool cover -html=coverage.out
