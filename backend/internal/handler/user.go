@@ -37,9 +37,7 @@ var userLoginSchema = z.Struct(z.Schema{
 })
 
 func NewUserHandler(userRepo domain.UserRepo) UserHandler {
-	return UserHandler{
-		userRepo: userRepo,
-	}
+	return UserHandler{userRepo: userRepo}
 }
 
 func (h *UserHandler) Create(c *fiber.Ctx) error {

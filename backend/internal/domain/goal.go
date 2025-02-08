@@ -23,7 +23,19 @@ type Goal struct {
 	Expenses []Expense `json:"-"`
 }
 
+func DefaulGoalPercentages() map[GoalName]uint {
+	return map[GoalName]uint{
+		FixedCosts:           40,
+		Comfort:              20,
+		Goals:                5,
+		Pleasures:            5,
+		FinancialInvestments: 25,
+		Knowledge:            5,
+	}
+}
+
 type GoalRepo interface {
 	All(userID uuid.UUID) []Goal
 	Get(id uint, userID uuid.UUID) (Goal, error)
+	Create(goals ...Goal) error
 }

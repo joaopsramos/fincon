@@ -28,13 +28,13 @@ func (r PostgresExpenseRepository) FindMatchingNames(name string, userID uuid.UU
 
 func (r PostgresExpenseRepository) Get(id uint, userID uuid.UUID) (domain.Expense, error) {
 	var e domain.Expense
-	result := r.db.Where("user_id = ?", userID).Take(&e, id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+
+	if err := r.db.Where("user_id = ?", userID).Take(&e, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
 			return domain.Expense{}, errs.NewNotFound("expense")
 		}
 
-		return domain.Expense{}, errors.New("expense could not be retrieved")
+		return domain.Expense{}, err
 	}
 
 	return e, nil
@@ -48,9 +48,8 @@ func (r PostgresExpenseRepository) Create(e domain.Expense, userID uuid.UUID, go
 
 	e.UserID = userID
 
-	result := r.db.Create(&e)
-	if result.Error != nil {
-		return &domain.Expense{}, errors.New("expense could not be created")
+	if err := r.db.Create(&e).Error; err != nil {
+		return &domain.Expense{}, err
 	}
 
 	return &e, nil

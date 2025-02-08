@@ -11,6 +11,7 @@ import (
 )
 
 func NewTestPostgresSalaryRepo(t *testing.T, tx *gorm.DB) domain.SalaryRepo {
+	t.Helper()
 	return repository.NewPostgresSalary(tx)
 }
 
