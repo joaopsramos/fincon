@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query"
 import { login, signUp } from "@/api/session"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { LoaderCircle } from "lucide-react"
 
 export default function Login() {
   const router = useRouter()
@@ -56,8 +57,10 @@ export default function Login() {
               </label>
               <Input id="password" name="password" type="password" required />
             </div>
-            <Button type="submit" className="w-full">
-              {isSignUp ? "Sign Up" : "Sign In"}
+            <Button type="submit" className="w-full" disabled={loginMut.isPending || signUpMut.isPending}>
+              {loginMut.isPending || signUpMut.isPending ? (
+                <LoaderCircle className="animate-spin size-6" />
+              ) : isSignUp ? "Sign Up" : "Sign In"}
             </Button>
           </Form>
         </CardContent>
