@@ -33,6 +33,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          working-directory: backend
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -40,7 +41,7 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-mod-${{ runner.os }}-${{ hashFiles('go.sum') }}
+          key: go-mod-${{ runner.os }}-${{ hashFiles('backend/go.sum') }}
           restore-keys: |
             go-mod-${{ runner.os }}
 
