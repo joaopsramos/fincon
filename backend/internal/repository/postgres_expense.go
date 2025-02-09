@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -176,7 +177,9 @@ func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, 
 
 		mustSpendvalueF := float64(mustSpendvalue)
 		used := 100 + ((float64(r.Spent) - mustSpendvalueF) * 100 / mustSpendvalueF)
+		used = util.NaNToZero(used)
 		total := float64(r.Spent*100) / float64(salary.Amount)
+		total = util.NaNToZero(total)
 
 		sg[i] = domain.SummaryGoal{
 			Name:      string(g.Name),
@@ -195,6 +198,6 @@ func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, 
 		Goals:     sg,
 		Spent:     domain.NewMoney(totalSpent),
 		MustSpend: domain.NewMoney(totalMustSpend),
-		Used:      totalUsed,
+		Used:      util.FloatToFixed(totalUsed, 2),
 	}
 }

@@ -49,6 +49,50 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	now := testhelper.MiddleOfMonth()
 
+	r := NewTestPostgresExpenseRepo(t, tx)
+	goalRepo := NewTestPostgresGoalRepo(t, tx)
+	salaryRepo := NewTestPostgresSalaryRepo(t, tx)
+
+	type dataType struct {
+		goalName  domain.GoalName
+		spent     float64
+		mustSpend float64
+		used      float64
+		total     float64
+	}
+
+	assertSummaryEntries := func(data []dataType, entriesByName map[domain.GoalName]domain.SummaryGoal) {
+		for _, d := range data {
+			entry := entriesByName[d.goalName]
+			assert.Equal(string(d.goalName), entry.Name)
+			assert.Equal(d.spent, entry.Spent.Amount)
+			assert.Equal(d.mustSpend, entry.MustSpend.Amount)
+			assert.Equal(d.used, float64(int(entry.Used*100))/100)
+			assert.Equal(d.total, float64(int(entry.Total*100))/100)
+		}
+	}
+
+	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
+
+	summary := r.GetSummary(now, user.ID, goalRepo, salaryRepo)
+	for _, g := range summary.Goals {
+		entriesByName[domain.GoalName(g.Name)] = g
+	}
+
+	data := []dataType{
+		{domain.Comfort, 0, 2000, 0, 0},
+		{domain.FixedCosts, 0, 4000, 0, 0},
+		{domain.Pleasures, 0, 500, 0, 0},
+		{domain.Knowledge, 0, 500, 0, 0},
+		{domain.Goals, 0, 500, 0, 0},
+		{domain.FinancialInvestments, 0, 2500, 0, 0},
+	}
+
+	assert.Equal(0.0, summary.Spent.Amount)
+	assert.Equal(10000.0, summary.MustSpend.Amount)
+	assert.Equal(0.0, summary.Used)
+	assertSummaryEntries(data, entriesByName)
+
 	expenses := []struct {
 		value  float64
 		date   time.Time
@@ -76,47 +120,28 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		})
 	}
 
-	r := NewTestPostgresExpenseRepo(t, tx)
-	goalRepo := NewTestPostgresGoalRepo(t, tx)
-	salaryRepo := NewTestPostgresSalaryRepo(t, tx)
-
-	type dataType struct {
-		goalName  domain.GoalName
-		spent     float64
-		mustSpend float64
-		used      float64
-		total     float64
-	}
-
-	assertSummaryEntries := func(data []dataType, entriesByName map[domain.GoalName]domain.SummaryGoal) {
-		for _, d := range data {
-			entry := entriesByName[d.goalName]
-			assert.Equal(string(d.goalName), entry.Name)
-			assert.Equal(d.spent, entry.Spent.Amount)
-			assert.Equal(d.mustSpend, entry.MustSpend.Amount)
-			assert.Equal(d.used, float64(int(entry.Used*100))/100)
-			assert.Equal(d.total, float64(int(entry.Total*100))/100)
-		}
-	}
-
-	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
-
-	for _, g := range r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, salaryRepo).Goals {
+	summary = r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, salaryRepo)
+	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
-	data := []dataType{
+	data = []dataType{
 		{domain.Comfort, 125.74, 2000, 6.28, 1.25},
 		{domain.Comfort, 125.74, 2000, 6.28, 1.25},
 		{domain.FixedCosts, 0, 4000, 0.0, 0.0},
 		{domain.Pleasures, 500, 500, 100.0, 5.0},
 		{domain.Knowledge, 0, 500, 0.0, 0.0},
+		{domain.Goals, 0, 500, 0, 0},
 		{domain.FinancialInvestments, 0, 2500, 0.0, 0.0},
 	}
 
+	assert.Equal(625.74, summary.Spent.Amount)
+	assert.Equal(9374.26, summary.MustSpend.Amount)
+	assert.Equal(6.26, summary.Used)
 	assertSummaryEntries(data, entriesByName)
 
-	for _, g := range r.GetSummary(now, user.ID, goalRepo, salaryRepo).Goals {
+	summary = r.GetSummary(now, user.ID, goalRepo, salaryRepo)
+	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
@@ -125,12 +150,19 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		{domain.FixedCosts, 400 + 100, 4000, 12.5, 5.0},
 		{domain.Pleasures, 190.89 + 340.15, 500, 106.2, 5.31},
 		{domain.Knowledge, 900.99, 500, 180.19, 9.0},
+		{domain.Goals, 0, 500, 0, 0},
 		{domain.FinancialInvestments, 0, 2500, 0.0, 0.0},
 	}
 
+	assert.Equal(2108.02, summary.Spent.Amount)
+	assert.Equal(7891.98, summary.MustSpend.Amount)
+	assert.Equal(21.08, summary.Used)
 	assertSummaryEntries(data, entriesByName)
 
-	for _, g := range r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, salaryRepo).Goals {
+	assertSummaryEntries(data, entriesByName)
+
+	summary = r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, salaryRepo)
+	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
 
@@ -139,9 +171,13 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		{domain.FixedCosts, 0, 4000, 0.0, 0.0},
 		{domain.Pleasures, 41.04, 500, 8.2, 0.41},
 		{domain.Knowledge, 400.99, 500, 80.19, 4.0},
+		{domain.Goals, 0, 500, 0, 0},
 		{domain.FinancialInvestments, 700.25, 2500, 28.01, 7.0},
 	}
 
+	assert.Equal(1142.28, summary.Spent.Amount)
+	assert.Equal(8857.72, summary.MustSpend.Amount)
+	assert.Equal(11.42, summary.Used)
 	assertSummaryEntries(data, entriesByName)
 }
 

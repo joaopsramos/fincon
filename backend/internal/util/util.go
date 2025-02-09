@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 
 	z "github.com/Oudwins/zog"
 	"github.com/Oudwins/zog/parsers/zjson"
@@ -52,4 +53,17 @@ func UpdateIfNotZero[T comparable](dst *T, src T) {
 func Merge(a, b any) {
 	ja := Must(json.Marshal(a))
 	Must(0, json.Unmarshal(ja, b))
+}
+
+func NaNToZero(n float64) float64 {
+	if math.IsNaN(n) {
+		return 0
+	}
+
+	return n
+}
+
+func FloatToFixed(f float64, precision int) float64 {
+	scale := math.Pow(10, float64(precision))
+	return math.Round(f*scale) / scale
 }
