@@ -22,7 +22,7 @@ func TestPostgresUser_Create(t *testing.T) {
 	r := NewTestPostgresUserRepo(t, tx)
 
 	user := domain.User{Email: "test@mail.com", HashPassword: "pass"}
-	r.Create(&user)
+	assert.NoError(r.Create(&user))
 
 	assert.NotZero(user.ID)
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -17,4 +18,12 @@ func handleError(c *fiber.Ctx, err error) error {
 
 	slog.Error(err.Error())
 	panic(err)
+}
+
+func InvalidJSONBody(c *fiber.Ctx, err error) error {
+	if errors.Is(err, &json.InvalidUnmarshalError{}) {
+		panic(err)
+	}
+
+	return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid json body"})
 }

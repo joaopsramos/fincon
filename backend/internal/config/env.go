@@ -26,5 +26,8 @@ func LoadEnv(rootDir string) {
 		envFile = ".env"
 	}
 
-	godotenv.Load(path.Join(rootDir, envFile))
+	err := godotenv.Load(path.Join(rootDir, envFile))
+	if err != nil {
+		panic(err)
+	}
 }

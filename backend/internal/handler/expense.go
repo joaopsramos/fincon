@@ -98,16 +98,15 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 }
 
 func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
+	}
+
 	var params struct {
 		Name  string    `json:"name"`
 		Value float64   `json:"value"`
 		Date  time.Time `json:"date"`
-	}
-	json.Unmarshal(c.Body(), &params)
-
-	id, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
 	}
 
 	if err := util.ParseZodSchema(expenseUpdateSchema, c.Body(), &params); err != nil {
@@ -137,7 +136,9 @@ func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
-	json.Unmarshal(c.Body(), &params)
+	if err := json.Unmarshal(c.Body(), &params); err != nil {
+		return InvalidJSONBody(c, err)
+	}
 
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
