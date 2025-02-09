@@ -47,7 +47,7 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 	}
 
 	if errs := util.ParseZodSchema(userCreateSchema, c.Body(), &params); errs != nil {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"errors": errs})
+		return handleZodError(c, errs)
 	}
 
 	if _, err := h.userRepo.GetByEmail(params.Email); err == nil {
@@ -77,7 +77,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	}
 
 	if errs := util.ParseZodSchema(userLoginSchema, c.Body(), &params); errs != nil {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"errors": errs})
+		return handleZodError(c, errs)
 	}
 
 	user, err := h.userRepo.GetByEmail(params.Email)

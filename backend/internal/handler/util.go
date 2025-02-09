@@ -20,6 +20,10 @@ func handleError(c *fiber.Ctx, err error) error {
 	panic(err)
 }
 
+func handleZodError(c *fiber.Ctx, err map[string]any) error {
+	return c.Status(http.StatusBadRequest).JSON(err)
+}
+
 func InvalidJSONBody(c *fiber.Ctx, err error) error {
 	if errors.Is(err, &json.InvalidUnmarshalError{}) {
 		panic(err)
