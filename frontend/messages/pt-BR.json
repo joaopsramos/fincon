@@ -1,0 +1,36 @@
+{
+  "LoginPage": {
+    "loginTitle": "Entrar",
+    "signUpTitle": "Criar conta",
+    "passwordInput": "Senha",
+    "continueButton": "Continuar",
+    "needAnAccount": "Não tem uma conta? Cadastrar",
+    "alreadyHaveAnAccount": "Já possui uma conta? Entrar"
+  },
+  "DashboardPage": {
+    "summary": {
+      "title": "Resumo",
+      "budget": "Meta",
+      "spent": "Valor gasto",
+      "mustSpend": "Devo gastar",
+      "used": "Utilizado",
+      "total": "Total",
+      "totalSpent": "Total gasto"
+    },
+    "goals": {
+      "title": "Metas"
+    },
+    "expenses": {
+      "expense": "Despesa",
+      "amount": "Valor",
+      "date": "Data",
+      "nameInput": "Nome",
+      "valueInput": "Valor",
+      "deleteMsg": "Você quer deletar a despesa \"{name}\"?",
+      "errors": {
+        "nameTooShort": "Precisa ter ao menos 2 caracteres",
+        "valueTooLow": "Precisa ser maior que 0.01"
+      }
+    }
+  }
+}
