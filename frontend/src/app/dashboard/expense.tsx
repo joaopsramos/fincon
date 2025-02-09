@@ -1,4 +1,5 @@
 import dayjs from "dayjs"
+import { useTranslations } from "next-intl"
 import type { CreateExpenseParams, Expense } from "@/api/expense"
 import utc from "dayjs/plugin/utc"
 import { Goal } from "@/api/goals"
@@ -18,6 +19,7 @@ import { z } from "zod"
 export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
   dayjs.extend(utc)
 
+  const t = useTranslations("DashboardPage.expenses")
   const queryClient = useQueryClient()
   const invalidateQueries = buildInvalidateQueriesFn(queryClient, date, goal.id)
 
@@ -38,9 +40,9 @@ export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
           <Table withoutWrapper>
             <TableHeader className="sticky top-0 bg-slate-100">
               <TableRow>
-                <TableHead className="min-w-24 lg:w-5/12 xl:w-4/12 2xl:w-5/12">Expense</TableHead>
-                <TableHead className="min-w-24 lg:w-3/12 2xl:w-2/12">Amount</TableHead>
-                <TableHead className="min-w-20">Date</TableHead>
+                <TableHead className="min-w-24 lg:w-5/12 xl:w-4/12 2xl:w-5/12">{t("expense")}</TableHead>
+                <TableHead className="min-w-24 lg:w-3/12 2xl:w-2/12">{t("amount")}</TableHead>
+                <TableHead className="min-w-20">{t("date")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -70,6 +72,7 @@ export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
 }
 
 function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueries: () => Promise<void> }) {
+  const t = useTranslations("DashboardPage.expenses")
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(expense.name);
   const [value, setValue] = useState(expense.value.amount.toString());
@@ -144,7 +147,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
           <div
             className="cursor-pointer bg-red-500 rounded-full p-1 w-min hover:bg-red-600 transition-colors"
             onClick={() => {
-              if (window.confirm(`Do you want to delete the expense "${expense.name}"?`)) {
+              if (window.confirm(t('deleteMsg', { name: expense.name }))) {
                 deleteExpenseMut.mutate();
               }
             }}
@@ -158,13 +161,14 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
 }
 
 const createExpenseSchema = z.object({
-  name: z.string().min(2, "Name must have at least 2 characters"),
-  value: z.string().min(0.01, "Value must be greater than 0").transform(val => parseFloat(val))
+  name: z.string().min(2, "nameTooShort"),
+  value: z.string().min(0.01, "valueTooLow").transform(val => parseFloat(val))
 })
 
 type CreateExpenseSchema = z.infer<typeof createExpenseSchema>
 
 function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQueries: () => Promise<void> }) {
+  const t = useTranslations("DashboardPage.expenses")
   const [nameFocused, setNameFocused] = useState(false)
   const { toast } = useToast()
   const {
@@ -217,7 +221,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
             className={`rounded-md p-1 w-full ${errors.name ? 'border-red-500' : ''}`}
             {...register("name")}
             type="text"
-            placeholder="Name"
+            placeholder={t("nameInput")}
             autoComplete="off"
             onFocus={() => setNameFocused(true)}
             onBlur={() => setNameFocused(false)}
@@ -229,7 +233,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
             className={`rounded-md p-1 w-full ${errors.value ? 'border-red-500' : ''}`}
             {...register("value")}
             type="number"
-            placeholder="Value"
+            placeholder={t("valueInput")}
             step="0.01"
           />
         </div>
@@ -240,11 +244,19 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
         </button>
 
         {errors.name && (
-          <span className="row-start-2 col-span-5 text-red-500 text-xs">{errors.name.message}</span>
+          <span
+            className="row-start-2 col-span-5 text-red-500 text-xs"
+          >
+            {t("errors." + errors.name.message)}
+          </span>
         )}
 
         {errors.value && (
-          <span className="row-start-2 col-start-6 col-span-5 text-red-500 text-xs">{errors.value.message}</span>
+          <span
+            className="row-start-2 col-start-6 col-span-5 text-red-500 text-xs"
+          >
+            {t("errors." + errors.value.message)}
+          </span>
         )}
       </div>
 
