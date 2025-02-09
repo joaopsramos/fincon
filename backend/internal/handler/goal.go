@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -23,7 +22,6 @@ func NewGoalHandler(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalHa
 func (h *GoalHandler) Index(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
 	goals := h.repo.All(userID)
-	fmt.Println(goals)
 	return c.Status(http.StatusOK).JSON(goals)
 }
 

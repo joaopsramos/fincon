@@ -25,33 +25,33 @@ type Expense struct {
 type ExpenseView struct {
 	ID     uint      `json:"id"`
 	Name   string    `json:"name"`
-	Value  Money     `json:"value"`
+	Value  MoneyView `json:"value"`
 	Date   time.Time `json:"date"`
 	GoalID uint      `json:"goal_id"`
 }
 
 type SummaryGoal = struct {
-	Name      string  `json:"name"`
-	Spent     Money   `json:"spent"`
-	MustSpend Money   `json:"must_spend"`
-	Used      float64 `json:"used"`
-	Total     float64 `json:"total"`
+	Name      string    `json:"name"`
+	Spent     MoneyView `json:"spent"`
+	MustSpend MoneyView `json:"must_spend"`
+	Used      float64   `json:"used"`
+	Total     float64   `json:"total"`
 }
 
-type Money struct {
+type MoneyView struct {
 	Amount   float64 `json:"amount"`
 	Currency string  `json:"currency"`
 }
 
 type Summary struct {
 	Goals     []SummaryGoal `json:"goals"`
-	Spent     Money         `json:"spent"`
-	MustSpend Money         `json:"must_spend"`
+	Spent     MoneyView     `json:"spent"`
+	MustSpend MoneyView     `json:"must_spend"`
 	Used      float64       `json:"used"`
 }
 
-func NewMoney(money *money.Money) Money {
-	return Money{Amount: money.AsMajorUnits(), Currency: money.Currency().Code}
+func NewMoney(money *money.Money) MoneyView {
+	return MoneyView{Amount: money.AsMajorUnits(), Currency: money.Currency().Code}
 }
 
 func (e *Expense) View() ExpenseView {
