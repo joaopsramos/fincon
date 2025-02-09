@@ -76,8 +76,8 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 		GoalID int `zog:"goal_id"`
 	}
 
-	if err := util.ParseZodSchema(expenseCreateSchema, c.Body(), &params); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(err)
+	if errs := util.ParseZodSchema(expenseCreateSchema, c.Body(), &params); errs != nil {
+		return handleZodError(c, errs)
 	}
 
 	userID := util.GetUserIDFromCtx(c)
@@ -109,8 +109,8 @@ func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 		Date  time.Time `json:"date"`
 	}
 
-	if err := util.ParseZodSchema(expenseUpdateSchema, c.Body(), &params); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(err)
+	if errs := util.ParseZodSchema(expenseUpdateSchema, c.Body(), &params); errs != nil {
+		return handleZodError(c, errs)
 	}
 
 	userID := util.GetUserIDFromCtx(c)

@@ -279,7 +279,7 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 	api := testhelper.NewTestApi(user.ID, tx)
 
 	goal1 := domain.Goal{Name: "Comfort", UserID: user.ID}
-	goal2 := domain.Goal{Name: "Comfort", UserID: user.ID}
+	goal2 := domain.Goal{Name: "Pleasures", UserID: user.ID}
 	f.InsertGoal(&goal1)
 	f.InsertGoal(&goal2)
 
