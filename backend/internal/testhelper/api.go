@@ -3,6 +3,7 @@ package testhelper
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -48,7 +49,7 @@ func (t *TestApi) Test(method string, path string, body ...util.M) *http.Respons
 
 func (t *TestApi) UnmarshalBody(body io.ReadCloser, dst any) {
 	err := json.NewDecoder(body).Decode(dst)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.EOF) {
 		panic(err)
 	}
 }

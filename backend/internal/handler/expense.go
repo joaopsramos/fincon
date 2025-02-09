@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -132,6 +133,13 @@ func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 }
 
 func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
+	var params struct {
+		GoalID uint `json:"goal_id"`
+	}
+	if err := json.Unmarshal(c.Body(), &params); err != nil {
+		return InvalidJSONBody(c, err)
+	}
+
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
@@ -142,10 +150,6 @@ func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
 	toUpdate, err := h.expenseRepo.Get(uint(id), userID)
 	if err != nil {
 		return handleError(c, err)
-	}
-
-	var params struct {
-		GoalID uint `json:"goal_id"`
 	}
 
 	expense, err := h.expenseRepo.ChangeGoal(toUpdate, params.GoalID, userID, h.goalRepo)
