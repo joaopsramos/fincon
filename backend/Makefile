@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := build
 
-.PHONY:fmt vet build run setup-db test test-cover
+.PHONY:fmt vet build run setup-db test test-cover linter
 
 fmt:
 	go fmt ./...
@@ -26,3 +26,6 @@ test:
 test-cover:
 	APP_ENV=test go test ./... -cover -coverprofile=coverage.out
 	go tool cover -html=coverage.out
+
+linter:
+	golangci-lint run
