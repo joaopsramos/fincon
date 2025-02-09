@@ -47,5 +47,8 @@ func (t *TestApi) Test(method string, path string, body ...util.M) *http.Respons
 }
 
 func (t *TestApi) UnmarshalBody(body io.ReadCloser, dst any) {
-	json.NewDecoder(body).Decode(dst)
+	err := json.NewDecoder(body).Decode(dst)
+	if err != nil {
+		panic(err)
+	}
 }

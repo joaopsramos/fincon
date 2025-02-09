@@ -26,7 +26,7 @@ func TestApi_ErrorHandler(t *testing.T) {
 	resp, _ := api.Router.Test(req)
 
 	var respBody fiber.Map
-	json.NewDecoder(resp.Body).Decode(&respBody)
+	_ = json.NewDecoder(resp.Body).Decode(&respBody)
 
 	assert.Equal(500, resp.StatusCode)
 	assert.Equal(fiber.Map{"error": "internal server error"}, respBody)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"log/slog"
 
 	"github.com/joaopsramos/fincon/internal/config"
@@ -21,5 +22,8 @@ func main() {
 	db.Exec("CREATE EXTENSION IF NOT EXISTS citext")
 
 	slog.Info("Auto migrating...")
-	db.AutoMigrate(&domain.User{}, &domain.Goal{}, &domain.Salary{}, &domain.Expense{})
+	err := db.AutoMigrate(&domain.User{}, &domain.Goal{}, &domain.Salary{}, &domain.Expense{})
+	if err != nil {
+		log.Fatal(err)
+	}
 }

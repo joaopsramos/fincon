@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -98,16 +97,15 @@ func (h *ExpenseHandler) Create(c *fiber.Ctx) error {
 }
 
 func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
+	id, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
+	}
+
 	var params struct {
 		Name  string    `json:"name"`
 		Value float64   `json:"value"`
 		Date  time.Time `json:"date"`
-	}
-	json.Unmarshal(c.Body(), &params)
-
-	id, err := strconv.Atoi(c.Params("id"))
-	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
 	}
 
 	if err := util.ParseZodSchema(expenseUpdateSchema, c.Body(), &params); err != nil {
@@ -134,11 +132,6 @@ func (h *ExpenseHandler) Update(c *fiber.Ctx) error {
 }
 
 func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
-	var params struct {
-		GoalID uint `json:"goal_id"`
-	}
-	json.Unmarshal(c.Body(), &params)
-
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
@@ -149,6 +142,10 @@ func (h *ExpenseHandler) UpdateGoal(c *fiber.Ctx) error {
 	toUpdate, err := h.expenseRepo.Get(uint(id), userID)
 	if err != nil {
 		return handleError(c, err)
+	}
+
+	var params struct {
+		GoalID uint `json:"goal_id"`
 	}
 
 	expense, err := h.expenseRepo.ChangeGoal(toUpdate, params.GoalID, userID, h.goalRepo)
