@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl";
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { LoaderCircle } from "lucide-react"
 
 export default function Login() {
+  const t = useTranslations("LoginPage");
   const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(false)
   const { toast } = useToast()
@@ -40,7 +42,7 @@ export default function Login() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">{isSignUp ? "Sign Up" : "Sign In"}</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">{isSignUp ? t("signUpTitle") : t("loginTitle")}</CardTitle>
         </CardHeader>
 
         <CardContent className="pb-2">
@@ -53,21 +55,21 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
-                Password
+                {t("passwordInput")}
               </label>
               <Input id="password" name="password" type="password" required />
             </div>
             <Button type="submit" className="w-full" disabled={loginMut.isPending || signUpMut.isPending}>
               {loginMut.isPending || signUpMut.isPending ? (
                 <LoaderCircle className="animate-spin size-6" />
-              ) : isSignUp ? "Sign Up" : "Sign In"}
+              ) : t("continueButton")}
             </Button>
           </Form>
         </CardContent>
 
         <CardFooter>
           <Button variant="outline" className="w-full" onClick={() => setIsSignUp(!isSignUp)}>
-            {isSignUp ? "Already have an account? Sign In" : "Need an account? Sign Up"}
+            {isSignUp ? t("alreadyHaveAnAccount") : t("needAnAccount")}
           </Button>
         </CardFooter>
       </Card>

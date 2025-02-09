@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import { getSummary, SummaryGoal } from "@/api/summary"
 import { moneyToString } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
@@ -11,6 +12,7 @@ type SummaryTotalParams = {
 }
 
 export default function Summary({ date }: { date: Date }) {
+  const t = useTranslations("DashboardPage")
   const { data: summary } = useQuery({
     queryKey: ["summary", date],
     queryFn: getSummary,
@@ -20,18 +22,18 @@ export default function Summary({ date }: { date: Date }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Summary</CardTitle>
+        <CardTitle>{t("summary.title")}</CardTitle>
       </CardHeader>
 
       <CardContent>
         <Table>
           <TableHeader className="bg-slate-100">
             <TableRow>
-              <TableHead>Budget</TableHead>
-              <TableHead>Spent</TableHead>
-              <TableHead>Must spend</TableHead>
-              <TableHead>Used</TableHead>
-              <TableHead>Total</TableHead>
+              <TableHead>{t("summary.budget")}</TableHead>
+              <TableHead>{t("summary.spent")}</TableHead>
+              <TableHead>{t("summary.mustSpend")}</TableHead>
+              <TableHead>{t("summary.used")}</TableHead>
+              <TableHead>{t("summary.total")}</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -45,9 +47,9 @@ export default function Summary({ date }: { date: Date }) {
         <div className="flex gap-x-4 gap-y-2 flex-wrap">
           {summary && (
             <>
-              <SummaryTotal value={moneyToString(summary.spent)} text="Total spent" valueColor="text-red-500" />
-              <SummaryTotal value={moneyToString(summary.must_spend)} text="Must spent" valueColor="text-green-600" />
-              <SummaryTotal value={summary.used.toFixed(2).toString() + "%"} text="Used" />
+              <SummaryTotal value={moneyToString(summary.spent)} text={t("summary.totalSpent")} valueColor="text-red-500" />
+              <SummaryTotal value={moneyToString(summary.must_spend)} text={t("summary.mustSpend")} valueColor="text-green-600" />
+              <SummaryTotal value={summary.used.toFixed(2).toString() + "%"} text={t("summary.used")} />
             </>
           )}
         </div>
