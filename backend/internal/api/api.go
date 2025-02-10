@@ -11,7 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/joaopsramos/fincon/internal/handler"
+	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
@@ -20,33 +20,29 @@ import (
 type Api struct {
 	Router *fiber.App
 
-	logger         *slog.Logger
-	userHandler    handler.UserHandler
-	salaryHandler  handler.SalaryHandler
-	goalHandler    handler.GoalHandler
-	expenseHandler handler.ExpenseHandler
+	logger      *slog.Logger
+	userRepo    domain.UserRepo
+	salaryRepo  domain.SalaryRepo
+	goalRepo    domain.GoalRepo
+	expenseRepo domain.ExpenseRepo
 }
 
 func NewApi(db *gorm.DB) *Api {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	userRepo := repository.NewPostgresUser(db)
 	salaryRepo := repository.NewPostgresSalary(db)
 	goalRepo := repository.NewPostgresGoal(db)
 	expenseRepo := repository.NewPostgresExpense(db)
 
-	userHandler := handler.NewUserHandler(userRepo)
-	salaryHandler := handler.NewSalaryHandler(salaryRepo)
-	goalHandler := handler.NewGoalHandler(goalRepo, expenseRepo)
-	expenseHandler := handler.NewExpenseHandler(expenseRepo, goalRepo, salaryRepo)
-
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
 	return &Api{
-		Router:         newFiber(),
-		logger:         logger,
-		userHandler:    userHandler,
-		salaryHandler:  salaryHandler,
-		goalHandler:    goalHandler,
-		expenseHandler: expenseHandler,
+		Router: newFiber(),
+		logger: logger,
+
+		userRepo:    userRepo,
+		salaryRepo:  salaryRepo,
+		goalRepo:    goalRepo,
+		expenseRepo: expenseRepo,
 	}
 }
 
@@ -75,29 +71,29 @@ func (a *Api) SetupRoutes() {
 		Expiration:         1 * time.Hour,
 		SkipFailedRequests: true,
 		LimitReached:       a.limitReached,
-	}), a.userHandler.Create)
+	}), a.CreateUser)
 
 	api.Post("/sessions", limiter.New(limiter.Config{
 		Max:               10,
 		Expiration:        5 * time.Minute,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		LimitReached:      a.limitReached,
-	}), a.userHandler.Login)
+	}), a.UserLogin)
 
-	api.Use(a.userHandler.ValidateTokenMiddleware())
-	api.Use(a.userHandler.PutUserIDMiddleware())
+	api.Use(a.ValidateTokenMiddleware())
+	api.Use(a.PutUserIDMiddleware())
 
-	api.Get("/salary", a.salaryHandler.Get)
+	api.Get("/salary", a.GetSalary)
 
-	api.Post("/expenses", a.expenseHandler.Create)
-	api.Patch("/expenses/:id", a.expenseHandler.Update)
-	api.Delete("/expenses/:id", a.expenseHandler.Delete)
-	api.Patch("/expenses/:id/update-goal", a.expenseHandler.UpdateGoal)
-	api.Get("/expenses/summary", a.expenseHandler.GetSummary)
-	api.Get("/expenses/matching-names", a.expenseHandler.FindMatchingNames)
+	api.Post("/expenses", a.CreateExpense)
+	api.Patch("/expenses/:id", a.UpdateExpense)
+	api.Delete("/expenses/:id", a.DeleteExpense)
+	api.Patch("/expenses/:id/update-goal", a.UpdateExpenseGoal)
+	api.Get("/expenses/summary", a.GetSummary)
+	api.Get("/expenses/matching-names", a.FindExpenseSuggestions)
 
-	api.Get("/goals", a.goalHandler.Index)
-	api.Get("/goals/:id/expenses", a.goalHandler.GetExpenses)
+	api.Get("/goals", a.AllGoals)
+	api.Get("/goals/:id/expenses", a.GetGoalExpenses)
 }
 
 func (a *Api) limitReached(c *fiber.Ctx) error {

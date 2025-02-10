@@ -1,9 +1,8 @@
-package handler
+package api
 
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,20 +10,20 @@ import (
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
-func handleError(c *fiber.Ctx, err error) error {
+func (a *Api) HandleError(c *fiber.Ctx, err error) error {
 	if errors.Is(err, errs.ErrNotFound{}) {
 		return c.Status(http.StatusNotFound).JSON(util.M{"error": err.Error()})
 	}
 
-	slog.Error(err.Error())
+	a.logger.Error(err.Error())
 	panic(err)
 }
 
-func handleZodError(c *fiber.Ctx, err map[string]any) error {
+func (a *Api) HandleZodError(c *fiber.Ctx, err map[string]any) error {
 	return c.Status(http.StatusBadRequest).JSON(err)
 }
 
-func InvalidJSONBody(c *fiber.Ctx, err error) error {
+func (a *Api) InvalidJSONBody(c *fiber.Ctx, err error) error {
 	if errors.Is(err, &json.InvalidUnmarshalError{}) {
 		panic(err)
 	}
