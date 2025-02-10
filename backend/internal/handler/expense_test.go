@@ -263,8 +263,8 @@ func TestExpenseHandler_Update(t *testing.T) {
 	assert.Equal(400, resp.StatusCode)
 	assert.Equal(util.M{"error": "invalid expense id"}, respBody)
 
-	otherUserApi := testhelper.NewTestApi(uuid.New(), tx)
-	resp = otherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d", expense.ID), util.M{})
+	anotherUserApi := testhelper.NewTestApi(uuid.New(), tx)
+	resp = anotherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d", expense.ID), util.M{})
 	api.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(404, resp.StatusCode)
 	assert.Equal(util.M{"error": "expense not found"}, respBody)
@@ -329,8 +329,8 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 	assert.Equal(400, resp.StatusCode)
 	assert.Equal(util.M{"error": "invalid expense id"}, respBody)
 
-	otherUserApi := testhelper.NewTestApi(uuid.New(), tx)
-	resp = otherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), util.M{"goal_id": goal1.ID})
+	anotherUserApi := testhelper.NewTestApi(uuid.New(), tx)
+	resp = anotherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), util.M{"goal_id": goal1.ID})
 	api.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(404, resp.StatusCode)
 	assert.Equal(util.M{"error": "expense not found"}, respBody)
@@ -349,7 +349,7 @@ func TestExpenseHandler_Delete(t *testing.T) {
 
 	var respBody util.M
 
-	otherUserApi := testhelper.NewTestApi(uuid.New(), tx)
+	anotherUserApi := testhelper.NewTestApi(uuid.New(), tx)
 
 	data := []struct {
 		name      string
@@ -367,7 +367,7 @@ func TestExpenseHandler_Delete(t *testing.T) {
 		},
 		{
 			"only owner can delete",
-			otherUserApi,
+			anotherUserApi,
 			fmt.Sprintf("%d", expense.ID),
 			404,
 			util.M{"error": "expense not found"},

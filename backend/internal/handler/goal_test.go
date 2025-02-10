@@ -18,16 +18,16 @@ func TestGoalHandler_Index(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	otherUser := f.InsertUser()
+	anotherUser := f.InsertUser()
 
 	api := testhelper.NewTestApi(user.ID, tx)
-	otherUserApi := testhelper.NewTestApi(otherUser.ID, tx)
+	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
 		{Name: "Goals", Percentage: 20, UserID: user.ID},
 		{Name: "Fixed costs", Percentage: 30, UserID: user.ID},
-		{Name: "Pleasures", Percentage: 100, UserID: otherUser.ID},
+		{Name: "Pleasures", Percentage: 100, UserID: anotherUser.ID},
 	}
 	f.InsertGoal(goals...)
 
@@ -49,7 +49,7 @@ func TestGoalHandler_Index(t *testing.T) {
 		},
 		{
 			"only return goals from the current user",
-			otherUserApi,
+			anotherUserApi,
 			200,
 			[]util.M{
 				{"id": float64(goals[3].ID), "name": "Pleasures", "percentage": float64(100)},
@@ -75,15 +75,15 @@ func TestGoalHandler_GetExpenses(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	otherUser := f.InsertUser()
+	anotherUser := f.InsertUser()
 
 	api := testhelper.NewTestApi(user.ID, tx)
-	otherUserApi := testhelper.NewTestApi(otherUser.ID, tx)
+	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
 		{Name: "Goals", Percentage: 60, UserID: user.ID},
-		{Name: "Pleasures", Percentage: 100, UserID: otherUser.ID},
+		{Name: "Pleasures", Percentage: 100, UserID: anotherUser.ID},
 	}
 	f.InsertGoal(goals...)
 
@@ -95,7 +95,7 @@ func TestGoalHandler_GetExpenses(t *testing.T) {
 		{Name: "Mouse", Value: 49312, Date: now.AddDate(0, -1, 0), GoalID: goals[0].ID, UserID: user.ID},
 		{Name: "Game", Value: 6000, Date: now.AddDate(-1, -1, 0), GoalID: goals[0].ID, UserID: user.ID},
 		{Name: "Phone", Value: 333, Date: now, GoalID: goals[1].ID, UserID: user.ID},
-		{Name: "PC", Value: 222, Date: now, GoalID: goals[2].ID, UserID: otherUser.ID},
+		{Name: "PC", Value: 222, Date: now, GoalID: goals[2].ID, UserID: anotherUser.ID},
 	}
 	f.InsertExpense(expenses...)
 
@@ -132,7 +132,7 @@ func TestGoalHandler_GetExpenses(t *testing.T) {
 			},
 		},
 		{
-			"only return expenses from the current user", otherUserApi, goals[2].ID, &now, 200, []util.M{
+			"only return expenses from the current user", anotherUserApi, goals[2].ID, &now, 200, []util.M{
 				testhelper.FormatExpense(*expenses[5], *goals[2]),
 			},
 		},
