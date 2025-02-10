@@ -1,4 +1,4 @@
-package handler
+package api
 
 import (
 	"errors"
@@ -17,10 +17,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserHandler struct {
-	userRepo domain.UserRepo
-}
-
 var (
 	tokenExpiresIn = time.Hour * 24 * 7
 	jwtContextKey  = "token"
@@ -36,21 +32,17 @@ var userLoginSchema = z.Struct(z.Schema{
 	"password": z.String().Trim().Required(),
 })
 
-func NewUserHandler(userRepo domain.UserRepo) UserHandler {
-	return UserHandler{userRepo: userRepo}
-}
-
-func (h *UserHandler) Create(c *fiber.Ctx) error {
+func (a *Api) CreateUser(c *fiber.Ctx) error {
 	var params struct {
 		Email    string
 		Password string
 	}
 
 	if errs := util.ParseZodSchema(userCreateSchema, c.Body(), &params); errs != nil {
-		return handleZodError(c, errs)
+		return a.HandleZodError(c, errs)
 	}
 
-	if _, err := h.userRepo.GetByEmail(params.Email); err == nil {
+	if _, err := a.userRepo.GetByEmail(params.Email); err == nil {
 		return c.Status(http.StatusConflict).JSON(util.M{"error": "email already in use"})
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		panic(err)
@@ -62,25 +54,25 @@ func (h *UserHandler) Create(c *fiber.Ctx) error {
 	}
 
 	user := &domain.User{Email: params.Email, HashPassword: string(hashPassword)}
-	err = h.userRepo.Create(user)
+	err = a.userRepo.Create(user)
 	if err != nil {
 		panic(err)
 	}
 
-	return c.Status(http.StatusCreated).JSON(util.M{"user": user, "token": h.generateToken(user.ID)})
+	return c.Status(http.StatusCreated).JSON(util.M{"user": user, "token": a.generateToken(user.ID)})
 }
 
-func (h *UserHandler) Login(c *fiber.Ctx) error {
+func (a *Api) UserLogin(c *fiber.Ctx) error {
 	var params struct {
 		Email    string
 		Password string
 	}
 
 	if errs := util.ParseZodSchema(userLoginSchema, c.Body(), &params); errs != nil {
-		return handleZodError(c, errs)
+		return a.HandleZodError(c, errs)
 	}
 
-	user, err := h.userRepo.GetByEmail(params.Email)
+	user, err := a.userRepo.GetByEmail(params.Email)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return c.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
 	} else if err != nil {
@@ -91,10 +83,10 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
 	}
 
-	return c.Status(http.StatusCreated).JSON(util.M{"token": h.generateToken(user.ID)})
+	return c.Status(http.StatusCreated).JSON(util.M{"token": a.generateToken(user.ID)})
 }
 
-func (h *UserHandler) ValidateTokenMiddleware() fiber.Handler {
+func (a *Api) ValidateTokenMiddleware() fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: config.SecretKey()},
 		ContextKey: jwtContextKey,
@@ -107,7 +99,7 @@ func (h *UserHandler) ValidateTokenMiddleware() fiber.Handler {
 	})
 }
 
-func (h *UserHandler) PutUserIDMiddleware() fiber.Handler {
+func (a *Api) PutUserIDMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		token := c.Locals(jwtContextKey).(*jwt.Token)
 		id, err := token.Claims.GetSubject()
@@ -121,6 +113,6 @@ func (h *UserHandler) PutUserIDMiddleware() fiber.Handler {
 	}
 }
 
-func (h *UserHandler) generateToken(userID uuid.UUID) string {
+func (a *Api) generateToken(userID uuid.UUID) string {
 	return domain.CreateToken(userID, tokenExpiresIn)
 }

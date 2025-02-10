@@ -1,4 +1,4 @@
-package handler
+package api
 
 import (
 	"net/http"
@@ -10,22 +10,13 @@ import (
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
-type GoalHandler struct {
-	repo        domain.GoalRepo
-	expenseRepo domain.ExpenseRepo
-}
-
-func NewGoalHandler(repo domain.GoalRepo, expenseRepo domain.ExpenseRepo) GoalHandler {
-	return GoalHandler{repo: repo, expenseRepo: expenseRepo}
-}
-
-func (h *GoalHandler) Index(c *fiber.Ctx) error {
+func (a *Api) AllGoals(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
-	goals := h.repo.All(userID)
+	goals := a.goalRepo.All(userID)
 	return c.Status(http.StatusOK).JSON(goals)
 }
 
-func (h *GoalHandler) GetExpenses(c *fiber.Ctx) error {
+func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
 	query := c.Queries()
 	now := time.Now()
 	year, month, _ := now.Date()
@@ -55,7 +46,7 @@ func (h *GoalHandler) GetExpenses(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	expenses := h.expenseRepo.AllByGoalID(uint(id), year, month, userID)
+	expenses := a.expenseRepo.AllByGoalID(uint(id), year, month, userID)
 
 	var expenseViews []domain.ExpenseView
 	for _, e := range expenses {

@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -36,20 +35,4 @@ func CreateToken(userID uuid.UUID, expiresIn time.Duration) string {
 	}
 
 	return tokenString
-}
-
-func UserIDFromToken(tokenString string) (string, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-		return config.SecretKey(), nil
-	}, jwt.WithValidMethods([]string{"alg"}))
-	if err != nil || !token.Valid {
-		return "", errors.New("invalid token")
-	}
-
-	sub, err := token.Claims.GetSubject()
-	if err != nil {
-		panic(err)
-	}
-
-	return sub, nil
 }
