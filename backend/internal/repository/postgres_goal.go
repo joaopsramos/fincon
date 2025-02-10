@@ -43,3 +43,17 @@ func (r PostgresGoalRepository) Create(goals ...domain.Goal) error {
 
 	return nil
 }
+
+func (r PostgresGoalRepository) UpdateAll(goals []domain.Goal) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		for _, g := range goals {
+			if err := r.db.Save(&g).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	return err
+}

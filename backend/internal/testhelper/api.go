@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/domain"
-	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -28,7 +27,7 @@ func NewTestApi(userID uuid.UUID, tx *gorm.DB) *TestApi {
 	return &TestApi{api: api, token: domain.CreateToken(userID, time.Minute*1)}
 }
 
-func (t *TestApi) Test(method string, path string, body ...util.M) *http.Response {
+func (t *TestApi) Test(method string, path string, body ...any) *http.Response {
 	var bodyReader io.Reader
 
 	if len(body) > 0 {

@@ -3,7 +3,7 @@ module github.com/joaopsramos/fincon
 go 1.23.4
 
 require (
-	github.com/Oudwins/zog v0.14.1
+	github.com/Oudwins/zog v0.15.1
 	github.com/Rhymond/go-money v1.0.14
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/gofiber/contrib/jwt v1.0.10
@@ -13,7 +13,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.32.0
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
+	golang.org/x/exp v0.0.0-20250207012021-f9890c6ad9f3
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )
