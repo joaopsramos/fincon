@@ -19,5 +19,5 @@ func NewSalaryHandler(salaryRepo domain.SalaryRepo) SalaryHandler {
 func (h *SalaryHandler) Get(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
 	salary := h.salaryRepo.Get(userID)
-	return c.Status(http.StatusOK).JSON(util.M{"amount": salary.Amount})
+	return c.Status(http.StatusOK).JSON(salary.View())
 }

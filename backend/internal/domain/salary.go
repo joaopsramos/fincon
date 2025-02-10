@@ -3,9 +3,19 @@ package domain
 import "github.com/google/uuid"
 
 type Salary struct {
-	Amount int64 `json:"amount"`
+	Amount int64
 
-	UserID uuid.UUID `json:"-" gorm:"type:uuid"`
+	UserID uuid.UUID `gorm:"type:uuid"`
+}
+
+type SalaryView struct {
+	Amount int64 `json:"amount"`
+}
+
+func (s *Salary) View() SalaryView {
+	return SalaryView{
+		Amount: s.Amount,
+	}
 }
 
 type SalaryRepo interface {
