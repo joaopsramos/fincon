@@ -94,6 +94,7 @@ func (a *Api) SetupRoutes() {
 
 	api.Get("/goals", a.AllGoals)
 	api.Get("/goals/:id/expenses", a.GetGoalExpenses)
+	api.Post("/goals", a.UpdateGoals)
 }
 
 func (a *Api) limitReached(c *fiber.Ctx) error {

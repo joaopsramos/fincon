@@ -20,10 +20,14 @@ func GetUserIDFromCtx(c *fiber.Ctx) uuid.UUID {
 	return uuid.MustParse(id)
 }
 
-func ParseZodSchema(schema *z.StructSchema, body []byte, dest any) map[string]any {
+func ParseZodSchema(schema z.ComplexZogSchema, body []byte, dest any) map[string]any {
 	err := schema.Parse(zjson.Decode(bytes.NewReader(body)), dest)
-	if err != nil {
-		sanitized := z.Errors.SanitizeMap(err)
+	return ParseZogErrors(err)
+}
+
+func ParseZogErrors(errs z.ZogErrMap) map[string]any {
+	if errs != nil {
+		sanitized := z.Errors.SanitizeMap(errs)
 		delete(sanitized, "$first")
 		return M{"errors": sanitized}
 	}

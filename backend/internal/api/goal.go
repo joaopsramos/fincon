@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -54,4 +56,70 @@ func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
 	}
 
 	return c.Status(http.StatusOK).JSON(expenseViews)
+}
+
+func (a *Api) UpdateGoals(c *fiber.Ctx) error {
+	type paramsType struct {
+		ID         int `json:"id"`
+		Percentage int `json:"percentage"`
+	}
+	var params []paramsType
+
+	err := json.Unmarshal(c.Body(), &params)
+	if err != nil {
+		return a.InvalidJSONBody(c, err)
+	}
+
+	if len(params) < len(domain.DefaulGoalPercentages()) {
+		return c.
+			Status(http.StatusBadRequest).
+			JSON(util.M{"error": "one or more goals are missing"})
+	}
+
+	percentageSum := 0
+	for _, p := range params {
+		if p.Percentage < 0 || p.Percentage > 100 {
+			return c.
+				Status(http.StatusBadRequest).
+				JSON(util.M{"error": fmt.Sprintf("invalid percentage for goal id %d, it must be greater than or equal to 0 and less then or equal to 100", p.ID)})
+		}
+
+		percentageSum += p.Percentage
+	}
+
+	if percentageSum != 100 {
+		return c.
+			Status(http.StatusBadRequest).
+			JSON(util.M{"error": "the sum of all percentages must be equal to 100"})
+	}
+
+	userID := util.GetUserIDFromCtx(c)
+	goals := a.goalRepo.All(userID)
+
+	paramsById := make(map[int]paramsType, len(params))
+	for _, p := range params {
+		paramsById[p.ID] = p
+	}
+
+	for i, g := range goals {
+		p, exists := paramsById[int(g.ID)]
+		if !exists {
+			return c.
+				Status(http.StatusBadRequest).
+				JSON(util.M{"error": fmt.Sprintf("missing goal with id %d", g.ID)})
+		}
+
+		goals[i].Percentage = uint(p.Percentage)
+	}
+
+	if err := a.goalRepo.UpdateAll(goals); err != nil {
+		return a.HandleError(c, err)
+	}
+
+	goalViews := make([]domain.GoalView, 0, len(goals))
+	for _, g := range goals {
+		goalViews = append(goalViews, g.View())
+	}
+
+	return c.Status(http.StatusOK).JSON(goalViews)
 }

@@ -1,6 +1,8 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type GoalName string
 
@@ -23,6 +25,20 @@ type Goal struct {
 	Expenses []Expense `json:"-"`
 }
 
+type GoalView struct {
+	ID         uint     `json:"id"`
+	Name       GoalName `json:"name"`
+	Percentage uint     `json:"percentage"`
+}
+
+func (g *Goal) View() GoalView {
+	return GoalView{
+		ID:         g.ID,
+		Name:       g.Name,
+		Percentage: g.Percentage,
+	}
+}
+
 func DefaulGoalPercentages() map[GoalName]uint {
 	return map[GoalName]uint{
 		FixedCosts:           40,
@@ -38,4 +54,5 @@ type GoalRepo interface {
 	All(userID uuid.UUID) []Goal
 	Get(id uint, userID uuid.UUID) (Goal, error)
 	Create(goals ...Goal) error
+	UpdateAll(goals []Goal) error
 }

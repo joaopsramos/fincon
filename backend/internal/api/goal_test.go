@@ -3,6 +3,7 @@ package api_test
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 
@@ -184,4 +185,186 @@ func TestGoalHandler_GetExpenses(t *testing.T) {
 			assert.Equal(d.expected, respBody)
 		})
 	}
+}
+
+func TestGoalHandler_UpdateGoals(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+	tx := testhelper.NewTestPostgresTx(t)
+	f := testhelper.NewFactory(tx)
+	user := f.InsertUser()
+	anotherUser := f.InsertUser()
+
+	api := testhelper.NewTestApi(user.ID, tx)
+	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
+	_ = anotherUserApi
+
+	defaultPercentages := domain.DefaulGoalPercentages()
+	goals := make([]*domain.Goal, 0, len(defaultPercentages)*2)
+	for _, u := range []domain.User{user, anotherUser} {
+		for name, percentage := range defaultPercentages {
+			goals = append(goals, &domain.Goal{Name: name, Percentage: percentage, UserID: u.ID})
+		}
+	}
+	f.InsertGoal(goals...)
+
+	formatGoal := func(g *domain.Goal, percentage uint) util.M {
+		return util.M{"id": float64(g.ID), "name": string(g.Name), "percentage": float64(percentage)}
+	}
+
+	data := []struct {
+		name           string
+		api            *testhelper.TestApi
+		body           []util.M
+		expectedStatus int
+		expectedBody   any
+	}{
+		{
+			"update goals percentages",
+			api,
+			[]util.M{
+				{"id": goals[0].ID, "percentage": 20},
+				{"id": goals[1].ID, "percentage": 20},
+				{"id": goals[2].ID, "percentage": 20},
+				{"id": goals[3].ID, "percentage": 10},
+				{"id": goals[4].ID, "percentage": 20},
+				{"id": goals[5].ID, "percentage": 10},
+			},
+			200,
+			[]util.M{
+				formatGoal(goals[0], 20),
+				formatGoal(goals[1], 20),
+				formatGoal(goals[2], 20),
+				formatGoal(goals[3], 10),
+				formatGoal(goals[4], 20),
+				formatGoal(goals[5], 10),
+			},
+		},
+		{
+			"missing goals",
+			api,
+			[]util.M{
+				{"id": goals[0].ID, "percentage": 20},
+				{"id": goals[1].ID, "percentage": 20},
+				{"id": goals[2].ID, "percentage": 20},
+				{"id": goals[3].ID, "percentage": 20},
+				{"id": goals[4].ID, "percentage": 20},
+			},
+			400,
+			util.M{"error": "one or more goals are missing"},
+		},
+		{
+			"goals length matches but one is still missing",
+			api,
+			[]util.M{
+				{"id": goals[0].ID, "percentage": 20},
+				{"id": goals[1].ID, "percentage": 20},
+				{"id": goals[2].ID, "percentage": 20},
+				{"id": goals[3].ID, "percentage": 20},
+				{"id": goals[4].ID, "percentage": 20},
+				{"id": goals[4].ID, "percentage": 0},
+			},
+			400,
+			util.M{"error": fmt.Sprintf("missing goal with id %d", goals[5].ID)},
+		},
+		{
+			"ignore goals of another user",
+			anotherUserApi,
+			[]util.M{
+				{"id": goals[6].ID, "percentage": 20},
+				{"id": goals[7].ID, "percentage": 20},
+				{"id": goals[8].ID, "percentage": 20},
+				{"id": goals[9].ID, "percentage": 20},
+				{"id": goals[10].ID, "percentage": 20},
+				// first user goal
+				{"id": goals[2].ID, "percentage": 0},
+			},
+			400,
+			util.M{"error": fmt.Sprintf("missing goal with id %d", goals[11].ID)},
+		},
+		{
+			"percentage lesser than 0",
+			api,
+			[]util.M{
+				{"id": goals[0].ID, "percentage": -1},
+				{"id": goals[1].ID, "percentage": 20},
+				{"id": goals[2].ID, "percentage": 20},
+				{"id": goals[3].ID, "percentage": 20},
+				{"id": goals[4].ID, "percentage": 20},
+				{"id": goals[5].ID, "percentage": 0},
+			},
+			400,
+			util.M{"error": fmt.Sprintf("invalid percentage for goal id %d, it must be greater than or equal to 0 and less then or equal to 100", goals[0].ID)},
+		},
+		{
+			"percentage greater than 100",
+			api,
+			[]util.M{
+				{"id": goals[0].ID, "percentage": 101},
+				{"id": goals[1].ID, "percentage": 20},
+				{"id": goals[2].ID, "percentage": 20},
+				{"id": goals[3].ID, "percentage": 20},
+				{"id": goals[4].ID, "percentage": 20},
+				{"id": goals[5].ID, "percentage": 0},
+			},
+			400,
+			util.M{"error": fmt.Sprintf("invalid percentage for goal id %d, it must be greater than or equal to 0 and less then or equal to 100", goals[0].ID)},
+		},
+		{
+			"sum of percentages greater than 100",
+			api,
+			[]util.M{
+				{"id": goals[0].ID, "percentage": 20},
+				{"id": goals[1].ID, "percentage": 20},
+				{"id": goals[2].ID, "percentage": 20},
+				{"id": goals[3].ID, "percentage": 20},
+				{"id": goals[4].ID, "percentage": 20},
+				{"id": goals[5].ID, "percentage": 1},
+			},
+			400,
+			util.M{"error": "the sum of all percentages must be equal to 100"},
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			var respBody any
+
+			resp := d.api.Test(http.MethodPost, "/api/goals", d.body)
+			d.api.UnmarshalBody(resp.Body, &respBody)
+
+			assert.Equal(d.expectedStatus, resp.StatusCode)
+
+			if reflect.TypeOf(d.expectedBody).Kind() == reflect.Slice {
+				assert.ElementsMatch(d.expectedBody, respBody)
+			} else {
+				assert.Equal(d.expectedBody, respBody)
+			}
+		})
+	}
+
+	// assert goals of first user has been updated
+	var respBody []util.M
+	resp := api.Test(http.MethodGet, "/api/goals")
+	api.UnmarshalBody(resp.Body, &respBody)
+	assert.ElementsMatch([]util.M{
+		formatGoal(goals[0], 20),
+		formatGoal(goals[1], 20),
+		formatGoal(goals[2], 20),
+		formatGoal(goals[3], 10),
+		formatGoal(goals[4], 20),
+		formatGoal(goals[5], 10),
+	}, respBody)
+
+	// assert goals of second user has not been updated
+	resp = anotherUserApi.Test(http.MethodGet, "/api/goals")
+	api.UnmarshalBody(resp.Body, &respBody)
+	assert.ElementsMatch([]util.M{
+		formatGoal(goals[6], goals[6].Percentage),
+		formatGoal(goals[7], goals[7].Percentage),
+		formatGoal(goals[8], goals[8].Percentage),
+		formatGoal(goals[9], goals[9].Percentage),
+		formatGoal(goals[10], goals[10].Percentage),
+		formatGoal(goals[11], goals[11].Percentage),
+	}, respBody)
 }
