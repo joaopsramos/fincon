@@ -12,6 +12,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/domain"
+	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -25,6 +27,7 @@ var (
 var userCreateSchema = z.Struct(z.Schema{
 	"email":    z.String().Trim().Max(160).Email().Required(),
 	"password": z.String().Trim().Min(8).Max(72).Required(),
+	"salary":   z.Float().GT(0, z.Message("salary must be greater than 0")).Required(),
 })
 
 var userLoginSchema = z.Struct(z.Schema{
@@ -34,8 +37,9 @@ var userLoginSchema = z.Struct(z.Schema{
 
 func (a *Api) CreateUser(c *fiber.Ctx) error {
 	var params struct {
-		Email    string
-		Password string
+		Email    string  `json:"email"`
+		Password string  `json:"password"`
+		Salary   float64 `json:"salary"`
 	}
 
 	if errs := util.ParseZodSchema(userCreateSchema, c.Body(), &params); errs != nil {
@@ -44,22 +48,26 @@ func (a *Api) CreateUser(c *fiber.Ctx) error {
 
 	if _, err := a.userRepo.GetByEmail(params.Email); err == nil {
 		return c.Status(http.StatusConflict).JSON(util.M{"error": "email already in use"})
-	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		panic(err)
+	} else if !errors.Is(err, errs.ErrNotFound{}) {
+		return a.HandleError(c, err)
 	}
 
-	hashPassword, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
+	dto := service.CreateUserDTO{
+		Email:           params.Email,
+		Password:        params.Password,
+		CreateSalaryDTO: service.CreateSalaryDTO{Amount: params.Salary},
+	}
+
+	user, salary, err := a.userService.Create(dto)
 	if err != nil {
-		panic(err)
+		return a.HandleError(c, err)
 	}
 
-	user := &domain.User{Email: params.Email, HashPassword: string(hashPassword)}
-	err = a.userRepo.Create(user)
-	if err != nil {
-		panic(err)
-	}
-
-	return c.Status(http.StatusCreated).JSON(util.M{"user": user, "token": a.generateToken(user.ID)})
+	return c.Status(http.StatusCreated).JSON(util.M{
+		"user":   user,
+		"salary": salary.View(),
+		"token":  a.generateToken(user.ID),
+	})
 }
 
 func (a *Api) UserLogin(c *fiber.Ctx) error {

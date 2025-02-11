@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/repository"
+	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
@@ -20,7 +21,11 @@ import (
 type Api struct {
 	Router *fiber.App
 
-	logger      *slog.Logger
+	logger *slog.Logger
+
+	userService   service.UserService
+	salaryService service.SalaryService
+
 	userRepo    domain.UserRepo
 	salaryRepo  domain.SalaryRepo
 	goalRepo    domain.GoalRepo
@@ -39,10 +44,12 @@ func NewApi(db *gorm.DB) *Api {
 		Router: newFiber(),
 		logger: logger,
 
-		userRepo:    userRepo,
-		salaryRepo:  salaryRepo,
-		goalRepo:    goalRepo,
-		expenseRepo: expenseRepo,
+		userRepo:      userRepo,
+		userService:   service.NewUserService(userRepo),
+		salaryService: service.NewSalaryService(salaryRepo),
+		salaryRepo:    salaryRepo,
+		goalRepo:      goalRepo,
+		expenseRepo:   expenseRepo,
 	}
 }
 
@@ -89,6 +96,7 @@ func (a *Api) SetupRoutes() {
 	api.Use(a.PutUserIDMiddleware())
 
 	api.Get("/salary", a.GetSalary)
+	api.Patch("/salary", a.UpdateSalary)
 
 	api.Post("/expenses", a.CreateExpense)
 	api.Patch("/expenses/:id", a.UpdateExpense)

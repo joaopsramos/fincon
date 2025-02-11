@@ -50,7 +50,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 			400,
 			util.M{"errors": util.M{
 				"name":  []any{"name must contain at least 2 characters"},
-				"value": []any{"value must be greater than 0.01"},
+				"value": []any{"value must be greater than or equal to 0.01"},
 				"date":  []any{"time is invalid"},
 			}},
 		},

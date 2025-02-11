@@ -15,12 +15,17 @@ func NewPostgresUser(db *gorm.DB) domain.UserRepo {
 	return PostgresUserRepository{db}
 }
 
-func (r PostgresUserRepository) Create(user *domain.User) error {
+func (r PostgresUserRepository) Create(user *domain.User, salary *domain.Salary) error {
 	defaultPercentages := domain.DefaulGoalPercentages()
 	goals := make([]domain.Goal, 0, len(defaultPercentages))
 
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(user).Error; err != nil {
+			return err
+		}
+
+		txSalaryRepo := NewPostgresSalary(tx)
+		if err := txSalaryRepo.Create(salary); err != nil {
 			return err
 		}
 
