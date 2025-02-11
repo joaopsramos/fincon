@@ -38,13 +38,13 @@ func TestSalaryHandler_Get(t *testing.T) {
 			"get user salary",
 			api,
 			200,
-			util.M{"amount": float64(salaries[0].Amount)},
+			util.M{"amount": float64(500), "currency": "BRL"},
 		},
 		{
 			"ensure user only gets his salary",
 			anotherUserApi,
 			200,
-			util.M{"amount": float64(salaries[1].Amount)},
+			util.M{"amount": float64(1000), "currency": "BRL"},
 		},
 	}
 
