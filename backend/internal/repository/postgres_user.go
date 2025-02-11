@@ -24,6 +24,8 @@ func (r PostgresUserRepository) Create(user *domain.User, salary *domain.Salary)
 			return err
 		}
 
+		salary.UserID = user.ID
+
 		txSalaryRepo := NewPostgresSalary(tx)
 		if err := txSalaryRepo.Create(salary); err != nil {
 			return err

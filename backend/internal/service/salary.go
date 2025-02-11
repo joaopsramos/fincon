@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 )
 
@@ -11,7 +10,6 @@ type SalaryService struct {
 
 type CreateSalaryDTO struct {
 	Amount float64
-	UserID uuid.UUID
 }
 
 func NewSalaryService(salaryRepo domain.SalaryRepo) SalaryService {
@@ -21,7 +19,6 @@ func NewSalaryService(salaryRepo domain.SalaryRepo) SalaryService {
 func NewSalary(dto CreateSalaryDTO) domain.Salary {
 	return domain.Salary{
 		Amount: int64(dto.Amount * 100),
-		UserID: dto.UserID,
 	}
 }
 
