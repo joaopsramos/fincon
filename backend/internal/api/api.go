@@ -117,7 +117,6 @@ func newFiber() *fiber.App {
 			}
 
 			slog.Error(err.Error())
-
 			return ctx.Status(code).JSON(util.M{"error": "internal server error"})
 		},
 	})
