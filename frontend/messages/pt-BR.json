@@ -23,7 +23,7 @@
       "editForm": "Editar metas",
       "save": "Salvar",
       "reset": "Resetar",
-      "editGoalsDesc": "A soma das porcentages não pode passar de 100.",
+      "editGoalsDesc": "A soma das porcentages não pode ser maior que 100.",
       "goalsUpdatedTitle": "Metas atualizadas!"
     },
     "expenses": {
@@ -32,7 +32,9 @@
       "date": "Data",
       "nameInput": "Nome",
       "valueInput": "Valor",
-      "add": "Adicionar despesa",
+      "addTooltip": "Adicionar despesa",
+      "editTooltip": "Editar",
+      "deleteTooltip": "Deletar",
       "deleteMsg": "Você quer deletar a despesa \"{name}\"?",
       "errors": {
         "nameTooShort": "Precisa ter ao menos 2 caracteres",

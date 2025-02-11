@@ -132,12 +132,20 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
       <TableCell>
         <div className={`flex justify-end gap-1 ${isEditing ? "" : "invisible group-hover:visible"}`}>
           {!isEditing ? (
-            <div
-              className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
-              onClick={() => setIsEditing(true)}
-            >
-              <PencilIcon className="size-4 text-white" />
-            </div>
+            <Tooltip>
+              <TooltipTrigger>
+                <div
+                  className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
+                  onClick={() => setIsEditing(true)}
+                >
+
+                  <PencilIcon className="size-4 text-white" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t("editTooltip")}</p>
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <div
               className="cursor-pointer bg-green-500 rounded-full p-1 w-min hover:bg-green-600 transition-colors"
@@ -146,19 +154,27 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
               <CheckIcon className="size-4 text-white" />
             </div>
           )}
-          <div
-            className="cursor-pointer bg-red-500 rounded-full p-1 w-min hover:bg-red-600 transition-colors"
-            onClick={() => {
-              if (window.confirm(t('deleteMsg', { name: expense.name }))) {
-                deleteExpenseMut.mutate();
-              }
-            }}
-          >
-            <TrashIcon className="size-4 text-white" />
-          </div>
+
+          <Tooltip>
+            <TooltipTrigger>
+              <div
+                className="cursor-pointer bg-red-500 rounded-full p-1 w-min hover:bg-red-600 transition-colors"
+                onClick={() => {
+                  if (window.confirm(t('deleteMsg', { name: expense.name }))) {
+                    deleteExpenseMut.mutate();
+                  }
+                }}
+              >
+                <TrashIcon className="size-4 text-white" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t("deleteTooltip")}</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </TableCell>
-    </TableRow>
+    </TableRow >
   )
 }
 
@@ -248,7 +264,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{t("add")}</p>
+            <p>{t("addTooltip")}</p>
           </TooltipContent>
         </Tooltip>
 

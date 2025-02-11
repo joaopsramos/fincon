@@ -17,10 +17,12 @@ export default function Login() {
   const router = useRouter()
   const [isSignUp, setIsSignUp] = useState(false)
   const { toast } = useToast()
+  const [isNavigating, setIsNavigating] = useState(false)
 
   const loginMut = useMutation({
     mutationFn: (formData: FormData) => login(formData),
     onSuccess: () => {
+      setIsNavigating(true)
       router.replace("/dashboard")
     },
     onError: (e: Error) => {
@@ -31,12 +33,15 @@ export default function Login() {
   const signUpMut = useMutation({
     mutationFn: (formData: FormData) => signUp(formData),
     onSuccess: () => {
+      setIsNavigating(true)
       router.replace("/dashboard")
     },
     onError: (e: Error) => {
       toast({ title: "Error", description: e.message, variant: "destructive" })
     }
   })
+
+  const isLoading = loginMut.isPending || signUpMut.isPending || isNavigating;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -59,8 +64,8 @@ export default function Login() {
               </label>
               <Input id="password" name="password" type="password" required />
             </div>
-            <Button type="submit" className="w-full" disabled={loginMut.isPending || signUpMut.isPending}>
-              {loginMut.isPending || signUpMut.isPending ? (
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
                 <LoaderCircle className="animate-spin size-6" />
               ) : t("continueButton")}
             </Button>
