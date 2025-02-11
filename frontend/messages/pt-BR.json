@@ -18,7 +18,13 @@
       "totalSpent": "Total gasto"
     },
     "goals": {
-      "title": "Metas"
+      "title": "Metas",
+      "edit": "Editar",
+      "editForm": "Editar metas",
+      "save": "Salvar",
+      "reset": "Resetar",
+      "editGoalsDesc": "A soma das porcentages não pode passar de 100.",
+      "goalsUpdatedTitle": "Metas atualizadas!"
     },
     "expenses": {
       "expense": "Despesa",
@@ -26,6 +32,7 @@
       "date": "Data",
       "nameInput": "Nome",
       "valueInput": "Valor",
+      "add": "Adicionar despesa",
       "deleteMsg": "Você quer deletar a despesa \"{name}\"?",
       "errors": {
         "nameTooShort": "Precisa ter ao menos 2 caracteres",

@@ -1,20 +1,22 @@
 import dayjs from "dayjs"
-import { useTranslations } from "next-intl"
 import type { CreateExpenseParams, Expense } from "@/api/expense"
 import utc from "dayjs/plugin/utc"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid"
 import { Goal } from "@/api/goals"
+import { Input } from "@/components/ui/input"
+import { KeyboardEvent, useState } from "react"
+import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipTrigger, } from "@/components/ui/tooltip"
 import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
 import { moneyToString } from "@/lib/utils"
-import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid"
-import { KeyboardEvent, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
 import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { useToast } from "@/hooks/use-toast"
+import { useTranslations } from "next-intl"
 import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+
 
 export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
   dayjs.extend(utc)
@@ -38,7 +40,7 @@ export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
       <CardContent>
         <div className="max-h-72 overflow-auto scroll">
           <Table withoutWrapper>
-            <TableHeader className="sticky top-0 bg-slate-100">
+            <TableHeader className="sticky top-0 bg-slate-100 rounded-full">
               <TableRow>
                 <TableHead className="min-w-24 lg:w-5/12 xl:w-4/12 2xl:w-5/12">{t("expense")}</TableHead>
                 <TableHead className="min-w-24 lg:w-3/12 2xl:w-2/12">{t("amount")}</TableHead>
@@ -239,9 +241,16 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
         </div>
         <input hidden name="goal_id" value={goal.id} readOnly />
 
-        <button type="submit" className="self-center w-min h-min ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 rounded-full">
-          <PlusIcon className="size-6 text-white" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger>
+            <span className="block self-center w-min h-min ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 rounded-full">
+              <PlusIcon className="size-6 text-white" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t("add")}</p>
+          </TooltipContent>
+        </Tooltip>
 
         {errors.name && (
           <span
