@@ -14,7 +14,7 @@ import (
 
 var expenseCreateSchema = z.Struct(z.Schema{
 	"name":   z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Required(),
-	"value":  z.Float().GTE(0.01, z.Message("value must be greater than 0.01")).Required(),
+	"value":  z.Float().GTE(0.01, z.Message("value must be greater than or equal to 0.01")).Required(),
 	"date":   z.Time(z.Time.Format(util.ApiDateLayout)).Required(),
 	"goalID": z.Int().Required(),
 })

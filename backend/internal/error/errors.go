@@ -12,6 +12,10 @@ func (e ErrNotFound) Error() string {
 	return e.resource + " not found"
 }
 
-func (e ErrNotFound) Is(err error) bool {
-	return true
+func (e ErrNotFound) Is(target error) bool {
+	if _, ok := target.(ErrNotFound); ok {
+		return true
+	}
+
+	return false
 }

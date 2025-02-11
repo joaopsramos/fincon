@@ -22,9 +22,11 @@ func TestPostgresUser_Create(t *testing.T) {
 	r := NewTestPostgresUserRepo(t, tx)
 
 	user := domain.User{Email: "test@mail.com", HashPassword: "pass"}
-	assert.NoError(r.Create(&user))
+	salary := domain.Salary{Amount: 1000}
+	assert.NoError(r.Create(&user, &salary))
 
 	assert.NotZero(user.ID)
+	assert.NotZero(salary.ID)
 
 	goals := []map[string]any{}
 	tx.Model(domain.Goal{}).Where("user_id =?", user.ID).Select("name, percentage").Scan(&goals)

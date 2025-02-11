@@ -18,7 +18,7 @@ type User struct {
 }
 
 type UserRepo interface {
-	Create(user *User) error
+	Create(user *User, salary *Salary) error
 	Get(id uuid.UUID) (User, error)
 	GetByEmail(email string) (User, error)
 }
