@@ -61,6 +61,11 @@ func (a *Api) SetupMiddlewares() {
 	a.Router.Use(logger.New())
 	a.Router.Use(cors.New())
 	a.Router.Use(recover.New())
+	a.Router.Use(limiter.New(limiter.Config{
+		Max:          100,
+		Expiration:   1 * time.Minute,
+		LimitReached: a.limitReached,
+	}))
 }
 
 func (a *Api) SetupRoutes() {
