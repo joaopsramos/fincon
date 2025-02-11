@@ -1,9 +1,10 @@
 import { useTranslations } from "next-intl"
 import { getSummary, SummaryGoal } from "@/api/summary"
-import { moneyToString } from "@/lib/utils"
+import { moneyToString, sortGoals } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useMemo } from "react"
 
 type SummaryTotalParams = {
   value: string,
@@ -18,6 +19,12 @@ export default function Summary({ date }: { date: Date }) {
     queryFn: getSummary,
     refetchOnWindowFocus: false
   })
+
+  const sortedGoals = useMemo(() => {
+    if (!summary?.goals) return [];
+
+    return sortGoals(summary?.goals)
+  }, [summary?.goals]);
 
   return (
     <Card>
@@ -38,7 +45,7 @@ export default function Summary({ date }: { date: Date }) {
           </TableHeader>
 
           <TableBody>
-            {summary?.goals.map(goal => <Row key={goal.name} goal={goal} />)}
+            {sortedGoals.map(goal => <Row key={goal.name} goal={goal} />)}
           </TableBody>
         </Table>
       </CardContent>

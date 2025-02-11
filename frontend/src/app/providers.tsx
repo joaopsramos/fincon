@@ -1,5 +1,6 @@
 'use client'
 
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { isServer, QueryClient, QueryClientProvider, } from '@tanstack/react-query'
 import { AbstractIntlMessages, NextIntlClientProvider } from 'next-intl';
 
@@ -20,8 +21,10 @@ export default function Providers({ children, messages, locale }: ProvidersProps
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider messages={messages} locale={locale}>
-        {children}
+      <NextIntlClientProvider messages={messages} locale={locale} timeZone='America/Sao_Paulo'>
+        <TooltipProvider>
+          {children}
+        </TooltipProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>
   )
