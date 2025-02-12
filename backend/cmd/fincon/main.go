@@ -15,6 +15,6 @@ func main() {
 	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
 
 	api := api.NewApi(db)
-	api.Setup()
+	api.SetupAll()
 	log.Fatal(api.Listen())
 }

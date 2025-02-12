@@ -21,8 +21,8 @@ func TestGoalHandler_Index(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(user.ID, tx)
-	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
+	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
@@ -78,8 +78,8 @@ func TestGoalHandler_GetExpenses(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(user.ID, tx)
-	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
+	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
@@ -195,8 +195,8 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(user.ID, tx)
-	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
+	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
 	_ = anotherUserApi
 
 	defaultPercentages := domain.DefaulGoalPercentages()

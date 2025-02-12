@@ -53,7 +53,7 @@ func NewApi(db *gorm.DB) *Api {
 	}
 }
 
-func (a *Api) Setup() {
+func (a *Api) SetupAll() {
 	a.SetupMiddlewares()
 	a.SetupRoutes()
 }

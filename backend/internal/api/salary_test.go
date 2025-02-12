@@ -19,8 +19,8 @@ func TestSalaryHandler_Get(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(user.ID, tx)
-	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
+	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
 
 	salaries := []*domain.Salary{
 		{Amount: 50000, UserID: user.ID},
@@ -68,8 +68,8 @@ func TestSalaryHandler_Update(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(user.ID, tx)
-	anotherUserApi := testhelper.NewTestApi(anotherUser.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
+	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
 
 	f.InsertSalary([]*domain.Salary{
 		{Amount: 50000, UserID: user.ID},
