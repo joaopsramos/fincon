@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 )
 
@@ -16,7 +17,7 @@ func NewSalaryService(salaryRepo domain.SalaryRepo) SalaryService {
 	return SalaryService{salaryRepo: salaryRepo}
 }
 
-func NewSalary(dto CreateSalaryDTO) domain.Salary {
+func BuildSalary(dto CreateSalaryDTO) domain.Salary {
 	return domain.Salary{
 		Amount: int64(dto.Amount * 100),
 	}
@@ -26,4 +27,8 @@ func (s *SalaryService) UpdateAmount(salary *domain.Salary, amount float64) erro
 	salary.Amount = int64(amount * 100)
 
 	return s.salaryRepo.Update(salary)
+}
+
+func (s *SalaryService) Get(userID uuid.UUID) (*domain.Salary, error) {
+	return s.salaryRepo.Get(userID)
 }

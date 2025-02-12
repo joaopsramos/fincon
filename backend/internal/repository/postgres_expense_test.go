@@ -25,8 +25,8 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
 
-	salaryAmount := 10_000
-	f.InsertSalary(&domain.Salary{Amount: int64(salaryAmount * 100), UserID: user.ID})
+	salary := domain.Salary{Amount: 10_000 * 100, UserID: user.ID}
+	f.InsertSalary(&salary)
 
 	goalIDsByName := make(map[domain.GoalName]uint)
 
@@ -51,7 +51,6 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	r := NewTestPostgresExpenseRepo(t, tx)
 	goalRepo := NewTestPostgresGoalRepo(t, tx)
-	salaryRepo := NewTestPostgresSalaryRepo(t, tx)
 
 	type dataType struct {
 		goalName  domain.GoalName
@@ -74,7 +73,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
 
-	summary := r.GetSummary(now, user.ID, goalRepo, salaryRepo)
+	summary := r.GetSummary(now, user.ID, goalRepo, &salary)
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
@@ -120,7 +119,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		})
 	}
 
-	summary = r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, salaryRepo)
+	summary = r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, &salary)
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
@@ -140,7 +139,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 	assert.Equal(6.26, summary.Used)
 	assertSummaryEntries(data, entriesByName)
 
-	summary = r.GetSummary(now, user.ID, goalRepo, salaryRepo)
+	summary = r.GetSummary(now, user.ID, goalRepo, &salary)
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
@@ -161,7 +160,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	assertSummaryEntries(data, entriesByName)
 
-	summary = r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, salaryRepo)
+	summary = r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, &salary)
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}

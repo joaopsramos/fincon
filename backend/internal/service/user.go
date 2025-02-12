@@ -34,7 +34,7 @@ func (s *UserService) Create(dto CreateUserDTO) (*domain.User, *domain.Salary, e
 		HashPassword: string(hashPassword),
 	}
 
-	salary := NewSalary(dto.CreateSalaryDTO)
+	salary := BuildSalary(dto.CreateSalaryDTO)
 
 	if err := s.userRepo.Create(&user, &salary); err != nil {
 		return &domain.User{}, &domain.Salary{}, err

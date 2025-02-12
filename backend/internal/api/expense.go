@@ -50,7 +50,8 @@ func (h *Api) GetSummary(c *fiber.Ctx) error {
 	}
 
 	userID := util.GetUserIDFromCtx(c)
-	summary := h.expenseRepo.GetSummary(date, userID, h.goalRepo, h.salaryRepo)
+	salary := util.Must(h.salaryService.Get(userID))
+	summary := h.expenseRepo.GetSummary(date, userID, h.goalRepo, salary)
 	return c.Status(http.StatusOK).JSON(summary)
 }
 

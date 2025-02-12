@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
+	errs "github.com/joaopsramos/fincon/internal/error"
 	"gorm.io/gorm"
 )
 
@@ -14,10 +17,17 @@ func NewPostgresSalary(db *gorm.DB) domain.SalaryRepo {
 	return PostgresSalaryRepository{db}
 }
 
-func (r PostgresSalaryRepository) Get(userID uuid.UUID) domain.Salary {
+func (r PostgresSalaryRepository) Get(userID uuid.UUID) (*domain.Salary, error) {
 	var s domain.Salary
-	r.db.Where("user_id = ?", userID).Take(&s)
-	return s
+
+	err := r.db.Where("user_id = ?", userID).Take(&s).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return &domain.Salary{}, errs.NewNotFound("salary")
+	} else if err != nil {
+		return &domain.Salary{}, err
+	}
+
+	return &s, nil
 }
 
 func (r PostgresSalaryRepository) Create(s *domain.Salary) error {

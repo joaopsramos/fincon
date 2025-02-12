@@ -23,7 +23,7 @@ func (s *Salary) View() SalaryView {
 }
 
 type SalaryRepo interface {
-	Get(userID uuid.UUID) Salary
+	Get(userID uuid.UUID) (*Salary, error)
 	Create(salary *Salary) error
 	Update(salary *Salary) error
 }
