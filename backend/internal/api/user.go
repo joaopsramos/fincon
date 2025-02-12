@@ -15,8 +15,6 @@ import (
 	errs "github.com/joaopsramos/fincon/internal/error"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 var (
@@ -46,7 +44,7 @@ func (a *Api) CreateUser(c *fiber.Ctx) error {
 		return a.HandleZodError(c, errs)
 	}
 
-	if _, err := a.userRepo.GetByEmail(params.Email); err == nil {
+	if _, err := a.userService.GetByEmail(params.Email); err == nil {
 		return c.Status(http.StatusConflict).JSON(util.M{"error": "email already in use"})
 	} else if !errors.Is(err, errs.ErrNotFound{}) {
 		return a.HandleError(c, err)
@@ -80,15 +78,11 @@ func (a *Api) UserLogin(c *fiber.Ctx) error {
 		return a.HandleZodError(c, errs)
 	}
 
-	user, err := a.userRepo.GetByEmail(params.Email)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return c.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
+	user, err := a.userService.GetByEmailAndPassword(params.Email, params.Password)
+	if errors.Is(err, errs.ErrInvalidCredentials) {
+		return a.invalidCredentials(c)
 	} else if err != nil {
 		panic(err)
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.HashPassword), []byte(params.Password)); err != nil {
-		return c.Status(http.StatusUnprocessableEntity).JSON(util.M{"error": "invalid email or password"})
 	}
 
 	return c.Status(http.StatusCreated).JSON(util.M{"token": a.generateToken(user.ID)})
@@ -123,4 +117,8 @@ func (a *Api) PutUserIDMiddleware() fiber.Handler {
 
 func (a *Api) generateToken(userID uuid.UUID) string {
 	return domain.CreateToken(userID, tokenExpiresIn)
+}
+
+func (a *Api) invalidCredentials(c *fiber.Ctx) error {
+	return c.Status(http.StatusUnauthorized).JSON(util.M{"error": "invalid email or password"})
 }
