@@ -1,12 +1,16 @@
 import api from "@/api";
 import { setAuthCookie } from "@/lib/utils";
 
-export async function signUp(formData: FormData) {
+export type SignUpParams = {
+  email: string
+  password: string
+  salary: number
+}
+
+export async function signUp(params: SignUpParams) {
+  console.log(params)
   try {
-    const resp = await api.post("/users", {
-      email: formData.get("email"),
-      password: formData.get("password"),
-    })
+    const resp = await api.post("/users", params)
 
     setAuthCookie(resp.data.token)
 

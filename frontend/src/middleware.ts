@@ -17,7 +17,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  if (!cookie && !req.nextUrl.pathname.startsWith('/login')) {
+  if (!cookie && !req.nextUrl.pathname.startsWith('/login') && !req.nextUrl.pathname.startsWith('/signup')) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 

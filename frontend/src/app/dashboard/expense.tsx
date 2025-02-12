@@ -2,7 +2,7 @@ import dayjs from "dayjs"
 import type { CreateExpenseParams, Expense } from "@/api/expense"
 import utc from "dayjs/plugin/utc"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid"
+import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/solid"
 import { Goal } from "@/api/goals"
 import { Input } from "@/components/ui/input"
 import { KeyboardEvent, useState } from "react"
@@ -179,13 +179,14 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
 }
 
 const createExpenseSchema = z.object({
-  name: z.string().min(2, "nameTooShort"),
-  value: z.string().min(0.01, "valueTooLow").transform(val => parseFloat(val))
+  name: z.string().min(2, "stringMin"),
+  value: z.number().gte(0.01, "numberGte")
 })
 
 type CreateExpenseSchema = z.infer<typeof createExpenseSchema>
 
 function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQueries: () => Promise<void> }) {
+  const errorsT = useTranslations("Errors")
   const t = useTranslations("DashboardPage.expenses")
   const [nameFocused, setNameFocused] = useState(false)
   const { toast } = useToast()
@@ -249,7 +250,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
         <div className="col-span-5">
           <Input
             className={`rounded-md p-1 w-full ${errors.value ? 'border-red-500' : ''}`}
-            {...register("value")}
+            {...register("value", { setValueAs: (val) => Number(val) })}
             type="number"
             placeholder={t("valueInput")}
             step="0.01"
@@ -272,7 +273,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
           <span
             className="row-start-2 col-span-5 text-red-500 text-xs"
           >
-            {t("errors." + errors.name.message)}
+            {errorsT(errors.name.message, { min: 2 })}
           </span>
         )}
 
@@ -280,7 +281,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
           <span
             className="row-start-2 col-start-6 col-span-5 text-red-500 text-xs"
           >
-            {t("errors." + errors.value.message)}
+            {errorsT(errors.value.message, { gte: 0.01 })}
           </span>
         )}
       </div>

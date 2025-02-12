@@ -35,7 +35,7 @@ export default function Summary({ date }: { date: Date }) {
       <CardContent>
         <Table>
           <TableHeader className="bg-slate-100">
-            <TableRow>
+            <TableRow className="whitespace-nowrap">
               <TableHead>{t("summary.budget")}</TableHead>
               <TableHead>{t("summary.spent")}</TableHead>
               <TableHead>{t("summary.mustSpend")}</TableHead>
