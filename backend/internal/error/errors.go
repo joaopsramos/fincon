@@ -1,11 +1,11 @@
 package errs
 
+import "errors"
+
+var ErrInvalidCredentials = errors.New("invalid credentials")
+
 type ErrNotFound struct {
 	resource string
-}
-
-func NewNotFound(resource string) ErrNotFound {
-	return ErrNotFound{resource: resource}
 }
 
 func (e ErrNotFound) Error() string {
@@ -18,4 +18,8 @@ func (e ErrNotFound) Is(target error) bool {
 	}
 
 	return false
+}
+
+func NewNotFound(resource string) ErrNotFound {
+	return ErrNotFound{resource: resource}
 }

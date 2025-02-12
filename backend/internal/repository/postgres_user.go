@@ -46,21 +46,21 @@ func (r PostgresUserRepository) Create(user *domain.User, salary *domain.Salary)
 	return err
 }
 
-func (r PostgresUserRepository) Get(id uuid.UUID) (domain.User, error) {
+func (r PostgresUserRepository) Get(id uuid.UUID) (*domain.User, error) {
 	var user domain.User
 	result := r.db.Take(&user, id)
-	return user, result.Error
+	return &user, result.Error
 }
 
-func (r PostgresUserRepository) GetByEmail(email string) (domain.User, error) {
+func (r PostgresUserRepository) GetByEmail(email string) (*domain.User, error) {
 	var user domain.User
 	if err := r.db.Where("email = ?", email).Take(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return domain.User{}, errs.NewNotFound("user")
+			return &domain.User{}, errs.NewNotFound("user")
 		}
 
-		return domain.User{}, err
+		return &domain.User{}, err
 	}
 
-	return user, nil
+	return &user, nil
 }

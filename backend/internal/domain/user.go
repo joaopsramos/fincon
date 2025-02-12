@@ -19,8 +19,8 @@ type User struct {
 
 type UserRepo interface {
 	Create(user *User, salary *Salary) error
-	Get(id uuid.UUID) (User, error)
-	GetByEmail(email string) (User, error)
+	Get(id uuid.UUID) (*User, error)
+	GetByEmail(email string) (*User, error)
 }
 
 func CreateToken(userID uuid.UUID, expiresIn time.Duration) string {
