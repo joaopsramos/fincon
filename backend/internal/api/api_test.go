@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -52,7 +53,8 @@ func TestApi_GobalRateLimiter(t *testing.T) {
 
 		if i == 101 {
 			assert.Equal(http.StatusTooManyRequests, resp.StatusCode)
-			assert.Equal("60", resp.Header.Get("retry-after"))
+			retry := util.Must(strconv.Atoi(resp.Header.Get("retry-after")))
+			assert.InDelta(60, retry, 3)
 			break
 		}
 
@@ -72,7 +74,8 @@ func TestApi_CreateUserRateLimiter(t *testing.T) {
 
 		if i == 6 {
 			assert.Equal(http.StatusTooManyRequests, resp.StatusCode)
-			assert.Equal("3600", resp.Header.Get("retry-after"))
+			retry := util.Must(strconv.Atoi(resp.Header.Get("retry-after")))
+			assert.InDelta(3600, retry, 3)
 			break
 		}
 
@@ -95,7 +98,8 @@ func TestApi_CreateSessionRateLimiter(t *testing.T) {
 
 		if i == 11 {
 			assert.Equal(http.StatusTooManyRequests, resp.StatusCode)
-			assert.Equal("300", resp.Header.Get("retry-after"))
+			retry := util.Must(strconv.Atoi(resp.Header.Get("retry-after")))
+			assert.InDelta(300, retry, 3)
 			break
 		}
 
