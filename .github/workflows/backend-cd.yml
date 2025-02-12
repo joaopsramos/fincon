@@ -23,7 +23,7 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Create .env file
-        run: echo "${{ secrets.PROD_ENV }}" > .prod.env
+        run: printf "%s" "${{ secrets.PROD_ENV }}" > .prod.env
 
       - run: flyctl deploy --remote-only
         env:
