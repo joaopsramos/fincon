@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline"
 import { CheckIcon, PencilIcon } from "@heroicons/react/24/solid"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { handleLogout } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -34,8 +34,6 @@ export default function Header({ date: _ }: { date: Date }) {
     refetchOnWindowFocus: false,
   })
 
-  const [amount, setAmount] = useState(salary?.amount ?? 0)
-
   const {
     register,
     handleSubmit,
@@ -52,10 +50,6 @@ export default function Header({ date: _ }: { date: Date }) {
       toast({ title: "Error", description: e.message, variant: "destructive" })
     },
   })
-
-  useEffect(() => {
-    setAmount(salary?.amount ?? 0)
-  }, [salary?.amount])
 
   const handleUpdateSalary = (data: SalarySchema) => {
     setIsEditing(false)
@@ -77,7 +71,7 @@ export default function Header({ date: _ }: { date: Date }) {
             />
 
             <Input
-              defaultValue={amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              defaultValue={salary?.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               disabled
               className={`max-w-32 disabled:opacity-100 ${isEditing && "hidden"}`}
             />
