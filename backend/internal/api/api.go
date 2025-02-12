@@ -26,7 +26,6 @@ type Api struct {
 	userService   service.UserService
 	salaryService service.SalaryService
 
-	salaryRepo  domain.SalaryRepo
 	goalRepo    domain.GoalRepo
 	expenseRepo domain.ExpenseRepo
 }
@@ -45,7 +44,6 @@ func NewApi(db *gorm.DB) *Api {
 
 		userService:   service.NewUserService(userRepo),
 		salaryService: service.NewSalaryService(salaryRepo),
-		salaryRepo:    salaryRepo,
 		goalRepo:      goalRepo,
 		expenseRepo:   expenseRepo,
 	}

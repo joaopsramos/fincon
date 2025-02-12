@@ -111,9 +111,7 @@ func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time
 	return e
 }
 
-func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, goalRepo domain.GoalRepo, salaryRepo domain.SalaryRepo) domain.Summary {
-	salary := salaryRepo.Get(userID)
-
+func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, goalRepo domain.GoalRepo, salary *domain.Salary) domain.Summary {
 	type result struct {
 		ID         uint
 		Name       string
