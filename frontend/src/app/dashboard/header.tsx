@@ -13,6 +13,7 @@ import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useToast } from "@/hooks/use-toast"
+import { LoaderCircle } from "lucide-react"
 
 const salarySchema = z.object({
   amount: z.number().min(1, "valuteTooLow"),
@@ -28,7 +29,7 @@ export default function Header({ date: _ }: { date: Date }) {
   const menuT = useTranslations("Menu")
   const [isEditing, setIsEditing] = useState(false)
 
-  const { data: salary } = useQuery({
+  const { data: salary, isPending: isPendingSalary } = useQuery({
     queryKey: ["salary"],
     queryFn: getSalary,
     refetchOnWindowFocus: false,
@@ -70,26 +71,18 @@ export default function Header({ date: _ }: { date: Date }) {
               className={`max-w-32 ${errors.amount && "border-red-500"} ${!isEditing && "hidden"}`}
             />
 
-            <Input
-              defaultValue={salary?.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              disabled
-              className={`max-w-32 disabled:opacity-100 ${isEditing && "hidden"}`}
-            />
+            {isPendingSalary ? (
+              <LoaderCircle className="animate-spin size-6" />
+            ) : (
+              <Input
+                defaultValue={salary?.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                disabled
+                className={`max-w-32 disabled:opacity-100 ${isEditing && "hidden"}`}
+              />
+            )}
           </div>
 
-          {isEditing ? (
-            <div className="ml-2 cursor-pointer bg-green-500 rounded-full p-1 w-min hover:bg-green-600 transition-colors">
-              <button type="submit" className="block">
-                <CheckIcon className="size-4 text-white" />
-              </button>
-            </div>
-          ) : (
-            <div
-              className="ml-2 cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
-              onClick={() => setIsEditing(true)}>
-              <PencilIcon className="size-4 text-white" />
-            </div>
-          )}
+          {!isPendingSalary && <SalaryEditIcons isEditing={isEditing} setIsEditing={setIsEditing} />}
         </div>
       </form>
 
@@ -100,5 +93,25 @@ export default function Header({ date: _ }: { date: Date }) {
         </Button>
       </div>
     </div>
+  )
+}
+
+function SalaryEditIcons({ isEditing, setIsEditing }: { isEditing: boolean; setIsEditing: (value: boolean) => void }) {
+  return (
+    <>
+      {isEditing ? (
+        <div className="ml-2 cursor-pointer bg-green-500 rounded-full p-1 w-min hover:bg-green-600 transition-colors">
+          <button type="submit" className="block">
+            <CheckIcon className="size-4 text-white" />
+          </button>
+        </div>
+      ) : (
+        <div
+          className="ml-2 cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
+          onClick={() => setIsEditing(true)}>
+          <PencilIcon className="size-4 text-white" />
+        </div>
+      )}
+    </>
   )
 }
