@@ -20,7 +20,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(user.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
 
 	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
 	f.InsertGoal(&goal)
@@ -105,7 +105,7 @@ func TestExpenseHandler_FindMatchingNames(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(user.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
 
 	now := time.Now().UTC()
 	// Use middle of month to avoid errors when subtracting/adding months
@@ -164,7 +164,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(user.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
 
 	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
 	f.InsertGoal(&goal)
@@ -263,7 +263,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 	assert.Equal(400, resp.StatusCode)
 	assert.Equal(util.M{"error": "invalid expense id"}, respBody)
 
-	anotherUserApi := testhelper.NewTestApi(uuid.New(), tx)
+	anotherUserApi := testhelper.NewTestApi(tx, uuid.New())
 	resp = anotherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d", expense.ID), util.M{})
 	api.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(404, resp.StatusCode)
@@ -276,7 +276,7 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(user.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
 
 	goal1 := domain.Goal{Name: "Comfort", UserID: user.ID}
 	goal2 := domain.Goal{Name: "Pleasures", UserID: user.ID}
@@ -329,7 +329,7 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 	assert.Equal(400, resp.StatusCode)
 	assert.Equal(util.M{"error": "invalid expense id"}, respBody)
 
-	anotherUserApi := testhelper.NewTestApi(uuid.New(), tx)
+	anotherUserApi := testhelper.NewTestApi(tx, uuid.New())
 	resp = anotherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), util.M{"goal_id": goal1.ID})
 	api.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(404, resp.StatusCode)
@@ -342,14 +342,14 @@ func TestExpenseHandler_Delete(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(user.ID, tx)
+	api := testhelper.NewTestApi(tx, user.ID)
 
 	expense := domain.Expense{GoalID: f.InsertGoal().ID, UserID: user.ID}
 	f.InsertExpense(&expense)
 
 	var respBody util.M
 
-	anotherUserApi := testhelper.NewTestApi(uuid.New(), tx)
+	anotherUserApi := testhelper.NewTestApi(tx, uuid.New())
 
 	data := []struct {
 		name      string

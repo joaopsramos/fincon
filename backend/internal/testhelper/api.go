@@ -20,11 +20,16 @@ type TestApi struct {
 	token string
 }
 
-func NewTestApi(userID uuid.UUID, tx *gorm.DB) *TestApi {
+func NewTestApi(tx *gorm.DB, userID ...uuid.UUID) *TestApi {
 	api := api.NewApi(tx)
-	api.Setup()
+	api.SetupAll()
+	var token string
 
-	return &TestApi{api: api, token: domain.CreateToken(userID, time.Minute*1)}
+	if len(userID) > 0 {
+		token = domain.CreateToken(userID[0], time.Minute*1)
+	}
+
+	return &TestApi{api: api, token: token}
 }
 
 func (t *TestApi) Test(method string, path string, body ...any) *http.Response {
@@ -36,7 +41,10 @@ func (t *TestApi) Test(method string, path string, body ...any) *http.Response {
 	}
 
 	req := httptest.NewRequest(method, path, bodyReader)
-	req.Header.Set("Authorization", "Bearer "+t.token)
+
+	if t.token != "" {
+		req.Header.Set("Authorization", "Bearer "+t.token)
+	}
 
 	resp, err := t.api.Router.Test(req)
 	if err != nil {

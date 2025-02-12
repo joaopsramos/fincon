@@ -25,9 +25,9 @@ var (
 )
 
 var userCreateSchema = z.Struct(z.Schema{
-	"email":    z.String().Trim().Max(160).Email().Required(),
-	"password": z.String().Trim().Min(8).Max(72).Required(),
-	"salary":   z.Float().GT(0, z.Message("salary must be greater than 0")).Required(),
+	"email":    z.String().Trim().Max(160).Email(z.Message("must be valid")).Required(),
+	"password": z.String().Trim().Min(8, z.Message("must contain at least 8 characters")).Max(72, z.Message("must have at most 72 characters")).Required(),
+	"salary":   z.Float().GT(0, z.Message("must be greater than 0")).Required(),
 })
 
 var userLoginSchema = z.Struct(z.Schema{
