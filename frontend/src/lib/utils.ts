@@ -29,7 +29,7 @@ export function sortGoals<T extends { name: string }>(goals: T[]) {
 }
 
 export type Money = {
-  amount: number,
+  amount: number
   currency: string
 }
 

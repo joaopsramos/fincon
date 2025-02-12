@@ -1,6 +1,6 @@
 "use client"
 
-import { useTranslations } from "next-intl";
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,11 +11,11 @@ import { login } from "@/api/user"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { LoaderCircle } from "lucide-react"
-import Link from "next/link";
+import Link from "next/link"
 
 export default function Login() {
-  const t = useTranslations("LoginPage");
-  const commonT = useTranslations("Common");
+  const t = useTranslations("LoginPage")
+  const commonT = useTranslations("Common")
   const router = useRouter()
   const { toast } = useToast()
   const [isNavigating, setIsNavigating] = useState(false)
@@ -28,10 +28,10 @@ export default function Login() {
     },
     onError: (e: Error) => {
       toast({ title: "Error", description: e.message, variant: "destructive" })
-    }
+    },
   })
 
-  const isLoading = loginMut.isPending || isNavigating;
+  const isLoading = loginMut.isPending || isNavigating
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -55,22 +55,17 @@ export default function Login() {
               <Input id="password" name="password" type="password" required />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <LoaderCircle className="animate-spin size-6" />
-              ) : commonT("continueButton")}
+              {isLoading ? <LoaderCircle className="animate-spin size-6" /> : commonT("continueButton")}
             </Button>
           </Form>
         </CardContent>
 
         <CardFooter>
           <Button variant="outline" className="w-full" asChild>
-            <Link href="/signup">
-              {t("needAnAccount")}
-            </Link>
+            <Link href="/signup">{t("needAnAccount")}</Link>
           </Button>
         </CardFooter>
       </Card>
     </div>
   )
 }
-

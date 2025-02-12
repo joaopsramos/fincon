@@ -1,14 +1,14 @@
-'use client'
+"use client"
 
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { isServer, QueryClient, QueryClientProvider, } from '@tanstack/react-query'
-import { AbstractIntlMessages, NextIntlClientProvider } from 'next-intl';
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { isServer, QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
 
 let browserQueryClient: QueryClient | undefined = undefined
 
 type ProvidersProps = {
-  children: React.ReactNode,
-  messages: AbstractIntlMessages,
+  children: React.ReactNode
+  messages: AbstractIntlMessages
   locale: string
 }
 
@@ -21,15 +21,12 @@ export default function Providers({ children, messages, locale }: ProvidersProps
 
   return (
     <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider messages={messages} locale={locale} timeZone='America/Sao_Paulo'>
-        <TooltipProvider>
-          {children}
-        </TooltipProvider>
+      <NextIntlClientProvider messages={messages} locale={locale} timeZone="America/Sao_Paulo">
+        <TooltipProvider>{children}</TooltipProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>
   )
 }
-
 
 function getQueryClient() {
   if (isServer) {
@@ -55,4 +52,3 @@ function makeQueryClient() {
     },
   })
 }
-

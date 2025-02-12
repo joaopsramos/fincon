@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'
-import { NextRequest } from 'next/server'
-import { TOKEN_KEY } from './lib/utils'
+import { NextResponse } from "next/server"
+import { NextRequest } from "next/server"
+import { TOKEN_KEY } from "./lib/utils"
 
 const PUBLIC_FILE = /\.(.*)$/
 
 export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const { pathname } = req.nextUrl
   const cookie = req.cookies.get(TOKEN_KEY)
 
   if (
@@ -17,12 +17,12 @@ export function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  if (!cookie && !req.nextUrl.pathname.startsWith('/login') && !req.nextUrl.pathname.startsWith('/signup')) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  if (!cookie && !req.nextUrl.pathname.startsWith("/login") && !req.nextUrl.pathname.startsWith("/signup")) {
+    return NextResponse.redirect(new URL("/login", req.url))
   }
 
   if (cookie && ["/", "/login"].includes(req.nextUrl.pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+    return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
   return NextResponse.next()

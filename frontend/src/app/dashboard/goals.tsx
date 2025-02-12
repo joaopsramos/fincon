@@ -21,7 +21,6 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 
-
 export default function Goals({ goals }: { goals: Goal[] }) {
   const t = useTranslations("DashboardPage.goals")
   const queryClient = useQueryClient()
@@ -34,7 +33,7 @@ export default function Goals({ goals }: { goals: Goal[] }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["summary"] })
       toast({ title: t("goalsUpdatedTitle") })
-    }
+    },
   })
 
   useEffect(() => resetPercentages(), [goals])
@@ -70,7 +69,7 @@ export default function Goals({ goals }: { goals: Goal[] }) {
 
         <CardContent>
           <ul>
-            {goals?.map(goal => (
+            {goals?.map((goal) => (
               <li key={goal.id} className="my-2">
                 <div className="flex justify-between">
                   <span>{goal.name}</span>
@@ -81,16 +80,14 @@ export default function Goals({ goals }: { goals: Goal[] }) {
             ))}
           </ul>
         </CardContent>
-      </Card >
+      </Card>
 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("editForm")}</DialogTitle>
         </DialogHeader>
 
-        <DialogDescription>
-          {t("editGoalsDesc")}
-        </DialogDescription>
+        <DialogDescription>{t("editGoalsDesc")}</DialogDescription>
 
         <Form action={updateMut.mutate}>
           <ul>
@@ -113,8 +110,7 @@ export default function Goals({ goals }: { goals: Goal[] }) {
                   style={{
                     left: `${percentages[idx]}%`,
                     transform: "translateX(-50%)",
-                  }}
-                >
+                  }}>
                   {percentages[idx]}%
                 </span>
               </li>
@@ -134,6 +130,6 @@ export default function Goals({ goals }: { goals: Goal[] }) {
           </DialogFooter>
         </Form>
       </DialogContent>
-    </Dialog >
+    </Dialog>
   )
 }

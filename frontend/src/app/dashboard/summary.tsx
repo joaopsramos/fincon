@@ -7,8 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useMemo } from "react"
 
 type SummaryTotalParams = {
-  value: string,
-  text: string,
+  value: string
+  text: string
   valueColor?: string
 }
 
@@ -17,14 +17,14 @@ export default function Summary({ date }: { date: Date }) {
   const { data: summary } = useQuery({
     queryKey: ["summary", date],
     queryFn: getSummary,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   })
 
   const sortedGoals = useMemo(() => {
-    if (!summary?.goals) return [];
+    if (!summary?.goals) return []
 
     return sortGoals(summary?.goals)
-  }, [summary?.goals]);
+  }, [summary?.goals])
 
   return (
     <Card>
@@ -45,7 +45,9 @@ export default function Summary({ date }: { date: Date }) {
           </TableHeader>
 
           <TableBody>
-            {sortedGoals.map(goal => <Row key={goal.name} goal={goal} />)}
+            {sortedGoals.map((goal) => (
+              <Row key={goal.name} goal={goal} />
+            ))}
           </TableBody>
         </Table>
       </CardContent>
@@ -54,14 +56,22 @@ export default function Summary({ date }: { date: Date }) {
         <div className="flex gap-x-4 gap-y-2 flex-wrap">
           {summary && (
             <>
-              <SummaryTotal value={moneyToString(summary.spent)} text={t("summary.totalSpent")} valueColor="text-red-500" />
-              <SummaryTotal value={moneyToString(summary.must_spend)} text={t("summary.mustSpend")} valueColor="text-green-600" />
+              <SummaryTotal
+                value={moneyToString(summary.spent)}
+                text={t("summary.totalSpent")}
+                valueColor="text-red-500"
+              />
+              <SummaryTotal
+                value={moneyToString(summary.must_spend)}
+                text={t("summary.mustSpend")}
+                valueColor="text-green-600"
+              />
               <SummaryTotal value={summary.used.toFixed(2).toString() + "%"} text={t("summary.used")} />
             </>
           )}
         </div>
       </CardFooter>
-    </Card >
+    </Card>
   )
 }
 
@@ -80,7 +90,7 @@ function Row({ goal }: { goal: SummaryGoal }) {
 function SummaryTotal({ value, text, valueColor }: SummaryTotalParams) {
   return (
     <div>
-      <p className={`text-lg font-bold -mb-2 ${valueColor}`}>{value}</p >
+      <p className={`text-lg font-bold -mb-2 ${valueColor}`}>{value}</p>
       <span className="text-xs">{text}</span>
     </div>
   )

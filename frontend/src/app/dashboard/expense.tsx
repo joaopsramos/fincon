@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { KeyboardEvent, useState } from "react"
 import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tooltip, TooltipContent, TooltipTrigger, } from "@/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
 import { moneyToString } from "@/lib/utils"
 import { useForm } from "react-hook-form"
@@ -17,8 +17,7 @@ import { useTranslations } from "next-intl"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 
-
-export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
+export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
   dayjs.extend(utc)
 
   const t = useTranslations("DashboardPage.expenses")
@@ -28,7 +27,7 @@ export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
   const { data: expenses } = useQuery({
     queryKey: ["expense", date, goal.id],
     queryFn: getExpenses,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   })
 
   return (
@@ -50,7 +49,7 @@ export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
             </TableHeader>
 
             <TableBody>
-              {expenses?.map(e => (
+              {expenses?.map((e) => (
                 <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
               ))}
 
@@ -73,18 +72,18 @@ export default function Expense({ goal, date }: { goal: Goal, date: Date }) {
   )
 }
 
-function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueries: () => Promise<void> }) {
+function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueries: () => Promise<void> }) {
   const t = useTranslations("DashboardPage.expenses")
-  const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(expense.name);
-  const [value, setValue] = useState(expense.value.amount.toString());
+  const [isEditing, setIsEditing] = useState(false)
+  const [name, setName] = useState(expense.name)
+  const [value, setValue] = useState(expense.value.amount.toString())
 
   const editExpenseMut = useMutation({
     mutationFn: () => editExpense({ name, value: parseFloat(value) }, expense.id),
     onSuccess: async () => {
       await invalidateQueries()
       setIsEditing(false)
-    }
+    },
   })
 
   const deleteExpenseMut = useMutation({
@@ -92,7 +91,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
     onSuccess: () => {
       setIsEditing(false)
       invalidateQueries()
-    }
+    },
   })
 
   const editExpenseOnEnter = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -106,24 +105,28 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
   return (
     <TableRow className="group hover:bg-inherit">
       <TableCell>
-        {!isEditing ? <span className="py-1 inline-block">{expense.name}</span> : (
+        {!isEditing ? (
+          <span className="py-1 inline-block">{expense.name}</span>
+        ) : (
           <Input
             type="text"
             className={inputClass}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             onKeyDown={editExpenseOnEnter}
           />
         )}
       </TableCell>
       <TableCell>
-        {!isEditing ? moneyToString(expense.value) : (
+        {!isEditing ? (
+          moneyToString(expense.value)
+        ) : (
           <Input
             type="number"
             step="0.01"
             className={inputClass}
             value={value}
-            onChange={e => setValue(e.target.value)}
+            onChange={(e) => setValue(e.target.value)}
             onKeyDown={editExpenseOnEnter}
           />
         )}
@@ -136,9 +139,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
               <TooltipTrigger>
                 <div
                   className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
-                  onClick={() => setIsEditing(true)}
-                >
-
+                  onClick={() => setIsEditing(true)}>
                   <PencilIcon className="size-4 text-white" />
                 </div>
               </TooltipTrigger>
@@ -149,8 +150,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
           ) : (
             <div
               className="cursor-pointer bg-green-500 rounded-full p-1 w-min hover:bg-green-600 transition-colors"
-              onClick={() => editExpenseMut.mutate()}
-            >
+              onClick={() => editExpenseMut.mutate()}>
               <CheckIcon className="size-4 text-white" />
             </div>
           )}
@@ -160,11 +160,10 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
               <div
                 className="cursor-pointer bg-red-500 rounded-full p-1 w-min hover:bg-red-600 transition-colors"
                 onClick={() => {
-                  if (window.confirm(t('deleteMsg', { name: expense.name }))) {
-                    deleteExpenseMut.mutate();
+                  if (window.confirm(t("deleteMsg", { name: expense.name }))) {
+                    deleteExpenseMut.mutate()
                   }
-                }}
-              >
+                }}>
                 <TrashIcon className="size-4 text-white" />
               </div>
             </TooltipTrigger>
@@ -174,18 +173,18 @@ function Row({ expense, invalidateQueries }: { expense: Expense, invalidateQueri
           </Tooltip>
         </div>
       </TableCell>
-    </TableRow >
+    </TableRow>
   )
 }
 
 const createExpenseSchema = z.object({
   name: z.string().min(2, "stringMin"),
-  value: z.number().gte(0.01, "numberGte")
+  value: z.number().gte(0.01, "numberGte"),
 })
 
 type CreateExpenseSchema = z.infer<typeof createExpenseSchema>
 
-function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQueries: () => Promise<void> }) {
+function CreateExpense({ goal, invalidateQueries }: { goal: Goal; invalidateQueries: () => Promise<void> }) {
   const errorsT = useTranslations("Errors")
   const t = useTranslations("DashboardPage.expenses")
   const [nameFocused, setNameFocused] = useState(false)
@@ -206,30 +205,30 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
       reset()
       invalidateQueries()
     },
-    onError: () => toast(
-      {
+    onError: () =>
+      toast({
         title: "Error",
         description: "Something went wrong, please try again.",
-        variant: "destructive"
-      })
+        variant: "destructive",
+      }),
   })
 
   const handleCreateExpense = (data: CreateExpenseSchema) => {
     const params: CreateExpenseParams = {
       ...data,
       date: new Date(),
-      goal_id: goal.id
+      goal_id: goal.id,
     }
 
     createExpenseMut.mutate(params)
   }
 
   const { data: matchingNames = [] } = useQuery({
-    queryKey: ['matchingNames', name],
+    queryKey: ["matchingNames", name],
     queryFn: () => findMatchingNames(name),
     enabled: name.length >= 2,
     placeholderData: [],
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   })
 
   return (
@@ -237,7 +236,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
       <div className="grid grid-cols-11 gap-1">
         <div className="col-span-5">
           <Input
-            className={`rounded-md p-1 w-full ${errors.name ? 'border-red-500' : ''}`}
+            className={`rounded-md p-1 w-full ${errors.name ? "border-red-500" : ""}`}
             {...register("name")}
             type="text"
             placeholder={t("nameInput")}
@@ -249,7 +248,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
         </div>
         <div className="col-span-5">
           <Input
-            className={`rounded-md p-1 w-full ${errors.value ? 'border-red-500' : ''}`}
+            className={`rounded-md p-1 w-full ${errors.value ? "border-red-500" : ""}`}
             {...register("value", { setValueAs: (val) => Number(val) })}
             type="number"
             placeholder={t("valueInput")}
@@ -270,17 +269,13 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
         </Tooltip>
 
         {errors.name && (
-          <span
-            className="row-start-2 col-span-5 text-red-500 text-xs"
-          >
+          <span className="row-start-2 col-span-5 text-red-500 text-xs">
             {errorsT(errors.name.message, { min: 2 })}
           </span>
         )}
 
         {errors.value && (
-          <span
-            className="row-start-2 col-start-6 col-span-5 text-red-500 text-xs"
-          >
+          <span className="row-start-2 col-start-6 col-span-5 text-red-500 text-xs">
             {errorsT(errors.value.message, { gte: 0.01 })}
           </span>
         )}
@@ -288,16 +283,20 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal, invalidateQuer
 
       <div className="absolute top-10 z-10 bg-white rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll border border-slate-300 shadow">
         <ul>
-          {matchingNames.length > 0 && nameFocused && matchingNames.map(name => (
-            <li
-              key={name}
-              className="px-2 py-1 border-b cursor-pointer hover:bg-gray-100 transition-colors"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                setValue("name", name)
-                setNameFocused(false)
-              }}>{name}</li>
-          ))}
+          {matchingNames.length > 0 &&
+            nameFocused &&
+            matchingNames.map((name) => (
+              <li
+                key={name}
+                className="px-2 py-1 border-b cursor-pointer hover:bg-gray-100 transition-colors"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setValue("name", name)
+                  setNameFocused(false)
+                }}>
+                {name}
+              </li>
+            ))}
         </ul>
       </div>
     </form>

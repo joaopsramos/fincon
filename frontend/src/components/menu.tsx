@@ -1,7 +1,7 @@
-import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/solid";
-import { Button } from "@/components/ui/button";
-import { handleLogout } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/solid"
+import { Button } from "@/components/ui/button"
+import { handleLogout } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export default function Menu() {
   const router = useRouter()

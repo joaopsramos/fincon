@@ -1,6 +1,6 @@
 "use client"
 
-import { useTranslations } from "next-intl";
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,10 +10,10 @@ import { signUp } from "@/api/user"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { LoaderCircle } from "lucide-react"
-import Link from "next/link";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 
 const signUpSchema = z.object({
   email: z.string().email(),
@@ -24,13 +24,17 @@ const signUpSchema = z.object({
 type SignUpSchema = z.infer<typeof signUpSchema>
 
 export default function SignUp() {
-  const commonT = useTranslations("Common");
-  const errorsT = useTranslations("Errors");
-  const t = useTranslations("SignUpPage");
+  const commonT = useTranslations("Common")
+  const errorsT = useTranslations("Errors")
+  const t = useTranslations("SignUpPage")
   const router = useRouter()
   const { toast } = useToast()
   const [isNavigating, setIsNavigating] = useState(false)
-  const { register, handleSubmit, formState: { errors }, } = useForm<SignUpSchema>({ resolver: zodResolver(signUpSchema) })
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignUpSchema>({ resolver: zodResolver(signUpSchema) })
 
   const signUpMut = useMutation({
     mutationFn: (data: SignUpSchema) => signUp(data),
@@ -40,10 +44,10 @@ export default function SignUp() {
     },
     onError: (e: Error) => {
       toast({ title: "Error", description: e.message, variant: "destructive" })
-    }
+    },
   })
 
-  const isLoading = signUpMut.isPending || isNavigating;
+  const isLoading = signUpMut.isPending || isNavigating
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -58,13 +62,16 @@ export default function SignUp() {
               <label htmlFor="email" className="text-sm font-medium">
                 Email
               </label>
-              <Input {...register("email")} id="email" name="email" type="email" required className={"${errors.value ? 'border-red-500' : ''}"} />
+              <Input
+                {...register("email")}
+                id="email"
+                name="email"
+                type="email"
+                required
+                className={"${errors.value ? 'border-red-500' : ''}"}
+              />
               {errors.email && (
-                <span
-                  className="row-start-2 col-span-5 text-red-500 text-xs"
-                >
-                  {errorsT(errors.email.message)}
-                </span>
+                <span className="row-start-2 col-span-5 text-red-500 text-xs">{errorsT(errors.email.message)}</span>
               )}
             </div>
 
@@ -74,9 +81,7 @@ export default function SignUp() {
               </label>
               <Input {...register("password")} id="password" name="password" type="password" required />
               {errors.password && (
-                <span
-                  className="row-start-2 col-span-5 text-red-500 text-xs"
-                >
+                <span className="row-start-2 col-span-5 text-red-500 text-xs">
                   {errorsT(errors.password.message, { min: 8 })}
                 </span>
               )}
@@ -86,29 +91,31 @@ export default function SignUp() {
               <label htmlFor="salary" className="text-sm font-medium">
                 {t("salaryInput")}
               </label>
-              <Input {...register("salary", { setValueAs: val => Number(val) })} id="salary" name="salary" type="number" step={1} required className="max-w-32" />
+              <Input
+                {...register("salary", { setValueAs: (val) => Number(val) })}
+                id="salary"
+                name="salary"
+                type="number"
+                step={1}
+                required
+                className="max-w-32"
+              />
               {errors.salary && (
-                <span
-                  className="row-start-2 col-span-5 text-red-500 text-xs"
-                >
+                <span className="row-start-2 col-span-5 text-red-500 text-xs">
                   {errorsT(errors.salary.message, { min: 1 })}
                 </span>
               )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <LoaderCircle className="animate-spin size-6" />
-              ) : commonT("continueButton")}
+              {isLoading ? <LoaderCircle className="animate-spin size-6" /> : commonT("continueButton")}
             </Button>
           </form>
         </CardContent>
 
         <CardFooter>
           <Button variant="outline" className="w-full" asChild>
-            <Link href="/login">
-              {t("alreadyHaveAnAccount")}
-            </Link>
+            <Link href="/login">{t("alreadyHaveAnAccount")}</Link>
           </Button>
         </CardFooter>
       </Card>
