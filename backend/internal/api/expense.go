@@ -8,7 +8,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/gofiber/fiber/v2"
-	"github.com/joaopsramos/fincon/internal/domain"
+	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
@@ -32,7 +32,10 @@ func (a *Api) FindExpenseSuggestions(c *fiber.Ctx) error {
 	}
 
 	userID := util.GetUserIDFromCtx(c)
-	names := a.expenseRepo.FindMatchingNames(query, userID)
+	names, err := a.expenseService.FindMatchingNames(query, userID)
+	if err != nil {
+		return a.HandleError(c, err)
+	}
 
 	return c.Status(http.StatusOK).JSON(names)
 }
@@ -50,8 +53,11 @@ func (h *Api) GetSummary(c *fiber.Ctx) error {
 	}
 
 	userID := util.GetUserIDFromCtx(c)
-	salary := util.Must(h.salaryService.Get(userID))
-	summary := h.expenseRepo.GetSummary(date, userID, h.goalRepo, salary)
+	summary, err := h.expenseService.GetSummary(date, userID)
+	if err != nil {
+		return h.HandleError(c, err)
+	}
+
 	return c.Status(http.StatusOK).JSON(summary)
 }
 
@@ -69,14 +75,14 @@ func (a *Api) CreateExpense(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	toCreate := domain.Expense{
+	dto := service.CreateExpenseDTO{
 		Name:   params.Name,
-		Value:  int64(params.Value * 100),
+		Value:  params.Value,
 		Date:   params.Date,
-		GoalID: uint(params.GoalID),
+		GoalID: params.GoalID,
 	}
 
-	expense, err := a.expenseRepo.Create(toCreate, userID, a.goalRepo)
+	expense, err := a.expenseService.Create(dto, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -100,18 +106,13 @@ func (a *Api) UpdateExpense(c *fiber.Ctx) error {
 		return a.HandleZodError(c, errs)
 	}
 
-	userID := util.GetUserIDFromCtx(c)
-
-	toUpdate, err := a.expenseRepo.Get(uint(id), userID)
-	if err != nil {
-		return a.HandleError(c, err)
+	dto := service.UpdateExpenseDTO{
+		Name:  params.Name,
+		Value: params.Value,
+		Date:  params.Date,
 	}
 
-	util.UpdateIfNotZero(&toUpdate.Name, params.Name)
-	util.UpdateIfNotZero(&toUpdate.Value, int64(params.Value*100))
-	util.UpdateIfNotZero(&toUpdate.Date, params.Date)
-
-	expense, err := a.expenseRepo.Update(toUpdate)
+	expense, err := a.expenseService.UpdateByID(uint(id), dto, util.GetUserIDFromCtx(c))
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -134,12 +135,12 @@ func (a *Api) UpdateExpenseGoal(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	toUpdate, err := a.expenseRepo.Get(uint(id), userID)
+	expense, err := a.expenseService.Get(uint(id), userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
 
-	expense, err := a.expenseRepo.ChangeGoal(toUpdate, params.GoalID, userID, a.goalRepo)
+	err = a.expenseService.ChangeGoal(expense, params.GoalID, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -155,7 +156,7 @@ func (a *Api) DeleteExpense(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	err = a.expenseRepo.Delete(uint(id), userID)
+	err = a.expenseService.Delete(uint(id), userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}

@@ -11,8 +11,8 @@ type GoalService struct {
 }
 
 type UpdateGoalDTO struct {
-	ID         int `json:"id"`
-	Percentage int `json:"percentage"`
+	ID         int
+	Percentage int
 }
 
 func NewGoalService(goalRepo domain.GoalRepo) GoalService {
