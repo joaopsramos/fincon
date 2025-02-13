@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -119,7 +118,6 @@ func TestSalaryHandler_Update(t *testing.T) {
 
 			resp := d.api.Test(http.MethodPatch, "/api/salary", d.body)
 			d.api.UnmarshalBody(resp.Body, &respBody)
-			fmt.Println(respBody)
 			assert.Equal(resp.StatusCode, d.expectedStatus)
 			assert.Equal(d.expectedBody, respBody)
 		})

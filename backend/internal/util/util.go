@@ -71,3 +71,12 @@ func FloatToFixed(f float64, precision int) float64 {
 	scale := math.Pow(10, float64(precision))
 	return math.Round(f*scale) / scale
 }
+
+func Map[T, U any](s []T, f func(T) U) []U {
+	r := make([]U, len(s))
+	for i := range s {
+		r[i] = f(s[i])
+	}
+
+	return r
+}
