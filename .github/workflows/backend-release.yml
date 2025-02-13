@@ -10,6 +10,8 @@ jobs:
     uses: ./.github/workflows/backend-ci.yml
 
   deploy:
+    needs: build_and_test
+
     name: Deploy backend
     runs-on: ubuntu-latest
     concurrency: backend-deploy-group    # ensure only one action runs at a time
