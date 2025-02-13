@@ -2,16 +2,14 @@ name: Backend CD
 
 on:
   push:
-    branches: [main]
-    paths: 
-      - 'backend/**'
-      - '.github/workflows/backend-cd.yml'
+    tags:
+      - "backend-v*"
 
 jobs:
   deploy:
-    name: Deploy app
+    name: Deploy backend
     runs-on: ubuntu-latest
-    concurrency: deploy-group    # ensure only one action runs at a time
+    concurrency: backend-deploy-group    # ensure only one action runs at a time
 
     defaults:
       run:
