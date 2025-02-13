@@ -2,11 +2,13 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"sync"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func PostgresDSNFromEnv() string {
@@ -22,7 +24,14 @@ func PostgresDSNFromEnv() string {
 
 var NewPostgresConn = func(dsn string) *gorm.DB {
 	return sync.OnceValue(func() *gorm.DB {
-		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		logger := logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				IgnoreRecordNotFoundError: true,
+			},
+		)
+
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger})
 		if err != nil {
 			panic("failed to connect database")
 		}
