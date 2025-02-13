@@ -15,6 +15,10 @@ func (a *Api) HandleError(c *fiber.Ctx, err error) error {
 		return c.Status(http.StatusNotFound).JSON(util.M{"error": err.Error()})
 	}
 
+	if errors.Is(err, errs.ErrValidation{}) {
+		return c.Status(http.StatusBadRequest).JSON(util.M{"error": err.Error()})
+	}
+
 	a.logger.Error(err.Error())
 	panic(err)
 }

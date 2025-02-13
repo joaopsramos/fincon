@@ -52,7 +52,7 @@ func DefaulGoalPercentages() map[GoalName]uint {
 
 type GoalRepo interface {
 	All(userID uuid.UUID) []Goal
-	Get(id uint, userID uuid.UUID) (Goal, error)
+	Get(id uint, userID uuid.UUID) (*Goal, error)
 	Create(goals ...Goal) error
 	UpdateAll(goals []Goal) error
 }

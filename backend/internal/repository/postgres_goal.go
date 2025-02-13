@@ -22,18 +22,18 @@ func (r PostgresGoalRepository) All(userID uuid.UUID) []domain.Goal {
 	return g
 }
 
-func (r PostgresGoalRepository) Get(id uint, userID uuid.UUID) (domain.Goal, error) {
+func (r PostgresGoalRepository) Get(id uint, userID uuid.UUID) (*domain.Goal, error) {
 	goal := domain.Goal{ID: id}
 
 	if err := r.db.Where("user_id = ?", userID).Take(&goal).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return domain.Goal{}, errs.NewNotFound("goal")
+			return &domain.Goal{}, errs.NewNotFound("goal")
 		}
 
-		return domain.Goal{}, err
+		return &domain.Goal{}, err
 	}
 
-	return goal, nil
+	return &goal, nil
 }
 
 func (r PostgresGoalRepository) Create(goals ...domain.Goal) error {

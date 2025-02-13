@@ -294,7 +294,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 				{"id": goals[5].ID, "percentage": 0},
 			},
 			400,
-			util.M{"error": fmt.Sprintf("invalid percentage for goal id %d, it must be greater than or equal to 0 and less then or equal to 100", goals[0].ID)},
+			util.M{"error": fmt.Sprintf("invalid percentage for goal id %d, it must be between 1 and 100", goals[0].ID)},
 		},
 		{
 			"percentage greater than 100",
@@ -308,7 +308,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 				{"id": goals[5].ID, "percentage": 0},
 			},
 			400,
-			util.M{"error": fmt.Sprintf("invalid percentage for goal id %d, it must be greater than or equal to 0 and less then or equal to 100", goals[0].ID)},
+			util.M{"error": fmt.Sprintf("invalid percentage for goal id %d, it must be between 1 and 100", goals[0].ID)},
 		},
 		{
 			"sum of percentages greater than 100",
