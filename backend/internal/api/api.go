@@ -11,7 +11,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -23,12 +22,10 @@ type Api struct {
 
 	logger *slog.Logger
 
-	userService   service.UserService
-	salaryService service.SalaryService
-	goalService   service.GoalService
-
-	goalRepo    domain.GoalRepo
-	expenseRepo domain.ExpenseRepo
+	userService    service.UserService
+	salaryService  service.SalaryService
+	goalService    service.GoalService
+	expenseService service.ExpenseService
 }
 
 func NewApi(db *gorm.DB) *Api {
@@ -43,11 +40,10 @@ func NewApi(db *gorm.DB) *Api {
 		Router: newFiber(),
 		logger: logger,
 
-		userService:   service.NewUserService(userRepo),
-		salaryService: service.NewSalaryService(salaryRepo),
-		goalService:   service.NewGoalService(goalRepo),
-		goalRepo:      goalRepo,
-		expenseRepo:   expenseRepo,
+		userService:    service.NewUserService(userRepo),
+		salaryService:  service.NewSalaryService(salaryRepo),
+		goalService:    service.NewGoalService(goalRepo),
+		expenseService: service.NewExpenseService(expenseRepo, goalRepo, salaryRepo),
 	}
 }
 

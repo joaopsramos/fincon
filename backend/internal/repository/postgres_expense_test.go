@@ -73,7 +73,9 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
 
-	summary := r.GetSummary(now, user.ID, goalRepo, &salary)
+	summary, err := r.GetSummary(now, user.ID, goalRepo, &salary)
+	assert.NoError(err)
+
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
@@ -119,7 +121,9 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		})
 	}
 
-	summary = r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, &salary)
+	summary, err = r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, &salary)
+	assert.NoError(err)
+
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
@@ -139,7 +143,9 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 	assert.Equal(6.26, summary.Used)
 	assertSummaryEntries(data, entriesByName)
 
-	summary = r.GetSummary(now, user.ID, goalRepo, &salary)
+	summary, err = r.GetSummary(now, user.ID, goalRepo, &salary)
+	assert.NoError(err)
+
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
@@ -160,7 +166,9 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	assertSummaryEntries(data, entriesByName)
 
-	summary = r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, &salary)
+	summary, err = r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, &salary)
+	assert.NoError(err)
+
 	for _, g := range summary.Goals {
 		entriesByName[domain.GoalName(g.Name)] = g
 	}
@@ -215,21 +223,25 @@ func TestPostgresExpense_AllByGoalID(t *testing.T) {
 	year, month, _ := monthStart.Date()
 	var actual []domain.Expense
 
-	actual = r.AllByGoalID(goals[0].ID, year, month, user.ID)
+	actual, err := r.AllByGoalID(goals[0].ID, year, month, user.ID)
+	assert.NoError(err)
 	assert.Equal(actual[0].Name, "Expense 2")
 	assert.Equal(actual[1].Name, "Expense 1")
 	assert.Equal(actual[2].Name, "Expense 3")
 
-	actual = r.AllByGoalID(goals[1].ID, year, month, user.ID)
+	actual, err = r.AllByGoalID(goals[1].ID, year, month, user.ID)
+	assert.NoError(err)
 	assert.Equal(actual[0].Name, "Expense 4")
 
 	t.Run("filter by date", func(t *testing.T) {
-		actual = r.AllByGoalID(goals[2].ID, year, month, user.ID)
+		actual, err := r.AllByGoalID(goals[2].ID, year, month, user.ID)
+		assert.NoError(err)
 		assert.Len(actual, 1)
 		assert.Equal(actual[0].Name, "Expense 5")
 
 		year, month, _ := monthStart.AddDate(0, -1, 0).Date()
-		actual = r.AllByGoalID(goals[2].ID, year, month, user.ID)
+		actual, err = r.AllByGoalID(goals[2].ID, year, month, user.ID)
+		assert.NoError(err)
 		assert.Len(actual, 1)
 		assert.Equal(actual[0].Name, "Expense 6")
 	})

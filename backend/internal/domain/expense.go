@@ -65,12 +65,11 @@ func (e *Expense) View() ExpenseView {
 }
 
 type ExpenseRepo interface {
-	Get(id uint, userID uuid.UUID) (Expense, error)
-	Create(e Expense, userID uuid.UUID, goalRepo GoalRepo) (*Expense, error)
-	Update(e Expense) (*Expense, error)
+	Get(id uint, userID uuid.UUID) (*Expense, error)
+	Create(e *Expense) error
+	Update(e *Expense) error
 	Delete(id uint, userID uuid.UUID) error
-	ChangeGoal(e Expense, goalID uint, userID uuid.UUID, goalRepo GoalRepo) (*Expense, error)
-	AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) []Expense
-	FindMatchingNames(name string, userID uuid.UUID) []string
-	GetSummary(date time.Time, userID uuid.UUID, goalRepo GoalRepo, salary *Salary) Summary
+	AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) ([]Expense, error)
+	FindMatchingNames(name string, userID uuid.UUID) ([]string, error)
+	GetSummary(date time.Time, userID uuid.UUID, goalRepo GoalRepo, salary *Salary) (Summary, error)
 }

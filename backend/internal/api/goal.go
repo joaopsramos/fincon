@@ -48,7 +48,10 @@ func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	expenses := a.expenseRepo.AllByGoalID(uint(id), year, month, userID)
+	expenses, err := a.expenseService.AllByGoalID(uint(id), year, month, userID)
+	if err != nil {
+		return a.HandleError(c, err)
+	}
 
 	var expenseViews []domain.ExpenseView
 	for _, e := range expenses {
@@ -59,7 +62,10 @@ func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
 }
 
 func (a *Api) UpdateGoals(c *fiber.Ctx) error {
-	var params []service.UpdateGoalDTO
+	var params []struct {
+		ID         int `json:"id"`
+		Percentage int `json:"percentage"`
+	}
 
 	err := json.Unmarshal(c.Body(), &params)
 	if err != nil {
@@ -68,7 +74,15 @@ func (a *Api) UpdateGoals(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	goals, err := a.goalService.UpdateAll(params, userID)
+	dtos := make([]service.UpdateGoalDTO, len(params))
+	for i, p := range params {
+		dtos[i] = service.UpdateGoalDTO{
+			ID:         p.ID,
+			Percentage: p.Percentage,
+		}
+	}
+
+	goals, err := a.goalService.UpdateAll(dtos, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
