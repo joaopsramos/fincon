@@ -61,7 +61,9 @@ func (a *Api) Listen() error {
 }
 
 func (a *Api) SetupMiddlewares() {
-	a.Router.Use(logger.New())
+	if os.Getenv("APP_ENV") != "test" {
+		a.Router.Use(logger.New())
+	}
 	a.Router.Use(cors.New())
 	a.Router.Use(recover.New())
 	a.Router.Use(limiter.New(limiter.Config{
