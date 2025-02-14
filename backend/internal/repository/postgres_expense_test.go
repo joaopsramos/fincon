@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -17,18 +18,18 @@ func NewTestPostgresExpenseRepo(t *testing.T, tx *gorm.DB) domain.ExpenseRepo {
 	return repository.NewPostgresExpense(tx)
 }
 
-func TestPostgresExpense_GetSummary(t *testing.T) {
+func TestPostgresExpense_GetMonthlyGoalSpendings(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
-	user := f.InsertUser()
+	user1 := f.InsertUser()
+	user2 := f.InsertUser()
+	users := []domain.User{user1, user2}
 
-	salary := domain.Salary{Amount: 10_000 * 100, UserID: user.ID}
-	f.InsertSalary(&salary)
-
-	goalIDsByName := make(map[domain.GoalName]uint)
+	// only of user 1
+	goalsByName := make(map[domain.GoalName]domain.Goal)
 
 	goalsToInsert := []struct {
 		name       domain.GoalName
@@ -41,151 +42,141 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		{domain.FinancialInvestments, 25}, // limit 2500
 		{domain.Knowledge, 5},             // limit 500
 	}
-	for _, g := range goalsToInsert {
-		goal := domain.Goal{Name: g.name, Percentage: g.percentage, UserID: user.ID}
-		f.InsertGoal(&goal)
-		goalIDsByName[goal.Name] = goal.ID
+
+	var goals []domain.Goal
+	for _, u := range users {
+		for _, g := range goalsToInsert {
+			goal := domain.Goal{Name: g.name, Percentage: g.percentage, UserID: u.ID}
+			f.InsertGoal(&goal)
+
+			if u.ID == user1.ID {
+				goalsByName[goal.Name] = goal
+			}
+
+			goals = append(goals, goal)
+		}
 	}
 
 	now := testhelper.MiddleOfMonth()
 
-	r := NewTestPostgresExpenseRepo(t, tx)
-	goalRepo := NewTestPostgresGoalRepo(t, tx)
-
-	type dataType struct {
-		goalName  domain.GoalName
-		spent     float64
-		mustSpend float64
-		used      float64
-		total     float64
+	expenses := []struct {
+		value    float64
+		date     time.Time
+		goalName domain.GoalName
+	}{
+		{50.5, now, domain.Comfort},
+		{125.49, now, domain.Comfort},
+		{400, now, domain.FixedCosts},
+		{100, now, domain.FixedCosts},
+		{190.89, now, domain.Pleasures},
+		{340.15, now, domain.Pleasures},
+		{900.99, now, domain.Knowledge},
+		{125.74, now.AddDate(0, -1, 0), domain.Comfort},
+		{500, now.AddDate(0, -1, 0), domain.Pleasures},
+		{10, now.AddDate(0, 1, 0), domain.Pleasures},
+		{700.25, now.AddDate(0, 1, 0), domain.FinancialInvestments},
 	}
 
-	assertSummaryEntries := func(data []dataType, entriesByName map[domain.GoalName]domain.SummaryGoal) {
-		for _, d := range data {
-			entry := entriesByName[d.goalName]
-			assert.Equal(string(d.goalName), entry.Name)
-			assert.Equal(d.spent, entry.Spent.Amount)
-			assert.Equal(d.mustSpend, entry.MustSpend.Amount)
-			assert.Equal(d.used, float64(int(entry.Used*100))/100)
-			assert.Equal(d.total, float64(int(entry.Total*100))/100)
+	for _, u := range users {
+		for _, e := range expenses {
+			goalIdx := slices.IndexFunc(goals, func(g domain.Goal) bool {
+				return g.UserID == u.ID && g.Name == e.goalName
+			})
+			goal := goals[goalIdx]
+
+			f.InsertExpense(&domain.Expense{
+				Value:     int64(e.value * 100),
+				Date:      e.date,
+				GoalID:    goal.ID,
+				UserID:    u.ID,
+				CreatedAt: now,
+			})
 		}
 	}
 
-	entriesByName := make(map[domain.GoalName]domain.SummaryGoal)
-
-	summary, err := r.GetSummary(now, user.ID, goalRepo, &salary)
-	assert.NoError(err)
-
-	for _, g := range summary.Goals {
-		entriesByName[domain.GoalName(g.Name)] = g
+	type expectedSpending struct {
+		goal  domain.Goal
+		spent int
+		date  time.Time
 	}
 
-	data := []dataType{
-		{domain.Comfort, 0, 2000, 0, 0},
-		{domain.FixedCosts, 0, 4000, 0, 0},
-		{domain.Pleasures, 0, 500, 0, 0},
-		{domain.Knowledge, 0, 500, 0, 0},
-		{domain.Goals, 0, 500, 0, 0},
-		{domain.FinancialInvestments, 0, 2500, 0, 0},
+	assertSpendings := func(tests []expectedSpending, spendings []domain.MonthlyGoalSpending) {
+		for _, tt := range tests {
+			monthStart := time.Date(tt.date.Year(), tt.date.Month(), 1, 0, 0, 0, 0, time.UTC)
+			idx := slices.IndexFunc(spendings, func(s domain.MonthlyGoalSpending) bool {
+				return s.Goal.Name == tt.goal.Name && s.Date.Equal(monthStart)
+			})
+
+			spending := spendings[idx]
+			assert.Equal(tt.goal.Name, spending.Goal.Name)
+			assert.Equal(tt.goal.ID, spending.Goal.ID)
+			assert.Equal(tt.goal.Percentage, spending.Goal.Percentage)
+			assert.Equal(int64(tt.spent), spending.Spent)
+			assert.Equal(monthStart, spending.Date)
+		}
+
+		assert.Equal(len(tests), len(spendings))
 	}
 
-	assert.Equal(0.0, summary.Spent.Amount)
-	assert.Equal(10000.0, summary.MustSpend.Amount)
-	assert.Equal(0.0, summary.Used)
-	assertSummaryEntries(data, entriesByName)
+	oneMonthAgo := now.AddDate(0, -1, 0)
+	twoMonthsAgo := now.AddDate(0, -2, 0)
+	nextMonth := now.AddDate(0, 1, 0)
 
-	expenses := []struct {
-		value  float64
-		date   time.Time
-		goalID uint
+	tests := []struct {
+		name      string
+		queryDate time.Time
+		expected  []expectedSpending
 	}{
-		{50.5, now, goalIDsByName[domain.Comfort]},
-		{125.49, now, goalIDsByName[domain.Comfort]},
-		{400, now, goalIDsByName[domain.FixedCosts]},
-		{100, now, goalIDsByName[domain.FixedCosts]},
-		{190.89, now, goalIDsByName[domain.Pleasures]},
-		{340.15, now, goalIDsByName[domain.Pleasures]},
-		{900.99, now, goalIDsByName[domain.Knowledge]},
-		{125.74, now.AddDate(0, -1, 0), goalIDsByName[domain.Comfort]},
-		{500, now.AddDate(0, -1, 0), goalIDsByName[domain.Pleasures]},
-		{10, now.AddDate(0, 1, 0), goalIDsByName[domain.Pleasures]},
-		{700.25, now.AddDate(0, 1, 0), goalIDsByName[domain.FinancialInvestments]},
+		{
+			"empty result when no expenses exist",
+			twoMonthsAgo,
+			[]expectedSpending{},
+		},
+		{
+			"previous month spendings",
+			oneMonthAgo,
+			[]expectedSpending{
+				{goalsByName[domain.Comfort], 12574, oneMonthAgo},
+				{goalsByName[domain.Pleasures], 50000, oneMonthAgo},
+			},
+		},
+		{
+			"current month includes previous month's spendings",
+			now,
+			[]expectedSpending{
+				{goalsByName[domain.Comfort], 12574, oneMonthAgo},
+				{goalsByName[domain.Comfort], 17599, now},
+				{goalsByName[domain.FixedCosts], 50000, now},
+				{goalsByName[domain.Pleasures], 50000, oneMonthAgo},
+				{goalsByName[domain.Pleasures], 53104, now},
+				{goalsByName[domain.Knowledge], 90099, now},
+			},
+		},
+		{
+			"next month includes all previous spendings",
+			nextMonth,
+			[]expectedSpending{
+				{goalsByName[domain.Comfort], 12574, oneMonthAgo},
+				{goalsByName[domain.Comfort], 17599, now},
+				{goalsByName[domain.FixedCosts], 50000, now},
+				{goalsByName[domain.Pleasures], 50000, oneMonthAgo},
+				{goalsByName[domain.Pleasures], 53104, now},
+				{goalsByName[domain.Knowledge], 90099, now},
+				{goalsByName[domain.FinancialInvestments], 70025, nextMonth},
+				{goalsByName[domain.Pleasures], 1000, nextMonth},
+			},
+		},
 	}
 
-	for _, e := range expenses {
-		f.InsertExpense(&domain.Expense{
-			Value:     int64(e.value * 100),
-			Date:      e.date,
-			GoalID:    e.goalID,
-			CreatedAt: now,
+	repo := NewTestPostgresExpenseRepo(t, tx)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spendings, err := repo.GetMonthlyGoalSpendings(tt.queryDate, user1.ID)
+			assert.NoError(err)
+			assertSpendings(tt.expected, spendings)
 		})
 	}
-
-	summary, err = r.GetSummary(now.AddDate(0, -1, 0), user.ID, goalRepo, &salary)
-	assert.NoError(err)
-
-	for _, g := range summary.Goals {
-		entriesByName[domain.GoalName(g.Name)] = g
-	}
-
-	data = []dataType{
-		{domain.Comfort, 125.74, 2000, 6.28, 1.25},
-		{domain.Comfort, 125.74, 2000, 6.28, 1.25},
-		{domain.FixedCosts, 0, 4000, 0.0, 0.0},
-		{domain.Pleasures, 500, 500, 100.0, 5.0},
-		{domain.Knowledge, 0, 500, 0.0, 0.0},
-		{domain.Goals, 0, 500, 0, 0},
-		{domain.FinancialInvestments, 0, 2500, 0.0, 0.0},
-	}
-
-	assert.Equal(625.74, summary.Spent.Amount)
-	assert.Equal(9374.26, summary.MustSpend.Amount)
-	assert.Equal(6.26, summary.Used)
-	assertSummaryEntries(data, entriesByName)
-
-	summary, err = r.GetSummary(now, user.ID, goalRepo, &salary)
-	assert.NoError(err)
-
-	for _, g := range summary.Goals {
-		entriesByName[domain.GoalName(g.Name)] = g
-	}
-
-	data = []dataType{
-		{domain.Comfort, 50.5 + 125.49, 2000, 8.79, 1.75},
-		{domain.FixedCosts, 400 + 100, 4000, 12.5, 5.0},
-		{domain.Pleasures, 190.89 + 340.15, 500, 106.2, 5.31},
-		{domain.Knowledge, 900.99, 500, 180.19, 9.0},
-		{domain.Goals, 0, 500, 0, 0},
-		{domain.FinancialInvestments, 0, 2500, 0.0, 0.0},
-	}
-
-	assert.Equal(2108.02, summary.Spent.Amount)
-	assert.Equal(7891.98, summary.MustSpend.Amount)
-	assert.Equal(21.08, summary.Used)
-	assertSummaryEntries(data, entriesByName)
-
-	assertSummaryEntries(data, entriesByName)
-
-	summary, err = r.GetSummary(now.AddDate(0, 1, 0), user.ID, goalRepo, &salary)
-	assert.NoError(err)
-
-	for _, g := range summary.Goals {
-		entriesByName[domain.GoalName(g.Name)] = g
-	}
-
-	data = []dataType{
-		{domain.Comfort, 0, 2000, 0.0, 0.0},
-		{domain.FixedCosts, 0, 4000, 0.0, 0.0},
-		{domain.Pleasures, 41.04, 500, 8.2, 0.41},
-		{domain.Knowledge, 400.99, 500, 80.19, 4.0},
-		{domain.Goals, 0, 500, 0, 0},
-		{domain.FinancialInvestments, 700.25, 2500, 28.01, 7.0},
-	}
-
-	assert.Equal(1142.28, summary.Spent.Amount)
-	assert.Equal(8857.72, summary.MustSpend.Amount)
-	assert.Equal(11.42, summary.Used)
-	assertSummaryEntries(data, entriesByName)
 }
 
 func TestPostgresExpense_AllByGoalID(t *testing.T) {

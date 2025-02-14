@@ -3,10 +3,17 @@ package service
 import (
 	"time"
 
+	"github.com/Rhymond/go-money"
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
 )
+
+type ExpenseService struct {
+	expenseRepo domain.ExpenseRepo
+	goalRepo    domain.GoalRepo
+	salaryRepo  domain.SalaryRepo
+}
 
 type CreateExpenseDTO struct {
 	Name   string
@@ -21,10 +28,19 @@ type UpdateExpenseDTO struct {
 	Date  time.Time
 }
 
-type ExpenseService struct {
-	expenseRepo domain.ExpenseRepo
-	goalRepo    domain.GoalRepo
-	salaryRepo  domain.SalaryRepo
+type SummaryGoal = struct {
+	Name      string           `json:"name"`
+	Spent     domain.MoneyView `json:"spent"`
+	MustSpend domain.MoneyView `json:"must_spend"`
+	Used      float64          `json:"used"`
+	Total     float64          `json:"total"`
+}
+
+type Summary struct {
+	Goals     []SummaryGoal    `json:"goals"`
+	Spent     domain.MoneyView `json:"spent"`
+	MustSpend domain.MoneyView `json:"must_spend"`
+	Used      float64          `json:"used"`
 }
 
 func NewExpenseService(
@@ -99,7 +115,81 @@ func (s *ExpenseService) FindMatchingNames(name string, userID uuid.UUID) ([]str
 	return s.expenseRepo.FindMatchingNames(name, userID)
 }
 
-func (s *ExpenseService) GetSummary(date time.Time, userID uuid.UUID) (domain.Summary, error) {
+func (s *ExpenseService) GetSummary(date time.Time, userID uuid.UUID) (*Summary, error) {
 	salary := util.Must(s.salaryRepo.Get(userID))
-	return s.expenseRepo.GetSummary(date, userID, s.goalRepo, salary)
+	monthlyGoalSpendings, err := s.expenseRepo.GetMonthlyGoalSpendings(date, userID)
+	if err != nil {
+		return &Summary{}, err
+	}
+
+	monthStart := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	spendingsByGoalID := make(map[uint]domain.MonthlyGoalSpending)
+	for _, m := range monthlyGoalSpendings {
+		date = m.Date
+		goalLimit := int64(m.Goal.Percentage) * (salary.Amount / 100)
+
+		if m.Spent <= goalLimit && date.Before(monthStart) {
+			continue
+		}
+
+		if m.Spent > goalLimit {
+			yearDiff := monthStart.Year() - date.Year()
+			monthDiff := int(monthStart.Month()) - int(date.Month()) + yearDiff*12
+
+			m.Spent = max(0, m.Spent-int64(monthDiff)*goalLimit)
+		}
+
+		if entry, ok := spendingsByGoalID[m.Goal.ID]; ok {
+			entry.Spent += m.Spent
+			spendingsByGoalID[m.Goal.ID] = entry
+		} else {
+			spendingsByGoalID[m.Goal.ID] = m
+		}
+	}
+
+	goals := s.goalRepo.All(userID)
+
+	totalSpent := money.New(0, money.BRL)
+	totalMustSpend := money.New(0, money.BRL)
+	totalUsed := 0.0
+
+	sg := make([]SummaryGoal, len(goals))
+	for i, g := range goals {
+		percentage := int64(g.Percentage)
+
+		m, ok := spendingsByGoalID[g.ID]
+		if !ok {
+			m = domain.MonthlyGoalSpending{}
+		}
+
+		valueSpent := money.New(m.Spent, money.BRL)
+		mustSpendvalue := salary.Amount / 100 * percentage
+		mustSpend := money.New(mustSpendvalue, money.BRL)
+
+		mustSpendvalueF := float64(mustSpendvalue)
+		used := 100 + ((float64(m.Spent) - mustSpendvalueF) * 100 / mustSpendvalueF)
+		used = util.NaNToZero(used)
+		total := float64(m.Spent*100) / float64(salary.Amount)
+		total = util.NaNToZero(total)
+
+		sg[i] = SummaryGoal{
+			Name:      string(g.Name),
+			Spent:     domain.NewMoney(valueSpent),
+			MustSpend: domain.NewMoney(mustSpend),
+			Used:      used,
+			Total:     total,
+		}
+
+		totalSpent, _ = totalSpent.Add(valueSpent)
+		totalMustSpend = money.New(salary.Amount-totalSpent.Amount(), money.BRL)
+		totalUsed += total
+	}
+
+	return &Summary{
+		Goals:     sg,
+		Spent:     domain.NewMoney(totalSpent),
+		MustSpend: domain.NewMoney(totalMustSpend),
+		Used:      util.FloatToFixed(totalUsed, 2),
+	}, nil
 }
