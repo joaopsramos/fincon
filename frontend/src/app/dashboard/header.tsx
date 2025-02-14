@@ -29,7 +29,7 @@ export default function Header({ date }: { date: Date }) {
   const menuT = useTranslations("Menu")
 
   return (
-    <div className="grid grid-flow-col grid-rows-2 gap-2 grid-cols-2 md:grid-cols-3 md:grid-rows-1">
+    <div className="grid grid-flow-col grid-rows-2 gap-2 grid-cols-2 md:grid-cols-3 md:grid-rows-1  dark:text-white">
       <div className="md:row-span-2">
         <Salary />
       </div>
@@ -40,7 +40,7 @@ export default function Header({ date }: { date: Date }) {
 
       <div className="hidden min-[375px]:block justify-self-end col-span-2">
         <Button size={"sm"} onClick={() => handleLogout(router)}>
-          <ArrowRightStartOnRectangleIcon className="size-5 text-white" />
+          <ArrowRightStartOnRectangleIcon className="size-5 text-white dark:text-black" />
           {menuT("logout")}
         </Button>
       </div>
@@ -82,7 +82,7 @@ function DateSelector({ date }: { date: Date }) {
           router.push(pathname + "?" + createQueryString("month", value))
         }}
       >
-        <SelectTrigger className="bg-white">
+        <SelectTrigger className="bg-white dark:bg-slate-800">
           <SelectValue placeholder="Mês" />
           <span className="pl-2"></span>
         </SelectTrigger>
@@ -95,14 +95,14 @@ function DateSelector({ date }: { date: Date }) {
         </SelectContent>
       </Select>
 
-      {years.length > 0 && (
+      {years.length > 1 && (
         <Select
           defaultValue={String(queryYear)}
           onValueChange={(value) => {
             router.push(pathname + "?" + createQueryString("year", value))
           }}
         >
-          <SelectTrigger className="bg-white">
+          <SelectTrigger className="bg-white  dark:bg-slate-800">
             <SelectValue placeholder="Ano" />
             <span className="pl-2"></span>
           </SelectTrigger>
@@ -157,7 +157,7 @@ function Salary() {
     <form onSubmit={handleSubmit(handleUpdateSalary)}>
       <div className="flex items-center min-w-56">
         <Label className="pr-2">{t("header.salary")}:</Label>
-        <div className="bg-white">
+        <div className="bg-white dark:bg-slate-950 rounded-md">
           <Input
             {...register("amount", { setValueAs: (val) => Number(val) })}
             type="number"

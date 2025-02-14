@@ -24,7 +24,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
 
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-100`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-100 dark:bg-slate-900`}>
         <Providers messages={messages} locale={locale}>
           {children}
           <Toaster />
