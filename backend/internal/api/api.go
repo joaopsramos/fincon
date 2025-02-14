@@ -114,14 +114,16 @@ func newFiber() *fiber.App {
 	return fiber.New(fiber.Config{
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
+			msg := "internal server error"
 
 			var e *fiber.Error
 			if errors.As(err, &e) {
 				code = e.Code
+				msg = e.Message
 			}
 
 			slog.Error(err.Error())
-			return ctx.Status(code).JSON(util.M{"error": "internal server error"})
+			return ctx.Status(code).JSON(util.M{"error": msg})
 		},
 	})
 }

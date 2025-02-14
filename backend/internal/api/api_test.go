@@ -22,18 +22,45 @@ func TestApi_ErrorHandler(t *testing.T) {
 	api := api.NewApi(tx)
 	api.SetupMiddlewares()
 
-	api.Router.Get("/some-route", func(c *fiber.Ctx) error {
-		panic("test error")
-	})
+	tests := []struct {
+		name         string
+		handler      func(c *fiber.Ctx) error
+		expectedCode int
+		expectedBody fiber.Map
+	}{
+		{
+			name: "panic error",
+			handler: func(c *fiber.Ctx) error {
+				panic("test error")
+			},
+			expectedCode: 500,
+			expectedBody: fiber.Map{"error": "internal server error"},
+		},
+		{
+			name: "fiber error",
+			handler: func(c *fiber.Ctx) error {
+				return fiber.NewError(http.StatusNotFound, "resource not found")
+			},
+			expectedCode: 404,
+			expectedBody: fiber.Map{"error": "resource not found"},
+		},
+	}
 
-	req := httptest.NewRequest("GET", "/some-route", nil)
-	resp, _ := api.Router.Test(req)
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			routePath := fmt.Sprintf("/test-route-%d", i)
+			api.Router.Get(routePath, tt.handler)
 
-	var respBody fiber.Map
-	_ = json.NewDecoder(resp.Body).Decode(&respBody)
+			req := httptest.NewRequest("GET", routePath, nil)
+			resp, _ := api.Router.Test(req)
 
-	assert.Equal(500, resp.StatusCode)
-	assert.Equal(fiber.Map{"error": "internal server error"}, respBody)
+			var respBody fiber.Map
+			_ = json.NewDecoder(resp.Body).Decode(&respBody)
+
+			assert.Equal(tt.expectedCode, resp.StatusCode)
+			assert.Equal(tt.expectedBody, respBody)
+		})
+	}
 }
 
 func TestApi_GobalRateLimiter(t *testing.T) {
