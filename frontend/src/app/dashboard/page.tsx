@@ -10,9 +10,17 @@ import { useMemo } from "react"
 import { sortGoals } from "@/lib/utils"
 import Header from "./header"
 import Menu from "@/components/menu"
+import { useSearchParams } from "next/navigation"
 
 export default function Index() {
+  const searchParams = useSearchParams()
+
+  const queryYear = searchParams.get("year") || new Date().getFullYear()
+  const queryMonth = searchParams.get("month") || new Date().getMonth() + 1
+
   const date = useNow()
+  date.setFullYear(Number(queryYear))
+  date.setMonth(Number(queryMonth) - 1)
 
   const { data: goals } = useQuery({
     queryKey: ["goals"],

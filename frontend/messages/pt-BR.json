@@ -46,7 +46,14 @@
       "addTooltip": "Adicionar despesa",
       "editTooltip": "Editar",
       "deleteTooltip": "Deletar",
-      "deleteMsg": "Você quer deletar a despesa \"{name}\"?"
+      "deleteMsg": "Você quer deletar a despesa \"{name}\"?",
+      "noExpenses": "Nada aqui por enquanto...",
+      "Fixed costs": "Custos fixos",
+      "Comfort": "Conforto",
+      "Pleasures": "Prazeres",
+      "Knowledge": "Conhecimento",
+      "Financial investments": "Liberdade financeira",
+      "Goals": "Metas"
     }
   },
   "Errors": {

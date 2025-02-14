@@ -33,7 +33,7 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{goal.name}</CardTitle>
+        <CardTitle>{t(goal.name)}</CardTitle>
       </CardHeader>
 
       <CardContent>
@@ -53,10 +53,10 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
                 <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
               ))}
 
-              {expenses?.length === 0 && (
+              {(!expenses || expenses.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={3} className="pt-6 text-center text-gray-500">
-                    Nothing here yet...
+                    {t("noExpenses")}
                   </TableCell>
                 </TableRow>
               )}
