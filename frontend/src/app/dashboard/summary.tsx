@@ -64,7 +64,7 @@ export default function Summary({ date }: { date: Date }) {
               <SummaryTotal
                 value={moneyToString(summary.must_spend)}
                 text={t("summary.mustSpend")}
-                valueColor="text-green-600"
+                valueColor={summary.must_spend.amount > 0 ? "text-green-500" : "text-red-500"}
               />
               <SummaryTotal value={summary.used.toFixed(2).toString() + "%"} text={t("summary.used")} />
             </>
