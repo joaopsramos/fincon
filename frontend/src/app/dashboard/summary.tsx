@@ -34,8 +34,8 @@ export default function Summary({ date }: { date: Date }) {
 
       <CardContent>
         <Table>
-          <TableHeader className="bg-slate-100">
-            <TableRow className="whitespace-nowrap">
+          <TableHeader className="bg-slate-100 dark:bg-slate-900">
+            <TableRow className="whitespace-nowrap hover:bg-slate-100 dark:hover:bg-slate-900 dark:border-slate-800">
               <TableHead>{t("summary.budget")}</TableHead>
               <TableHead>{t("summary.spent")}</TableHead>
               <TableHead>{t("summary.mustSpend")}</TableHead>
@@ -77,7 +77,7 @@ export default function Summary({ date }: { date: Date }) {
 
 function Row({ goal }: { goal: SummaryGoal }) {
   return (
-    <TableRow>
+    <TableRow className="dark:border-slate-800">
       <TableCell>{goal.name}</TableCell>
       <TableCell>{moneyToString(goal.spent)}</TableCell>
       <TableCell>{moneyToString(goal.must_spend)}</TableCell>

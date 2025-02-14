@@ -39,8 +39,8 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
       <CardContent>
         <div className="max-h-72 overflow-auto scroll">
           <Table withoutWrapper>
-            <TableHeader className="sticky top-0 bg-slate-100 rounded-full">
-              <TableRow>
+            <TableHeader className="sticky top-0 bg-slate-100 dark:bg-slate-900 rounded-full">
+              <TableRow className="dark:border-slate-800">
                 <TableHead className="min-w-24 lg:w-5/12 xl:w-4/12 2xl:w-5/12">{t("expense")}</TableHead>
                 <TableHead className="min-w-24 lg:w-3/12 2xl:w-2/12">{t("amount")}</TableHead>
                 <TableHead className="min-w-20">{t("date")}</TableHead>
@@ -55,7 +55,7 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
 
               {(!expenses || expenses.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={3} className="pt-6 text-center text-gray-500">
+                  <TableCell colSpan={3} className="pt-6 text-center text-gray-500 dark:text-gray-400">
                     {t("noExpenses")}
                   </TableCell>
                 </TableRow>
@@ -100,10 +100,10 @@ function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueri
     }
   }
 
-  const inputClass = "w-10/12 rounded-md px-2 text-sm h-auto"
+  const inputClass = "w-10/12 rounded-md px-2 text-sm h-auto dark:bg-slate-800"
 
   return (
-    <TableRow className="group hover:bg-inherit">
+    <TableRow className="group hover:bg-inherit dark:border-slate-800">
       <TableCell>
         {!isEditing ? (
           <span className="py-1 inline-block">{expense.name}</span>
@@ -236,7 +236,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal; invalidateQuer
       <div className="grid grid-cols-11 gap-1">
         <div className="col-span-5">
           <Input
-            className={`rounded-md p-1 w-full ${errors.name ? "border-red-500" : ""}`}
+            className={`rounded-md p-1 w-full dark:bg-slate-900 ${errors.name ? "border-red-500" : ""}`}
             {...register("name")}
             type="text"
             placeholder={t("nameInput")}
@@ -248,7 +248,7 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal; invalidateQuer
         </div>
         <div className="col-span-5">
           <Input
-            className={`rounded-md p-1 w-full ${errors.value ? "border-red-500" : ""}`}
+            className={`rounded-md p-1 w-full dark:bg-slate-900 ${errors.value ? "border-red-500" : ""}`}
             {...register("value", { setValueAs: (val) => Number(val) })}
             type="number"
             placeholder={t("valueInput")}
@@ -259,8 +259,8 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal; invalidateQuer
 
         <Tooltip>
           <TooltipTrigger>
-            <span className="block self-center w-min h-min ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 rounded-full">
-              <PlusIcon className="size-6 text-white" />
+            <span className="block self-center w-min h-min ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 dark:bg-white rounded-full">
+              <PlusIcon className="size-6 text-white dark:text-slate-900" />
             </span>
           </TooltipTrigger>
           <TooltipContent>
@@ -281,24 +281,25 @@ function CreateExpense({ goal, invalidateQueries }: { goal: Goal; invalidateQuer
         )}
       </div>
 
-      <div className="absolute top-10 z-10 bg-white rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll border border-slate-300 shadow">
-        <ul>
-          {matchingNames.length > 0 &&
-            nameFocused &&
-            matchingNames.map((name) => (
-              <li
-                key={name}
-                className="px-2 py-1 border-b cursor-pointer hover:bg-gray-100 transition-colors"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setValue("name", name)
-                  setNameFocused(false)
-                }}>
-                {name}
-              </li>
-            ))}
-        </ul>
-      </div>
+      {matchingNames.length > 0 &&
+        nameFocused && (
+          <div className="absolute top-10 z-10 bg-white dark:bg-slate-900 rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll border border-slate-300 dark:border-slate-700 shadow">
+            <ul>
+              {matchingNames.map((name) => (
+                <li
+                  key={name}
+                  className="px-2 py-1 border-b dark:border-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setValue("name", name)
+                    setNameFocused(false)
+                  }}>
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
     </form>
   )
 }

@@ -84,7 +84,7 @@ export default function Goals({ goals }: { goals: Goal[] }) {
 
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("editForm")}</DialogTitle>
+          <DialogTitle className="dark:text-white">{t("editForm")}</DialogTitle>
         </DialogHeader>
 
         <DialogDescription>{t("editGoalsDesc")}</DialogDescription>
@@ -92,7 +92,7 @@ export default function Goals({ goals }: { goals: Goal[] }) {
         <Form action={updateMut.mutate}>
           <ul>
             {goals?.map((goal, idx) => (
-              <li key={goal.id} className="my-2 relative">
+              <li key={goal.id} className="my-2 relative dark:text-white">
                 <Label htmlFor={"input-" + goal.id}>{goals[idx].name}</Label>
                 <Slider
                   id={"input-" + goal.id}
