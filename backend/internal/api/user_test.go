@@ -1,11 +1,17 @@
 package api_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	originalApi "github.com/joaopsramos/fincon/internal/api"
+	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +19,6 @@ import (
 
 func TestUserHandler_Create(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
 	api := testhelper.NewTestApi(tx)
 
@@ -100,17 +105,19 @@ func TestUserHandler_Create(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
+			a := assert.New(t)
+
 			var respBody util.M
 
 			resp := api.Test(http.MethodPost, "/api/users", d.body)
 			api.UnmarshalBody(resp.Body, &respBody)
-			assert.Equal(d.expectedStatus, resp.StatusCode)
+			a.Equal(d.expectedStatus, resp.StatusCode)
 
 			if d.expectedStatus == 201 {
-				assert.Equal(d.expectedBody["email"], respBody["email"])
-				assert.Equal(d.expectedBody["salary"], respBody["salary"])
-				assert.NotEmpty(respBody["user"].(util.M)["id"])
-				assert.NotEmpty(respBody["token"])
+				a.Equal(d.expectedBody["email"], respBody["email"])
+				a.Equal(d.expectedBody["salary"], respBody["salary"])
+				a.NotEmpty(respBody["user"].(util.M)["id"])
+				a.NotEmpty(respBody["token"])
 
 				// assert valid token
 				api2 := originalApi.NewApi(tx)
@@ -118,9 +125,9 @@ func TestUserHandler_Create(t *testing.T) {
 				req := httptest.NewRequest("GET", "/api/salary", nil)
 				req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
 				resp, _ := api2.Router.Test(req)
-				assert.Equal(200, resp.StatusCode)
+				a.Equal(200, resp.StatusCode)
 			} else {
-				assert.Equal(d.expectedBody, respBody)
+				a.Equal(d.expectedBody, respBody)
 			}
 		})
 	}
@@ -128,7 +135,7 @@ func TestUserHandler_Create(t *testing.T) {
 
 func TestUserHandler_Login(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
+	a := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
 	api := testhelper.NewTestApi(tx)
 
@@ -138,7 +145,7 @@ func TestUserHandler_Login(t *testing.T) {
 		"password": "password123",
 		"salary":   5000.00,
 	})
-	assert.Equal(201, resp.StatusCode)
+	a.Equal(201, resp.StatusCode)
 
 	data := []struct {
 		name           string
@@ -186,14 +193,16 @@ func TestUserHandler_Login(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
+			a := assert.New(t)
+
 			var respBody util.M
 
 			resp := api.Test(http.MethodPost, "/api/sessions", d.body)
 			api.UnmarshalBody(resp.Body, &respBody)
-			assert.Equal(d.expectedStatus, resp.StatusCode)
+			a.Equal(d.expectedStatus, resp.StatusCode)
 
 			if d.expectedStatus == 201 {
-				assert.NotEmpty(respBody["token"])
+				a.NotEmpty(respBody["token"])
 
 				// Verify the token works
 				api2 := originalApi.NewApi(tx)
@@ -201,10 +210,117 @@ func TestUserHandler_Login(t *testing.T) {
 				req := httptest.NewRequest("GET", "/api/salary", nil)
 				req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
 				tokenResp, _ := api2.Router.Test(req)
-				assert.Equal(200, tokenResp.StatusCode)
+				a.Equal(200, tokenResp.StatusCode)
 			} else {
-				assert.Equal(d.expectedBody, respBody)
+				a.Equal(d.expectedBody, respBody)
 			}
 		})
 	}
+}
+
+func TestApi_ValidateTokenMiddleware(t *testing.T) {
+	t.Parallel()
+
+	tx := testhelper.NewTestPostgresTx(t)
+	api := originalApi.NewApi(tx)
+	api.Router.Use(api.ValidateTokenMiddleware())
+
+	userID := uuid.New()
+
+	tests := []struct {
+		name           string
+		setupToken     func() string
+		handler        fiber.Handler
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "with valid token continue to the next handler",
+			setupToken: func() string {
+				return domain.CreateToken(userID, time.Minute)
+			},
+			handler: func(c *fiber.Ctx) error {
+				return c.SendStatus(http.StatusNoContent)
+			},
+			expectedStatus: http.StatusNoContent,
+		},
+		{
+			name: "expired token should return unauthorized",
+			setupToken: func() string {
+				return domain.CreateToken(userID, -time.Minute)
+			},
+			handler: func(c *fiber.Ctx) error {
+				panic("cannot get here")
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "invalid or expired JWT",
+		},
+		{
+			name: "malformed token should return unauthorized",
+			setupToken: func() string {
+				return "invalid-token"
+			},
+			handler: func(c *fiber.Ctx) error {
+				panic("cannot get here")
+			},
+			expectedStatus: http.StatusUnauthorized,
+			expectedError:  "invalid or expired JWT",
+		},
+		{
+			name:           "empty token should return unauthorized",
+			setupToken:     func() string { return "" },
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "missing or malformed JWT",
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := assert.New(t)
+			token := tt.setupToken()
+
+			path := fmt.Sprintf("/test-%d", i)
+			api.Router.Get(path, tt.handler)
+
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req.Header.Set("Authorization", "Bearer "+token)
+
+			resp, err := api.Router.Test(req)
+			a.NoError(err)
+			a.Equal(tt.expectedStatus, resp.StatusCode)
+
+			if tt.expectedError != "" {
+				var respBody util.M
+				err := json.NewDecoder(resp.Body).Decode(&respBody)
+				a.NoError(err)
+				a.Equal(tt.expectedError, respBody["error"])
+			}
+		})
+	}
+}
+
+func TestApi_PutUserIDMiddleware(t *testing.T) {
+	t.Parallel()
+	a := assert.New(t)
+
+	tx := testhelper.NewTestPostgresTx(t)
+	api := originalApi.NewApi(tx)
+	middleware := api.PutUserIDMiddleware()
+
+	userID := uuid.New()
+	token := domain.CreateToken(userID, time.Minute)
+
+	api.Router.Use(api.ValidateTokenMiddleware())
+	api.Router.Use(middleware)
+	api.Router.Get("/test", func(c *fiber.Ctx) error {
+		a.Equal(userID.String(), c.Locals("user_id"))
+		return c.SendStatus(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := api.Router.Test(req)
+	a.NoError(err)
+	a.Equal(http.StatusOK, resp.StatusCode)
 }
