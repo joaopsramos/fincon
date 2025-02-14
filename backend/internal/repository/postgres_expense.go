@@ -3,11 +3,9 @@ package repository
 import (
 	"time"
 
-	"github.com/Rhymond/go-money"
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	errs "github.com/joaopsramos/fincon/internal/error"
-	"github.com/joaopsramos/fincon/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -83,94 +81,18 @@ func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time
 	return e, result.Error
 }
 
-func (r PostgresExpenseRepository) GetSummary(date time.Time, userID uuid.UUID, goalRepo domain.GoalRepo, salary *domain.Salary) (domain.Summary, error) {
-	type result struct {
-		ID         uint
-		Name       string
-		Percentage int
-		Spent      int64
-		Date       time.Time
-	}
-
-	var results []result
+func (r PostgresExpenseRepository) GetMonthlyGoalSpendings(date time.Time, userID uuid.UUID) ([]domain.MonthlyGoalSpending, error) {
+	var monthlyGoalSpendings []domain.MonthlyGoalSpending
 	err := r.db.Model(&domain.Goal{}).
 		Joins("JOIN expenses ON goals.id = expenses.goal_id").
-		Select("goals.id, goals.name, goals.percentage, date_trunc('month', expenses.date) date, SUM(expenses.value) spent").
 		Where("date_trunc('month', expenses.date) <= date_trunc('month', ?::date)", date).
 		Where("goals.user_id = ?", userID).
-		Group("1, 2, 3, 4").
-		Scan(&results).Error
+		Select("goals.*, date_trunc('month', expenses.date) date, SUM(expenses.value) spent").
+		Group("goals.id, date_trunc('month', expenses.date)").
+		Scan(&monthlyGoalSpendings).Error
 	if err != nil {
-		return domain.Summary{}, err
+		return []domain.MonthlyGoalSpending{}, err
 	}
 
-	monthStart := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, time.UTC)
-
-	resultsByGoalID := make(map[uint]*result)
-	for _, r := range results {
-		date = r.Date
-		goalLimit := int64(r.Percentage) * (salary.Amount / 100)
-
-		if r.Spent <= goalLimit && date.Before(monthStart) {
-			continue
-		}
-
-		if r.Spent > goalLimit {
-			yearDiff := monthStart.Year() - date.Year()
-			monthDiff := int(monthStart.Month()) - int(date.Month()) + yearDiff*12
-
-			r.Spent = max(0, r.Spent-int64(monthDiff)*goalLimit)
-		}
-
-		if entry, ok := resultsByGoalID[r.ID]; ok {
-			entry.Spent += r.Spent
-		} else {
-			resultsByGoalID[r.ID] = &r
-		}
-	}
-
-	goals := goalRepo.All(userID)
-
-	totalSpent := money.New(0, money.BRL)
-	totalMustSpend := money.New(0, money.BRL)
-	totalUsed := 0.0
-
-	sg := make([]domain.SummaryGoal, len(goals))
-	for i, g := range goals {
-		percentage := int64(g.Percentage)
-
-		r, ok := resultsByGoalID[g.ID]
-		if !ok {
-			r = &result{}
-		}
-
-		valueSpent := money.New(r.Spent, money.BRL)
-		mustSpendvalue := salary.Amount / 100 * percentage
-		mustSpend := money.New(mustSpendvalue, money.BRL)
-
-		mustSpendvalueF := float64(mustSpendvalue)
-		used := 100 + ((float64(r.Spent) - mustSpendvalueF) * 100 / mustSpendvalueF)
-		used = util.NaNToZero(used)
-		total := float64(r.Spent*100) / float64(salary.Amount)
-		total = util.NaNToZero(total)
-
-		sg[i] = domain.SummaryGoal{
-			Name:      string(g.Name),
-			Spent:     domain.NewMoney(valueSpent),
-			MustSpend: domain.NewMoney(mustSpend),
-			Used:      used,
-			Total:     total,
-		}
-
-		totalSpent, _ = totalSpent.Add(valueSpent)
-		totalMustSpend = money.New(salary.Amount-totalSpent.Amount(), money.BRL)
-		totalUsed += total
-	}
-
-	return domain.Summary{
-		Goals:     sg,
-		Spent:     domain.NewMoney(totalSpent),
-		MustSpend: domain.NewMoney(totalMustSpend),
-		Used:      util.FloatToFixed(totalUsed, 2),
-	}, nil
+	return monthlyGoalSpendings, nil
 }

@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math"
 
 	z "github.com/Oudwins/zog"
@@ -79,4 +80,9 @@ func Map[T, U any](s []T, f func(T) U) []U {
 	}
 
 	return r
+}
+
+func PrintJSON(obj any) {
+	bytes, _ := json.MarshalIndent(obj, "", "\t")
+	fmt.Println(string(bytes))
 }

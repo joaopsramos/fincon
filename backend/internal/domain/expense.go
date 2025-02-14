@@ -30,24 +30,15 @@ type ExpenseView struct {
 	GoalID uint      `json:"goal_id"`
 }
 
-type SummaryGoal = struct {
-	Name      string    `json:"name"`
-	Spent     MoneyView `json:"spent"`
-	MustSpend MoneyView `json:"must_spend"`
-	Used      float64   `json:"used"`
-	Total     float64   `json:"total"`
+type MonthlyGoalSpending struct {
+	Goal  Goal `gorm:"embedded"`
+	Date  time.Time
+	Spent int64
 }
 
 type MoneyView struct {
 	Amount   float64 `json:"amount"`
 	Currency string  `json:"currency"`
-}
-
-type Summary struct {
-	Goals     []SummaryGoal `json:"goals"`
-	Spent     MoneyView     `json:"spent"`
-	MustSpend MoneyView     `json:"must_spend"`
-	Used      float64       `json:"used"`
 }
 
 func NewMoney(money *money.Money) MoneyView {
@@ -71,5 +62,5 @@ type ExpenseRepo interface {
 	Delete(id uint, userID uuid.UUID) error
 	AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) ([]Expense, error)
 	FindMatchingNames(name string, userID uuid.UUID) ([]string, error)
-	GetSummary(date time.Time, userID uuid.UUID, goalRepo GoalRepo, salary *Salary) (Summary, error)
+	GetMonthlyGoalSpendings(date time.Time, userID uuid.UUID) ([]MonthlyGoalSpending, error)
 }
