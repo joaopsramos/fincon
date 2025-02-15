@@ -1,11 +1,10 @@
-import { Money } from "@/lib/utils"
 import api from "@/api"
 import dayjs from "dayjs"
 
 export type Expense = {
   id: number,
   name: string,
-  value: Money,
+  value: number,
   date: Date,
   goal_id: number,
 

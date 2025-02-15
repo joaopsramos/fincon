@@ -1,19 +1,18 @@
 import api from "@/api"
-import { Money } from "@/lib/utils"
 import dayjs from "dayjs"
 
 export type SummaryGoal = {
   name: string,
-  spent: Money,
-  must_spend: Money,
+  spent: number,
+  must_spend: number,
   used: number,
   total: number
 }
 
 export type Summary = {
   goals: SummaryGoal[],
-  spent: Money,
-  must_spend: Money,
+  spent: number,
+  must_spend: number,
   used: number
 }
 

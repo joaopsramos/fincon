@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl"
 import { getSummary, SummaryGoal } from "@/api/summary"
-import { moneyToString, sortGoals } from "@/lib/utils"
+import { moneyValueToString, sortGoals } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -57,14 +57,14 @@ export default function Summary({ date }: { date: Date }) {
           {summary && (
             <>
               <SummaryTotal
-                value={moneyToString(summary.spent)}
+                value={moneyValueToString(summary.spent)}
                 text={t("summary.totalSpent")}
                 valueColor="text-red-500"
               />
               <SummaryTotal
-                value={moneyToString(summary.must_spend)}
+                value={moneyValueToString(summary.must_spend)}
                 text={t("summary.mustSpend")}
-                valueColor={summary.must_spend.amount > 0 ? "text-green-500" : "text-red-500"}
+                valueColor={summary.must_spend > 0 ? "text-green-500" : "text-red-500"}
               />
               <SummaryTotal value={summary.used.toFixed(2).toString() + "%"} text={t("summary.used")} />
             </>
@@ -79,8 +79,8 @@ function Row({ goal }: { goal: SummaryGoal }) {
   return (
     <TableRow className="dark:border-slate-800">
       <TableCell>{goal.name}</TableCell>
-      <TableCell>{moneyToString(goal.spent)}</TableCell>
-      <TableCell>{moneyToString(goal.must_spend)}</TableCell>
+      <TableCell>{moneyValueToString(goal.spent)}</TableCell>
+      <TableCell>{moneyValueToString(goal.must_spend)}</TableCell>
       <TableCell>{goal.used.toFixed(2)}%</TableCell>
       <TableCell>{goal.total.toFixed(2)}%</TableCell>
     </TableRow>
