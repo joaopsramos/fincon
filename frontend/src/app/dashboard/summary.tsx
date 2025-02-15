@@ -76,9 +76,11 @@ export default function Summary({ date }: { date: Date }) {
 }
 
 function Row({ goal }: { goal: SummaryGoal }) {
+  const commonT = useTranslations("Common")
+
   return (
     <TableRow className="dark:border-slate-800">
-      <TableCell>{goal.name}</TableCell>
+      <TableCell>{commonT(goal.name)}</TableCell>
       <TableCell>{moneyValueToString(goal.spent)}</TableCell>
       <TableCell>{moneyValueToString(goal.must_spend)}</TableCell>
       <TableCell>{goal.used.toFixed(2)}%</TableCell>
