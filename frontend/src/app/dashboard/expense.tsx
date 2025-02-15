@@ -20,6 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
   dayjs.extend(utc)
 
+  const commonT = useTranslations("Common")
   const t = useTranslations("DashboardPage.expenses")
   const queryClient = useQueryClient()
   const invalidateQueries = buildInvalidateQueriesFn(queryClient, date, goal.id)
@@ -33,7 +34,7 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t(goal.name)}</CardTitle>
+        <CardTitle>{commonT(goal.name)}</CardTitle>
       </CardHeader>
 
       <CardContent>

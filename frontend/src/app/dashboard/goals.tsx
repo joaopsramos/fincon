@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 
 export default function Goals({ goals }: { goals: Goal[] }) {
+  const commonT = useTranslations("Common")
   const t = useTranslations("DashboardPage.goals")
   const queryClient = useQueryClient()
   const [saveDisabled, setSaveDisable] = useState(false)
@@ -72,7 +73,7 @@ export default function Goals({ goals }: { goals: Goal[] }) {
             {goals?.map((goal) => (
               <li key={goal.id} className="my-2">
                 <div className="flex justify-between">
-                  <span>{goal.name}</span>
+                  <span>{commonT(goal.name)}</span>
                   <span>{goal.percentage}%</span>
                 </div>
                 <Separator className="my-1" />
