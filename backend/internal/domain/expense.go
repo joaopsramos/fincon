@@ -22,7 +22,7 @@ type Expense struct {
 	UpdatedAt time.Time
 }
 
-type ExpenseView struct {
+type ExpenseDTO struct {
 	ID     uint      `json:"id"`
 	Name   string    `json:"name"`
 	Value  float64   `json:"value"`
@@ -36,8 +36,8 @@ type MonthlyGoalSpending struct {
 	Spent int64
 }
 
-func (e *Expense) View() ExpenseView {
-	return ExpenseView{
+func (e *Expense) ToDTO() ExpenseDTO {
+	return ExpenseDTO{
 		ID:     e.ID,
 		Name:   e.Name,
 		Value:  util.MoneyAmountToFloat(e.Value),

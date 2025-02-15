@@ -63,7 +63,7 @@ func (a *Api) CreateUser(c *fiber.Ctx) error {
 
 	return c.Status(http.StatusCreated).JSON(util.M{
 		"user":   user,
-		"salary": salary.View(),
+		"salary": salary.ToDTO(),
 		"token":  a.generateToken(user.ID),
 	})
 }

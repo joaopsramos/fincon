@@ -16,7 +16,7 @@ func (a *Api) GetSalary(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
 	salary := util.Must(a.salaryService.Get(userID))
 
-	return c.Status(http.StatusOK).JSON(salary.View())
+	return c.Status(http.StatusOK).JSON(salary.ToDTO())
 }
 
 func (a *Api) UpdateSalary(c *fiber.Ctx) error {
@@ -34,5 +34,5 @@ func (a *Api) UpdateSalary(c *fiber.Ctx) error {
 		return a.HandleError(c, err)
 	}
 
-	return c.Status(http.StatusOK).JSON(salary.View())
+	return c.Status(http.StatusOK).JSON(salary.ToDTO())
 }

@@ -25,14 +25,14 @@ type Goal struct {
 	Expenses []Expense `json:"-"`
 }
 
-type GoalView struct {
+type GoalDTO struct {
 	ID         uint     `json:"id"`
 	Name       GoalName `json:"name"`
 	Percentage uint     `json:"percentage"`
 }
 
-func (g *Goal) View() GoalView {
-	return GoalView{
+func (g *Goal) ToDTO() GoalDTO {
+	return GoalDTO{
 		ID:         g.ID,
 		Name:       g.Name,
 		Percentage: g.Percentage,
