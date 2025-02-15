@@ -37,13 +37,13 @@ func TestSalaryHandler_Get(t *testing.T) {
 			"get user salary",
 			api,
 			200,
-			util.M{"amount": float64(500), "currency": "BRL"},
+			util.M{"amount": 500.0},
 		},
 		{
 			"ensure user only gets his salary",
 			anotherUserApi,
 			200,
-			util.M{"amount": float64(1000), "currency": "BRL"},
+			util.M{"amount": 1000.0},
 		},
 	}
 
@@ -87,14 +87,14 @@ func TestSalaryHandler_Update(t *testing.T) {
 			api,
 			util.M{"amount": 1000},
 			200,
-			util.M{"amount": float64(1000), "currency": "BRL"},
+			util.M{"amount": 1000.0},
 		},
 		{
 			"ensure user only update his salary",
 			anotherUserApi,
 			util.M{"amount": 2000.50},
 			200,
-			util.M{"amount": 2000.50, "currency": "BRL"},
+			util.M{"amount": 2000.50},
 		},
 		{
 			"salary amount is required",

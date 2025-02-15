@@ -1,8 +1,8 @@
 package domain
 
 import (
-	"github.com/Rhymond/go-money"
 	"github.com/google/uuid"
+	"github.com/joaopsramos/fincon/internal/util"
 )
 
 type Salary struct {
@@ -13,13 +13,11 @@ type Salary struct {
 }
 
 type SalaryView struct {
-	Amount   float64 `json:"amount"`
-	Currency string  `json:"currency"`
+	Amount float64 `json:"amount"`
 }
 
 func (s *Salary) View() SalaryView {
-	value := NewMoney(money.New(s.Amount, money.BRL))
-	return SalaryView(value)
+	return SalaryView{Amount: util.MoneyAmountToFloat(s.Amount)}
 }
 
 type SalaryRepo interface {

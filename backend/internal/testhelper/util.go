@@ -21,7 +21,7 @@ func FormatExpense(e domain.Expense, g domain.Goal) util.M {
 	return util.M{
 		"id":      float64(e.ID),
 		"name":    e.Name,
-		"value":   util.M{"amount": float64(e.Value) / 100, "currency": "BRL"},
+		"value":   float64(e.Value) / 100,
 		"date":    DateToJsonString(e.Date),
 		"goal_id": float64(g.ID),
 	}

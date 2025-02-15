@@ -10,6 +10,7 @@ import (
 	"github.com/Oudwins/zog/parsers/zjson"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type M = map[string]any
@@ -85,4 +86,12 @@ func Map[T, U any](s []T, f func(T) U) []U {
 func PrintJSON(obj any) {
 	bytes, _ := json.MarshalIndent(obj, "", "\t")
 	fmt.Println(string(bytes))
+}
+
+func MoneyAmountToFloat(amount int64) float64 {
+	return float64(amount) / 100
+}
+
+func MoneyAmountToDecimal(amount int64) decimal.Decimal {
+	return decimal.New(amount, -2)
 }
