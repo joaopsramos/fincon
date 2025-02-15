@@ -12,12 +12,12 @@ type Salary struct {
 	UserID uuid.UUID `gorm:"type:uuid"`
 }
 
-type SalaryView struct {
+type SalaryDTO struct {
 	Amount float64 `json:"amount"`
 }
 
-func (s *Salary) View() SalaryView {
-	return SalaryView{Amount: util.MoneyAmountToFloat(s.Amount)}
+func (s *Salary) ToDTO() SalaryDTO {
+	return SalaryDTO{Amount: util.MoneyAmountToFloat(s.Amount)}
 }
 
 type SalaryRepo interface {

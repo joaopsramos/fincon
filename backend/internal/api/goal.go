@@ -53,12 +53,12 @@ func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
 		return a.HandleError(c, err)
 	}
 
-	var expenseViews []domain.ExpenseView
+	var expenseDTOs []domain.ExpenseDTO
 	for _, e := range expenses {
-		expenseViews = append(expenseViews, e.View())
+		expenseDTOs = append(expenseDTOs, e.ToDTO())
 	}
 
-	return c.Status(http.StatusOK).JSON(expenseViews)
+	return c.Status(http.StatusOK).JSON(expenseDTOs)
 }
 
 func (a *Api) UpdateGoals(c *fiber.Ctx) error {
@@ -87,6 +87,6 @@ func (a *Api) UpdateGoals(c *fiber.Ctx) error {
 		return a.HandleError(c, err)
 	}
 
-	goalViews := util.Map(goals, func(g domain.Goal) domain.GoalView { return g.View() })
-	return c.Status(http.StatusOK).JSON(goalViews)
+	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
+	return c.Status(http.StatusOK).JSON(goalDTOs)
 }

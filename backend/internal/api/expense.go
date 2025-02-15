@@ -87,7 +87,7 @@ func (a *Api) CreateExpense(c *fiber.Ctx) error {
 		return a.HandleError(c, err)
 	}
 
-	return c.Status(http.StatusCreated).JSON(expense.View())
+	return c.Status(http.StatusCreated).JSON(expense.ToDTO())
 }
 
 func (a *Api) UpdateExpense(c *fiber.Ctx) error {
@@ -117,7 +117,7 @@ func (a *Api) UpdateExpense(c *fiber.Ctx) error {
 		return a.HandleError(c, err)
 	}
 
-	return c.Status(http.StatusOK).JSON(expense.View())
+	return c.Status(http.StatusOK).JSON(expense.ToDTO())
 }
 
 func (a *Api) UpdateExpenseGoal(c *fiber.Ctx) error {
@@ -145,7 +145,7 @@ func (a *Api) UpdateExpenseGoal(c *fiber.Ctx) error {
 		return a.HandleError(c, err)
 	}
 
-	return c.Status(http.StatusOK).JSON(expense.View())
+	return c.Status(http.StatusOK).JSON(expense.ToDTO())
 }
 
 func (a *Api) DeleteExpense(c *fiber.Ctx) error {
