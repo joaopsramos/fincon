@@ -3,8 +3,8 @@ package domain
 import (
 	"time"
 
-	"github.com/Rhymond/go-money"
 	"github.com/google/uuid"
+	"github.com/joaopsramos/fincon/internal/util"
 )
 
 type Expense struct {
@@ -25,7 +25,7 @@ type Expense struct {
 type ExpenseView struct {
 	ID     uint      `json:"id"`
 	Name   string    `json:"name"`
-	Value  MoneyView `json:"value"`
+	Value  float64   `json:"value"`
 	Date   time.Time `json:"date"`
 	GoalID uint      `json:"goal_id"`
 }
@@ -36,20 +36,11 @@ type MonthlyGoalSpending struct {
 	Spent int64
 }
 
-type MoneyView struct {
-	Amount   float64 `json:"amount"`
-	Currency string  `json:"currency"`
-}
-
-func NewMoney(money *money.Money) MoneyView {
-	return MoneyView{Amount: money.AsMajorUnits(), Currency: money.Currency().Code}
-}
-
 func (e *Expense) View() ExpenseView {
 	return ExpenseView{
 		ID:     e.ID,
 		Name:   e.Name,
-		Value:  NewMoney(money.New(e.Value, money.BRL)),
+		Value:  util.MoneyAmountToFloat(e.Value),
 		Date:   e.Date,
 		GoalID: e.GoalID,
 	}

@@ -3,10 +3,10 @@ package service
 import (
 	"time"
 
-	"github.com/Rhymond/go-money"
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
+	"github.com/shopspring/decimal"
 )
 
 type ExpenseService struct {
@@ -29,18 +29,18 @@ type UpdateExpenseDTO struct {
 }
 
 type SummaryGoal = struct {
-	Name      string           `json:"name"`
-	Spent     domain.MoneyView `json:"spent"`
-	MustSpend domain.MoneyView `json:"must_spend"`
-	Used      float64          `json:"used"`
-	Total     float64          `json:"total"`
+	Name      string  `json:"name"`
+	Spent     float64 `json:"spent"`
+	MustSpend float64 `json:"must_spend"`
+	Used      float64 `json:"used"`
+	Total     float64 `json:"total"`
 }
 
 type Summary struct {
-	Goals     []SummaryGoal    `json:"goals"`
-	Spent     domain.MoneyView `json:"spent"`
-	MustSpend domain.MoneyView `json:"must_spend"`
-	Used      float64          `json:"used"`
+	Goals     []SummaryGoal `json:"goals"`
+	Spent     float64       `json:"spent"`
+	MustSpend float64       `json:"must_spend"`
+	Used      float64       `json:"used"`
 }
 
 func NewExpenseService(
@@ -150,46 +150,52 @@ func (s *ExpenseService) GetSummary(date time.Time, userID uuid.UUID) (*Summary,
 
 	goals := s.goalRepo.All(userID)
 
-	totalSpent := money.New(0, money.BRL)
-	totalMustSpend := money.New(0, money.BRL)
-	totalUsed := 0.0
+	var totalSpent, totalMustSpend, totalUsed decimal.Decimal
 
 	sg := make([]SummaryGoal, len(goals))
 	for i, g := range goals {
-		percentage := int64(g.Percentage)
-
-		m, ok := spendingsByGoalID[g.ID]
+		mgs, ok := spendingsByGoalID[g.ID]
 		if !ok {
-			m = domain.MonthlyGoalSpending{}
+			mgs = domain.MonthlyGoalSpending{}
 		}
 
-		valueSpent := money.New(m.Spent, money.BRL)
-		mustSpendvalue := salary.Amount / 100 * percentage
-		mustSpend := money.New(mustSpendvalue, money.BRL)
+		percentage := decimal.NewFromInt(int64(g.Percentage))
+		hundred := decimal.NewFromInt(100)
+		spent := util.MoneyAmountToDecimal(mgs.Spent)
+		salaryDec := util.MoneyAmountToDecimal(salary.Amount)
 
-		mustSpendvalueF := float64(mustSpendvalue)
-		used := 100 + ((float64(m.Spent) - mustSpendvalueF) * 100 / mustSpendvalueF)
-		used = util.NaNToZero(used)
-		total := float64(m.Spent*100) / float64(salary.Amount)
-		total = util.NaNToZero(total)
+		// Calculate mustSpend (salary * percentage / 100)
+		mustSpend := salaryDec.Mul(percentage).Div(hundred)
+
+		// Calculate used percentage (100 + ((spent - mustSpend) * 100 / mustSpend))
+		var used decimal.Decimal
+		if !mustSpend.IsZero() {
+			used = hundred.Add(spent.Sub(mustSpend).Mul(hundred).Div(mustSpend))
+		}
+
+		// Calculate total percentage (spent * 100 / salary)
+		var total decimal.Decimal
+		if !salaryDec.IsZero() {
+			total = spent.Mul(hundred).Div(salaryDec)
+		}
 
 		sg[i] = SummaryGoal{
 			Name:      string(g.Name),
-			Spent:     domain.NewMoney(valueSpent),
-			MustSpend: domain.NewMoney(mustSpend),
-			Used:      used,
-			Total:     total,
+			Spent:     spent.InexactFloat64(),
+			MustSpend: mustSpend.InexactFloat64(),
+			Used:      used.InexactFloat64(),
+			Total:     total.InexactFloat64(),
 		}
 
-		totalSpent, _ = totalSpent.Add(valueSpent)
-		totalMustSpend = money.New(salary.Amount-totalSpent.Amount(), money.BRL)
-		totalUsed += total
+		totalSpent = totalSpent.Add(spent)
+		totalMustSpend = salaryDec.Sub(totalSpent)
+		totalUsed = totalUsed.Add(total)
 	}
 
 	return &Summary{
 		Goals:     sg,
-		Spent:     domain.NewMoney(totalSpent),
-		MustSpend: domain.NewMoney(totalMustSpend),
-		Used:      util.FloatToFixed(totalUsed, 2),
+		Spent:     totalSpent.InexactFloat64(),
+		MustSpend: totalMustSpend.InexactFloat64(),
+		Used:      totalUsed.InexactFloat64(),
 	}, nil
 }

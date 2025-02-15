@@ -24,8 +24,6 @@ func NewTestExpenseService(t *testing.T, tx *gorm.DB) service.ExpenseService {
 
 func TestPostgresExpense_GetSummary(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
-
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
@@ -93,7 +91,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		total     float64
 	}
 
-	assertSummaryGoals := func(tests []expectedEntries, entries []service.SummaryGoal) {
+	assertSummaryGoals := func(a *assert.Assertions, tests []expectedEntries, entries []service.SummaryGoal) {
 		entriesByName := make(map[domain.GoalName]service.SummaryGoal)
 		for _, e := range entries {
 			entriesByName[domain.GoalName(e.Name)] = e
@@ -101,11 +99,11 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 		for _, tt := range tests {
 			entry := entriesByName[tt.goalName]
-			assert.Equal(string(tt.goalName), entry.Name)
-			assert.Equal(tt.spent, entry.Spent.Amount)
-			assert.Equal(tt.mustSpend, entry.MustSpend.Amount)
-			assert.Equal(tt.used, float64(int(entry.Used*100))/100)
-			assert.Equal(tt.total, float64(int(entry.Total*100))/100)
+			a.Equal(string(tt.goalName), entry.Name)
+			a.Equal(tt.spent, entry.Spent)
+			a.Equal(tt.mustSpend, entry.MustSpend)
+			a.Equal(tt.used, float64(int(entry.Used*100))/100)
+			a.Equal(tt.total, float64(int(entry.Total*100))/100)
 		}
 	}
 
@@ -148,7 +146,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 			},
 			spent:     625.74,
 			mustSpend: 9374.26,
-			used:      6.26,
+			used:      6.2574,
 		},
 		{
 			name: "should calculate current month totals with proper limits",
@@ -163,7 +161,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 			},
 			spent:     2108.02,
 			mustSpend: 7891.98,
-			used:      21.08,
+			used:      21.0802,
 		},
 		{
 			name: "should handle next month with carried over excesses",
@@ -178,7 +176,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 			},
 			spent:     1142.28,
 			mustSpend: 8857.72,
-			used:      11.42,
+			used:      11.4228,
 		},
 	}
 
@@ -186,13 +184,15 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			summary, err := expenseService.GetSummary(tt.date, user.ID)
-			assert.NoError(err)
+			a := assert.New(t)
 
-			assert.Equal(tt.spent, summary.Spent.Amount)
-			assert.Equal(tt.mustSpend, summary.MustSpend.Amount)
-			assert.Equal(tt.used, summary.Used)
-			assertSummaryGoals(tt.entries, summary.Goals)
+			summary, err := expenseService.GetSummary(tt.date, user.ID)
+			a.NoError(err)
+
+			a.Equal(tt.spent, summary.Spent)
+			a.Equal(tt.mustSpend, summary.MustSpend)
+			a.Equal(tt.used, summary.Used)
+			assertSummaryGoals(a, tt.entries, summary.Goals)
 		})
 	}
 }

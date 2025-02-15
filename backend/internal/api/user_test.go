@@ -37,7 +37,7 @@ func TestUserHandler_Create(t *testing.T) {
 			},
 			201,
 			util.M{
-				"salary": util.M{"amount": float64(5000), "currency": "BRL"},
+				"salary": util.M{"amount": float64(5000)},
 				"user":   util.M{"email": "test@example.com"},
 			},
 		},

@@ -86,7 +86,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 
 	assert.Equal(util.M{
 		"name":    "Food",
-		"value":   util.M{"amount": 123.45, "currency": "BRL"},
+		"value":   123.45,
 		"date":    "2025-01-15T00:00:00Z",
 		"goal_id": float64(goal.ID),
 	}, respBody)
@@ -205,7 +205,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 			util.M{
 				"id":      float64(expense.ID),
 				"name":    "Groceries",
-				"value":   util.M{"amount": 543.21, "currency": "BRL"},
+				"value":   543.21,
 				"date":    "2023-01-15T00:00:00Z",
 				"goal_id": float64(goal.ID),
 			},
@@ -217,7 +217,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 			util.M{
 				"id":      float64(expense.ID),
 				"name":    "Health",
-				"value":   util.M{"amount": 543.21, "currency": "BRL"},
+				"value":   543.21,
 				"date":    "2023-01-15T00:00:00Z",
 				"goal_id": float64(goal.ID),
 			},
@@ -229,7 +229,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 			util.M{
 				"id":      float64(expense.ID),
 				"name":    "Health",
-				"value":   util.M{"amount": 150.00, "currency": "BRL"},
+				"value":   150.00,
 				"date":    "2023-01-15T00:00:00Z",
 				"goal_id": float64(goal.ID),
 			},
@@ -241,7 +241,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 			util.M{
 				"id":      float64(expense.ID),
 				"name":    "Health",
-				"value":   util.M{"amount": 150.00, "currency": "BRL"},
+				"value":   150.00,
 				"date":    "2022-01-15T00:00:00Z",
 				"goal_id": float64(goal.ID),
 			},
@@ -307,7 +307,7 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 			util.M{
 				"id":      float64(expense.ID),
 				"name":    expense.Name,
-				"value":   util.M{"amount": 1.23, "currency": "BRL"},
+				"value":   1.23,
 				"date":    testhelper.DateToJsonString(expense.Date),
 				"goal_id": float64(goal2.ID),
 			},
