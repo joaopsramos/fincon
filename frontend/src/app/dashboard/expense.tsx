@@ -10,7 +10,7 @@ import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/re
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
-import { moneyToString } from "@/lib/utils"
+import { moneyValueToString } from "@/lib/utils"
 import { useForm } from "react-hook-form"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslations } from "next-intl"
@@ -76,7 +76,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueri
   const t = useTranslations("DashboardPage.expenses")
   const [isEditing, setIsEditing] = useState(false)
   const [name, setName] = useState(expense.name)
-  const [value, setValue] = useState(expense.value.amount.toString())
+  const [value, setValue] = useState(expense.value.toString())
 
   const editExpenseMut = useMutation({
     mutationFn: () => editExpense({ name, value: parseFloat(value) }, expense.id),
@@ -119,7 +119,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueri
       </TableCell>
       <TableCell>
         {!isEditing ? (
-          moneyToString(expense.value)
+          moneyValueToString(expense.value)
         ) : (
           <Input
             type="number"

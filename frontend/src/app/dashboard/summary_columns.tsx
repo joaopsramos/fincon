@@ -1,11 +1,11 @@
 import { SummaryGoal } from "@/api/summary"
-import { moneyToString } from "@/lib/utils"
+import { moneyValueToString } from "@/lib/utils"
 import { ColumnDef } from "@tanstack/react-table"
 
 export const summaryColumns: ColumnDef<SummaryGoal>[] = [
   { accessorKey: "name", header: "Budget", cell: ({ row }) => <div className="">{row.getValue("name")}</div> },
-  { accessorKey: "spent", header: "Spent", cell: ({ row }) => moneyToString(row.getValue("spent")) },
-  { accessorKey: "must_spend", header: "Must spend", cell: ({ row }) => moneyToString(row.getValue("spent")) },
+  { accessorKey: "spent", header: "Spent", cell: ({ row }) => moneyValueToString(row.getValue("spent")) },
+  { accessorKey: "must_spend", header: "Must spend", cell: ({ row }) => moneyValueToString(row.getValue("spent")) },
   {
     accessorKey: "used",
     header: "Used",

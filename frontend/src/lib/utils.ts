@@ -28,13 +28,8 @@ export function sortGoals<T extends { name: string }>(goals: T[]) {
   return [...goals].sort((a, b) => (goalsOrderMap.get(a.name) ?? 1) - (goalsOrderMap.get(b.name) ?? 1))
 }
 
-export type Money = {
-  amount: number
-  currency: string
-}
-
-export function moneyToString(money: Money) {
-  return money.amount.toLocaleString("pt-BR", { style: "currency", currency: money.currency })
+export function moneyValueToString(value: number, currency: string = "BRL") {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: currency })
 }
 
 export function handleLogout(router: AppRouterInstance) {
