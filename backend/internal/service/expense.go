@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -116,7 +117,7 @@ func (s *ExpenseService) FindMatchingNames(name string, userID uuid.UUID) ([]str
 }
 
 func (s *ExpenseService) GetSummary(date time.Time, userID uuid.UUID) (*Summary, error) {
-	salary := util.Must(s.salaryRepo.Get(userID))
+	salary := util.Must(s.salaryRepo.Get(context.TODO(), userID))
 	monthlyGoalSpendings, err := s.expenseRepo.GetMonthlyGoalSpendings(date, userID)
 	if err != nil {
 		return &Summary{}, err

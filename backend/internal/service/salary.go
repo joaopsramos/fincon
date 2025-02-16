@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 )
@@ -23,12 +25,12 @@ func BuildSalary(dto CreateSalaryDTO) domain.Salary {
 	}
 }
 
-func (s *SalaryService) UpdateAmount(salary *domain.Salary, amount float64) error {
+func (s *SalaryService) UpdateAmount(ctx context.Context, salary *domain.Salary, amount float64) error {
 	salary.Amount = int64(amount * 100)
 
-	return s.salaryRepo.Update(salary)
+	return s.salaryRepo.Update(ctx, salary)
 }
 
-func (s *SalaryService) Get(userID uuid.UUID) (*domain.Salary, error) {
-	return s.salaryRepo.Get(userID)
+func (s *SalaryService) Get(ctx context.Context, userID uuid.UUID) (*domain.Salary, error) {
+	return s.salaryRepo.Get(ctx, userID)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSalaryHandler_Get(t *testing.T) {
+func TestApi_GetSalary(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
@@ -59,7 +59,7 @@ func TestSalaryHandler_Get(t *testing.T) {
 	}
 }
 
-func TestSalaryHandler_Update(t *testing.T) {
+func TestApi_UpdateSalary(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)

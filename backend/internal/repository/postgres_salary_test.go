@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/joaopsramos/fincon/internal/domain"
@@ -26,7 +27,7 @@ func TestPostgresSalary_Get(t *testing.T) {
 	f.InsertSalary(&domain.Salary{Amount: 200, UserID: user.ID})
 	r := NewTestPostgresSalaryRepo(t, tx)
 
-	salary, err := r.Get(user.ID)
+	salary, err := r.Get(context.Background(), user.ID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(200), salary.Amount)

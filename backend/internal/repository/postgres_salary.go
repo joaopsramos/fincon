@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 
 	"github.com/google/uuid"
@@ -17,10 +18,10 @@ func NewPostgresSalary(db *gorm.DB) domain.SalaryRepo {
 	return PostgresSalaryRepository{db}
 }
 
-func (r PostgresSalaryRepository) Get(userID uuid.UUID) (*domain.Salary, error) {
+func (r PostgresSalaryRepository) Get(ctx context.Context, userID uuid.UUID) (*domain.Salary, error) {
 	var s domain.Salary
 
-	err := r.db.Where("user_id = ?", userID).Take(&s).Error
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Take(&s).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return &domain.Salary{}, errs.NewNotFound("salary")
 	} else if err != nil {
@@ -30,16 +31,16 @@ func (r PostgresSalaryRepository) Get(userID uuid.UUID) (*domain.Salary, error) 
 	return &s, nil
 }
 
-func (r PostgresSalaryRepository) Create(s *domain.Salary) error {
-	if err := r.db.Create(s).Error; err != nil {
+func (r PostgresSalaryRepository) Create(ctx context.Context, s *domain.Salary) error {
+	if err := r.db.WithContext(ctx).Create(s).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r PostgresSalaryRepository) Update(s *domain.Salary) error {
-	if err := r.db.Model(s).Updates(*s).Error; err != nil {
+func (r PostgresSalaryRepository) Update(ctx context.Context, s *domain.Salary) error {
+	if err := r.db.WithContext(ctx).Model(s).Updates(*s).Error; err != nil {
 		return err
 	}
 
