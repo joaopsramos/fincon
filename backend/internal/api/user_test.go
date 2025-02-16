@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUserHandler_Create(t *testing.T) {
+func TestApi_CreateUser(t *testing.T) {
 	t.Parallel()
 	tx := testhelper.NewTestPostgresTx(t)
 	api := testhelper.NewTestApi(tx)
@@ -133,7 +133,7 @@ func TestUserHandler_Create(t *testing.T) {
 	}
 }
 
-func TestUserHandler_Login(t *testing.T) {
+func TestApi_UserLogin(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)

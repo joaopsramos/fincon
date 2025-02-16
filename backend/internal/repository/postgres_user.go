@@ -17,11 +17,11 @@ func NewPostgresUser(db *gorm.DB) domain.UserRepo {
 	return PostgresUserRepository{db}
 }
 
-func (r PostgresUserRepository) Create(user *domain.User, salary *domain.Salary) error {
+func (r PostgresUserRepository) Create(ctx context.Context, user *domain.User, salary *domain.Salary) error {
 	defaultPercentages := domain.DefaulGoalPercentages()
 	goals := make([]domain.Goal, 0, len(defaultPercentages))
 
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(user).Error; err != nil {
 			return err
 		}
@@ -29,7 +29,7 @@ func (r PostgresUserRepository) Create(user *domain.User, salary *domain.Salary)
 		salary.UserID = user.ID
 
 		txSalaryRepo := NewPostgresSalary(tx)
-		if err := txSalaryRepo.Create(context.TODO(), salary); err != nil {
+		if err := txSalaryRepo.Create(context.Background(), salary); err != nil {
 			return err
 		}
 
@@ -48,13 +48,13 @@ func (r PostgresUserRepository) Create(user *domain.User, salary *domain.Salary)
 	return err
 }
 
-func (r PostgresUserRepository) Get(id uuid.UUID) (*domain.User, error) {
+func (r PostgresUserRepository) Get(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	var user domain.User
 	result := r.db.Take(&user, id)
 	return &user, result.Error
 }
 
-func (r PostgresUserRepository) GetByEmail(email string) (*domain.User, error) {
+func (r PostgresUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 	if err := r.db.Where("email = ?", email).Take(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {

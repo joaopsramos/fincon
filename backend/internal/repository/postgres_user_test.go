@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/joaopsramos/fincon/internal/domain"
@@ -16,22 +17,22 @@ func NewTestPostgresUserRepo(t *testing.T, tx *gorm.DB) domain.UserRepo {
 }
 
 func TestPostgresUser_Create(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 	t.Parallel()
 	tx := testhelper.NewTestPostgresTx(t)
-	r := NewTestPostgresUserRepo(t, tx)
+	repo := NewTestPostgresUserRepo(t, tx)
 
 	user := domain.User{Email: "test@mail.com", HashPassword: "pass"}
 	salary := domain.Salary{Amount: 1000}
-	assert.NoError(r.Create(&user, &salary))
+	a.NoError(repo.Create(context.Background(), &user, &salary))
 
-	assert.NotZero(user.ID)
-	assert.NotZero(salary.ID)
+	a.NotZero(user.ID)
+	a.NotZero(salary.ID)
 
 	goals := []map[string]any{}
 	tx.Model(domain.Goal{}).Where("user_id =?", user.ID).Select("name, percentage").Scan(&goals)
 
-	assert.ElementsMatch(goals, []map[string]any{
+	a.ElementsMatch(goals, []map[string]any{
 		{"name": "Fixed costs", "percentage": int64(40)},
 		{"name": "Comfort", "percentage": int64(20)},
 		{"name": "Goals", "percentage": int64(5)},
