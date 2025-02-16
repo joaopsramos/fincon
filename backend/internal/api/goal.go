@@ -15,7 +15,8 @@ import (
 func (a *Api) AllGoals(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
 	goals := a.goalService.All(userID)
-	return c.Status(http.StatusOK).JSON(goals)
+	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
+	return c.Status(http.StatusOK).JSON(goalDTOs)
 }
 
 func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {

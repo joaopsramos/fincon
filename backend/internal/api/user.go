@@ -62,7 +62,7 @@ func (a *Api) CreateUser(c *fiber.Ctx) error {
 	}
 
 	return c.Status(http.StatusCreated).JSON(util.M{
-		"user":   user,
+		"user":   user.ToDTO(),
 		"salary": salary.ToDTO(),
 		"token":  a.generateToken(user.ID),
 	})
@@ -116,7 +116,7 @@ func (a *Api) PutUserIDMiddleware() fiber.Handler {
 }
 
 func (a *Api) generateToken(userID uuid.UUID) string {
-	return domain.CreateToken(userID, tokenExpiresIn)
+	return domain.CreateAccessToken(userID, tokenExpiresIn)
 }
 
 func (a *Api) invalidCredentials(c *fiber.Ctx) error {
