@@ -26,7 +26,7 @@ func NewTestApi(tx *gorm.DB, userID ...uuid.UUID) *TestApi {
 	var token string
 
 	if len(userID) > 0 {
-		token = domain.CreateToken(userID[0], time.Minute*1)
+		token = domain.CreateAccessToken(userID[0], time.Minute*1)
 	}
 
 	return &TestApi{api: api, token: token}

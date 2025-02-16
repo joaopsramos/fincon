@@ -9,21 +9,27 @@ import (
 )
 
 type User struct {
-	ID           uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Email        string    `json:"email" gorm:"type:citext"`
-	HashPassword string    `json:"-"`
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Email        string    `gorm:"type:citext"`
+	HashPassword string
 
-	CreatedAt time.Time `json:"-"`
-	UpdatedAt time.Time `json:"-"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
-type UserRepo interface {
-	Create(user *User, salary *Salary) error
-	Get(id uuid.UUID) (*User, error)
-	GetByEmail(email string) (*User, error)
+type UserDTO struct {
+	ID    uuid.UUID `json:"id"`
+	Email string    `json:"email"`
 }
 
-func CreateToken(userID uuid.UUID, expiresIn time.Duration) string {
+func (u *User) ToDTO() UserDTO {
+	return UserDTO{
+		ID:    u.ID,
+		Email: u.Email,
+	}
+}
+
+func CreateAccessToken(userID uuid.UUID, expiresIn time.Duration) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub": userID,
 		"exp": time.Now().UTC().Add(expiresIn).Unix(),
@@ -35,4 +41,10 @@ func CreateToken(userID uuid.UUID, expiresIn time.Duration) string {
 	}
 
 	return tokenString
+}
+
+type UserRepo interface {
+	Create(user *User, salary *Salary) error
+	Get(id uuid.UUID) (*User, error)
+	GetByEmail(email string) (*User, error)
 }

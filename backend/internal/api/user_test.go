@@ -237,7 +237,7 @@ func TestApi_ValidateTokenMiddleware(t *testing.T) {
 		{
 			name: "with valid token continue to the next handler",
 			setupToken: func() string {
-				return domain.CreateToken(userID, time.Minute)
+				return domain.CreateAccessToken(userID, time.Minute)
 			},
 			handler: func(c *fiber.Ctx) error {
 				return c.SendStatus(http.StatusNoContent)
@@ -247,7 +247,7 @@ func TestApi_ValidateTokenMiddleware(t *testing.T) {
 		{
 			name: "expired token should return unauthorized",
 			setupToken: func() string {
-				return domain.CreateToken(userID, -time.Minute)
+				return domain.CreateAccessToken(userID, -time.Minute)
 			},
 			handler: func(c *fiber.Ctx) error {
 				panic("cannot get here")
@@ -308,7 +308,7 @@ func TestApi_PutUserIDMiddleware(t *testing.T) {
 	middleware := api.PutUserIDMiddleware()
 
 	userID := uuid.New()
-	token := domain.CreateToken(userID, time.Minute)
+	token := domain.CreateAccessToken(userID, time.Minute)
 
 	api.Router.Use(api.ValidateTokenMiddleware())
 	api.Router.Use(middleware)

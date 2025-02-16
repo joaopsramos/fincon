@@ -16,13 +16,12 @@ const (
 )
 
 type Goal struct {
-	ID         uint     `json:"id" gorm:"primaryKey"`
-	Name       GoalName `json:"name"`
-	Percentage uint     `json:"percentage"`
+	ID         uint
+	Name       GoalName
+	Percentage uint
+	UserID     uuid.UUID
 
-	UserID uuid.UUID `json:"-" gorm:"type:uuid"`
-
-	Expenses []Expense `json:"-"`
+	Expenses []Expense
 }
 
 type GoalDTO struct {
