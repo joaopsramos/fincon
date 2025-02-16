@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	errs "github.com/joaopsramos/fincon/internal/error"
@@ -27,7 +29,7 @@ func (r PostgresUserRepository) Create(user *domain.User, salary *domain.Salary)
 		salary.UserID = user.ID
 
 		txSalaryRepo := NewPostgresSalary(tx)
-		if err := txSalaryRepo.Create(salary); err != nil {
+		if err := txSalaryRepo.Create(context.TODO(), salary); err != nil {
 			return err
 		}
 

@@ -14,7 +14,7 @@ var salaryUpdateSchema = z.Struct(z.Schema{
 
 func (a *Api) GetSalary(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
-	salary := util.Must(a.salaryService.Get(userID))
+	salary := util.Must(a.salaryService.Get(c.Context(), userID))
 
 	return c.Status(http.StatusOK).JSON(salary.ToDTO())
 }
@@ -28,9 +28,9 @@ func (a *Api) UpdateSalary(c *fiber.Ctx) error {
 	}
 
 	userID := util.GetUserIDFromCtx(c)
-	salary := util.Must(a.salaryService.Get(userID))
+	salary := util.Must(a.salaryService.Get(c.Context(), userID))
 
-	if err := a.salaryService.UpdateAmount(salary, params.Amount); err != nil {
+	if err := a.salaryService.UpdateAmount(c.Context(), salary, params.Amount); err != nil {
 		return a.HandleError(c, err)
 	}
 

@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/util"
 )
@@ -21,7 +23,7 @@ func (s *Salary) ToDTO() SalaryDTO {
 }
 
 type SalaryRepo interface {
-	Get(userID uuid.UUID) (*Salary, error)
-	Create(salary *Salary) error
-	Update(salary *Salary) error
+	Get(ctx context.Context, userID uuid.UUID) (*Salary, error)
+	Create(ctx context.Context, salary *Salary) error
+	Update(ctx context.Context, salary *Salary) error
 }
