@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { ArrowRightStartOnRectangleIcon } from "@heroicons/react/24/outline"
 import { CheckIcon, PencilIcon } from "@heroicons/react/24/solid"
 import { useTranslations } from "next-intl"
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { handleLogout } from "@/lib/utils"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -54,6 +54,7 @@ function DateSelector({ date }: { date: Date }) {
   const pathname = usePathname()
   const queryYear = date.getFullYear()
   const queryMonth = date.getMonth() + 1
+  const [isLoaded, setIsLoaded] = useState(false)
 
   const currentYear = new Date().getFullYear()
 
@@ -73,6 +74,12 @@ function DateSelector({ date }: { date: Date }) {
   )
 
   const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
+
+  useEffect(() => {
+    setIsLoaded(true)
+  }, [])
+
+  if (!isLoaded) return null
 
   return (
     <div className="flex items-center gap-2 w-min">
@@ -125,7 +132,7 @@ function Salary() {
   const queryClient = useQueryClient()
   const [isEditing, setIsEditing] = useState(false)
 
-  const { data: salary, isPending: isPendingSalary } = useQuery({
+  const { data: salary, isLoading: isLoadingSalary } = useQuery({
     queryKey: ["salary"],
     queryFn: getSalary,
     refetchOnWindowFocus: false,
@@ -157,29 +164,29 @@ function Salary() {
     <form onSubmit={handleSubmit(handleUpdateSalary)}>
       <div className="flex items-center min-w-56">
         <Label className="pr-2">{t("header.salary")}:</Label>
-        <div className="bg-white dark:bg-slate-950 rounded-md">
-          <Input
-            {...register("amount", { setValueAs: (val) => Number(val) })}
-            type="number"
-            step="0.01"
-            defaultValue={salary?.amount}
-            className={`max-w-32 ${errors.amount && "border-red-500"} ${!isEditing && "hidden"}`}
-          />
-
-          {isPendingSalary ? (
-            <LoaderCircle className="animate-spin size-6" />
-          ) : (
+        {isLoadingSalary ? (
+          <LoaderCircle className="animate-spin size-6" />
+        ) : (
+          <div className="bg-white dark:bg-slate-950 rounded-md">
             <Input
-              defaultValue={salary?.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              {...register("amount", { setValueAs: (val) => Number(val) })}
+              type="number"
+              step="0.01"
+              defaultValue={salary?.amount}
+              className={`max-w-32 ${errors.amount && "border-red-500"} ${!isEditing && "hidden"}`}
+            />
+
+            <Input
+              value={salary?.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               disabled
               className={`max-w-32 disabled:opacity-100 ${isEditing && "hidden"}`}
             />
-          )}
-        </div>
+          </div>
+        )}
 
-        {!isPendingSalary && <SalaryEditIcons isEditing={isEditing} setIsEditing={setIsEditing} />}
+        {!isLoadingSalary && <SalaryEditIcons isEditing={isEditing} setIsEditing={setIsEditing} />}
       </div>
-    </form>
+    </form >
   )
 }
 

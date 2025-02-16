@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useTranslations } from "next-intl"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { LoaderCircle } from "lucide-react"
 
 export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
   dayjs.extend(utc)
@@ -25,7 +26,7 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
   const queryClient = useQueryClient()
   const invalidateQueries = buildInvalidateQueriesFn(queryClient, date, goal.id)
 
-  const { data: expenses } = useQuery({
+  const { data: expenses, isLoading } = useQuery({
     queryKey: ["expense", date, goal.id],
     queryFn: getExpenses,
     refetchOnWindowFocus: false,
@@ -38,38 +39,44 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
       </CardHeader>
 
       <CardContent>
-        <div className="max-h-72 overflow-auto scroll">
-          <Table withoutWrapper>
-            <TableHeader className="sticky top-0 bg-slate-100 dark:bg-slate-900 rounded-full">
-              <TableRow className="dark:border-slate-800">
-                <TableHead className="min-w-24 lg:w-5/12 xl:w-4/12 2xl:w-5/12">{t("expense")}</TableHead>
-                <TableHead className="min-w-24 lg:w-3/12 2xl:w-2/12">{t("amount")}</TableHead>
-                <TableHead className="min-w-20">{t("date")}</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {expenses?.map((e) => (
-                <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
-              ))}
-
-              {(!expenses || expenses.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={3} className="pt-6 text-center text-gray-500 dark:text-gray-400">
-                    {t("noExpenses")}
-                  </TableCell>
+        {isLoading ? (
+          <div className="flex justify-center items-center pb-5">
+            <LoaderCircle className="animate-spin size-8" />
+          </div>
+        ) : (
+          <div className="max-h-72 overflow-auto scroll">
+            <Table withoutWrapper>
+              <TableHeader className="sticky top-0 bg-slate-100 dark:bg-slate-900 rounded-full">
+                <TableRow className="dark:border-slate-800">
+                  <TableHead className="min-w-24 lg:w-5/12 xl:w-4/12 2xl:w-5/12">{t("expense")}</TableHead>
+                  <TableHead className="min-w-24 lg:w-3/12 2xl:w-2/12">{t("amount")}</TableHead>
+                  <TableHead className="min-w-20">{t("date")}</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+
+              <TableBody>
+                {expenses?.map((e) => (
+                  <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
+                ))}
+
+                {(!expenses || expenses.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="pt-6 text-center text-gray-500 dark:text-gray-400">
+                      {t("noExpenses")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         <div className="mt-4">
           <CreateExpense goal={goal} invalidateQueries={invalidateQueries} />
         </div>
       </CardContent>
-    </Card>
+    </Card >
   )
 }
 

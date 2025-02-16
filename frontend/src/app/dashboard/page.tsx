@@ -6,11 +6,13 @@ import Summary from "./summary"
 import { getGoals } from "@/api/goals"
 import Expense from "./expense"
 import { useNow } from "next-intl"
-import { Suspense, useMemo } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { sortGoals } from "@/lib/utils"
 import Header from "./header"
 import Menu from "@/components/menu"
 import { useSearchParams } from "next/navigation"
+import { getSummary } from "@/api/summary"
+import { LoaderCircle } from "lucide-react"
 
 export default function Dashboard() {
   return (
@@ -28,6 +30,7 @@ export default function Dashboard() {
 
 function Content() {
   const searchParams = useSearchParams()
+  const [isLoading, setIsLoading] = useState(true)
 
   const queryYear = searchParams.get("year") || new Date().getFullYear()
   const queryMonth = searchParams.get("month") || new Date().getMonth() + 1
@@ -36,9 +39,15 @@ function Content() {
   date.setFullYear(Number(queryYear))
   date.setMonth(Number(queryMonth) - 1)
 
-  const { data: goals } = useQuery({
+  const { data: goals, isLoading: isLoadingGoals } = useQuery({
     queryKey: ["goals"],
     queryFn: getGoals,
+    refetchOnWindowFocus: false,
+  })
+
+  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ["summary", date],
+    queryFn: getSummary,
     refetchOnWindowFocus: false,
   })
 
@@ -48,6 +57,17 @@ function Content() {
     return sortGoals(goals)
   }, [goals])
 
+  useEffect(() => {
+    setIsLoading(isLoadingGoals || isLoadingSummary)
+  }, [isLoadingGoals, isLoadingSummary])
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-dvh">
+        <LoaderCircle className="animate-spin size-10" />
+      </div>
+    )
+  }
 
   return (
     <>
@@ -57,9 +77,9 @@ function Content() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         <div className="lg:col-span-2">
-          <Summary date={date} />
+          <Summary summary={summary} />
         </div>
-        <div className="">
+        <div>
           <Goals goals={sortedGoals || []} />
         </div>
       </div>
