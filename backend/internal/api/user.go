@@ -44,7 +44,7 @@ func (a *Api) CreateUser(c *fiber.Ctx) error {
 		return a.HandleZodError(c, errs)
 	}
 
-	if _, err := a.userService.GetByEmail(params.Email); err == nil {
+	if _, err := a.userService.GetByEmail(c.Context(), params.Email); err == nil {
 		return c.Status(http.StatusConflict).JSON(util.M{"error": "email already in use"})
 	} else if !errors.Is(err, errs.ErrNotFound{}) {
 		return a.HandleError(c, err)
@@ -56,7 +56,7 @@ func (a *Api) CreateUser(c *fiber.Ctx) error {
 		CreateSalaryDTO: service.CreateSalaryDTO{Amount: params.Salary},
 	}
 
-	user, salary, err := a.userService.Create(dto)
+	user, salary, err := a.userService.Create(c.Context(), dto)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -78,7 +78,7 @@ func (a *Api) UserLogin(c *fiber.Ctx) error {
 		return a.HandleZodError(c, errs)
 	}
 
-	user, err := a.userService.GetByEmailAndPassword(params.Email, params.Password)
+	user, err := a.userService.GetByEmailAndPassword(c.Context(), params.Email, params.Password)
 	if errors.Is(err, errs.ErrInvalidCredentials) {
 		return a.invalidCredentials(c)
 	} else if err != nil {

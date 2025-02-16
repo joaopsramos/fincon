@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 
 	"github.com/joaopsramos/fincon/internal/domain"
@@ -23,7 +24,7 @@ func NewUserService(userRepo domain.UserRepo) UserService {
 	return UserService{userRepo: userRepo}
 }
 
-func (s *UserService) Create(dto CreateUserDTO) (*domain.User, *domain.Salary, error) {
+func (s *UserService) Create(ctx context.Context, dto CreateUserDTO) (*domain.User, *domain.Salary, error) {
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)
@@ -36,15 +37,15 @@ func (s *UserService) Create(dto CreateUserDTO) (*domain.User, *domain.Salary, e
 
 	salary := BuildSalary(dto.CreateSalaryDTO)
 
-	if err := s.userRepo.Create(&user, &salary); err != nil {
+	if err := s.userRepo.Create(ctx, &user, &salary); err != nil {
 		return &domain.User{}, &domain.Salary{}, err
 	}
 
 	return &user, &salary, nil
 }
 
-func (s *UserService) GetByEmailAndPassword(email string, password string) (*domain.User, error) {
-	user, err := s.GetByEmail(email)
+func (s *UserService) GetByEmailAndPassword(ctx context.Context, email string, password string) (*domain.User, error) {
+	user, err := s.GetByEmail(ctx, email)
 	if errors.Is(err, errs.ErrNotFound{}) {
 		return &domain.User{}, errors.Join(err, errs.ErrInvalidCredentials)
 	} else if err != nil {
@@ -58,8 +59,8 @@ func (s *UserService) GetByEmailAndPassword(email string, password string) (*dom
 	return user, nil
 }
 
-func (s *UserService) GetByEmail(email string) (*domain.User, error) {
-	return s.userRepo.GetByEmail(email)
+func (s *UserService) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	return s.userRepo.GetByEmail(ctx, email)
 }
 
 func (s *UserService) isSamePassword(user domain.User, password string) bool {

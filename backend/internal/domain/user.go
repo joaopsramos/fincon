@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -44,7 +45,7 @@ func CreateAccessToken(userID uuid.UUID, expiresIn time.Duration) string {
 }
 
 type UserRepo interface {
-	Create(user *User, salary *Salary) error
-	Get(id uuid.UUID) (*User, error)
-	GetByEmail(email string) (*User, error)
+	Create(ctx context.Context, user *User, salary *Salary) error
+	Get(ctx context.Context, id uuid.UUID) (*User, error)
+	GetByEmail(ctx context.Context, email string) (*User, error)
 }
