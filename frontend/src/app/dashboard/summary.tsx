@@ -1,7 +1,9 @@
+"use client"
+
 import { useTranslations } from "next-intl"
-import { getSummary, SummaryGoal } from "@/api/summary"
+import type { Summary } from "@/api/summary"
+import { SummaryGoal } from "@/api/summary"
 import { moneyValueToString, sortGoals } from "@/lib/utils"
-import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useMemo } from "react"
@@ -12,13 +14,8 @@ type SummaryTotalParams = {
   valueColor?: string
 }
 
-export default function Summary({ date }: { date: Date }) {
+export default function Summary({ summary }: { summary: Summary | undefined }) {
   const t = useTranslations("DashboardPage")
-  const { data: summary } = useQuery({
-    queryKey: ["summary", date],
-    queryFn: getSummary,
-    refetchOnWindowFocus: false,
-  })
 
   const sortedGoals = useMemo(() => {
     if (!summary?.goals) return []
@@ -42,15 +39,15 @@ export default function Summary({ date }: { date: Date }) {
               <TableHead>{t("summary.used")}</TableHead>
               <TableHead>{t("summary.total")}</TableHead>
             </TableRow>
-          </TableHeader>
+          </TableHeader >
 
           <TableBody>
             {sortedGoals.map((goal) => (
               <Row key={goal.name} goal={goal} />
             ))}
           </TableBody>
-        </Table>
-      </CardContent>
+        </Table >
+      </CardContent >
 
       <CardFooter>
         <div className="flex gap-x-4 gap-y-2 flex-wrap">
@@ -71,7 +68,7 @@ export default function Summary({ date }: { date: Date }) {
           )}
         </div>
       </CardFooter>
-    </Card>
+    </Card >
   )
 }
 
