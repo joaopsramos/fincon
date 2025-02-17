@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"context"
 	"slices"
 	"testing"
 	"time"
@@ -172,7 +173,7 @@ func TestPostgresExpense_GetMonthlyGoalSpendings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			spendings, err := repo.GetMonthlyGoalSpendings(tt.queryDate, user1.ID)
+			spendings, err := repo.GetMonthlyGoalSpendings(context.Background(), tt.queryDate, user1.ID)
 			assert.NoError(err)
 			assertSpendings(tt.expected, spendings)
 		})
@@ -214,24 +215,24 @@ func TestPostgresExpense_AllByGoalID(t *testing.T) {
 	year, month, _ := monthStart.Date()
 	var actual []domain.Expense
 
-	actual, err := r.AllByGoalID(goals[0].ID, year, month, user.ID)
+	actual, err := r.AllByGoalID(context.Background(), goals[0].ID, year, month, user.ID)
 	assert.NoError(err)
 	assert.Equal(actual[0].Name, "Expense 2")
 	assert.Equal(actual[1].Name, "Expense 1")
 	assert.Equal(actual[2].Name, "Expense 3")
 
-	actual, err = r.AllByGoalID(goals[1].ID, year, month, user.ID)
+	actual, err = r.AllByGoalID(context.Background(), goals[1].ID, year, month, user.ID)
 	assert.NoError(err)
 	assert.Equal(actual[0].Name, "Expense 4")
 
 	t.Run("filter by date", func(t *testing.T) {
-		actual, err := r.AllByGoalID(goals[2].ID, year, month, user.ID)
+		actual, err := r.AllByGoalID(context.Background(), goals[2].ID, year, month, user.ID)
 		assert.NoError(err)
 		assert.Len(actual, 1)
 		assert.Equal(actual[0].Name, "Expense 5")
 
 		year, month, _ := monthStart.AddDate(0, -1, 0).Date()
-		actual, err = r.AllByGoalID(goals[2].ID, year, month, user.ID)
+		actual, err = r.AllByGoalID(context.Background(), goals[2].ID, year, month, user.ID)
 		assert.NoError(err)
 		assert.Len(actual, 1)
 		assert.Equal(actual[0].Name, "Expense 6")

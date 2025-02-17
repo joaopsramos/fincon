@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -186,7 +187,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			summary, err := expenseService.GetSummary(tt.date, user.ID)
+			summary, err := expenseService.GetSummary(context.Background(), tt.date, user.ID)
 			a.NoError(err)
 
 			a.Equal(tt.spent, summary.Spent)

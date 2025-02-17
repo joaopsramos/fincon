@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -92,10 +93,10 @@ func TestExpenseHandler_Create(t *testing.T) {
 	}, respBody)
 
 	repo := repository.NewPostgresExpense(tx)
-	_, err := repo.Get(uint(id), user.ID)
+	_, err := repo.Get(context.Background(), uint(id), user.ID)
 	assert.Nil(err)
 
-	_, err = repo.Get(uint(id), uuid.New())
+	_, err = repo.Get(context.Background(), uint(id), uuid.New())
 	assert.Equal("expense not found", err.Error())
 }
 
@@ -399,6 +400,6 @@ func TestExpenseHandler_Delete(t *testing.T) {
 	}
 
 	repo := repository.NewPostgresExpense(tx)
-	_, err := repo.Get(expense.ID, user.ID)
+	_, err := repo.Get(context.Background(), expense.ID, user.ID)
 	assert.Equal("expense not found", err.Error())
 }

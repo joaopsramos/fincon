@@ -49,7 +49,7 @@ func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	expenses, err := a.expenseService.AllByGoalID(uint(id), year, month, userID)
+	expenses, err := a.expenseService.AllByGoalID(c.Context(), uint(id), year, month, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}

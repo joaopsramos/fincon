@@ -53,12 +53,12 @@ func NewExpenseService(
 	return ExpenseService{expenseRepo, goalRepo, salaryRepo}
 }
 
-func (s *ExpenseService) Get(id uint, userID uuid.UUID) (*domain.Expense, error) {
-	return s.expenseRepo.Get(id, userID)
+func (s *ExpenseService) Get(ctx context.Context, id uint, userID uuid.UUID) (*domain.Expense, error) {
+	return s.expenseRepo.Get(ctx, id, userID)
 }
 
-func (s *ExpenseService) Create(dto CreateExpenseDTO, userID uuid.UUID) (*domain.Expense, error) {
-	goal, err := s.goalRepo.Get(context.TODO(), uint(dto.GoalID), userID)
+func (s *ExpenseService) Create(ctx context.Context, dto CreateExpenseDTO, userID uuid.UUID) (*domain.Expense, error) {
+	goal, err := s.goalRepo.Get(ctx, uint(dto.GoalID), userID)
 	if err != nil {
 		return &domain.Expense{}, err
 	}
@@ -71,13 +71,13 @@ func (s *ExpenseService) Create(dto CreateExpenseDTO, userID uuid.UUID) (*domain
 		UserID: userID,
 	}
 
-	err = s.expenseRepo.Create(&e)
+	err = s.expenseRepo.Create(ctx, &e)
 
 	return &e, err
 }
 
-func (s *ExpenseService) UpdateByID(id uint, dto UpdateExpenseDTO, userID uuid.UUID) (*domain.Expense, error) {
-	e, err := s.expenseRepo.Get(id, userID)
+func (s *ExpenseService) UpdateByID(ctx context.Context, id uint, dto UpdateExpenseDTO, userID uuid.UUID) (*domain.Expense, error) {
+	e, err := s.expenseRepo.Get(ctx, id, userID)
 	if err != nil {
 		return &domain.Expense{}, err
 	}
@@ -86,39 +86,39 @@ func (s *ExpenseService) UpdateByID(id uint, dto UpdateExpenseDTO, userID uuid.U
 	util.UpdateIfNotZero(&e.Value, int64(dto.Value*100))
 	util.UpdateIfNotZero(&e.Date, dto.Date)
 
-	err = s.expenseRepo.Update(e)
+	err = s.expenseRepo.Update(ctx, e)
 
 	return e, err
 }
 
-func (s *ExpenseService) Delete(id uint, userID uuid.UUID) error {
-	return s.expenseRepo.Delete(id, userID)
+func (s *ExpenseService) Delete(ctx context.Context, id uint, userID uuid.UUID) error {
+	return s.expenseRepo.Delete(ctx, id, userID)
 }
 
-func (s *ExpenseService) ChangeGoal(e *domain.Expense, goalID uint, userID uuid.UUID) error {
-	goal, err := s.goalRepo.Get(context.TODO(), goalID, userID)
+func (s *ExpenseService) ChangeGoal(ctx context.Context, e *domain.Expense, goalID uint, userID uuid.UUID) error {
+	goal, err := s.goalRepo.Get(ctx, goalID, userID)
 	if err != nil {
 		return err
 	}
 
 	e.GoalID = goal.ID
 
-	err = s.expenseRepo.Update(e)
+	err = s.expenseRepo.Update(ctx, e)
 
 	return err
 }
 
-func (s *ExpenseService) AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) ([]domain.Expense, error) {
-	return s.expenseRepo.AllByGoalID(goalID, year, month, userID)
+func (s *ExpenseService) AllByGoalID(ctx context.Context, goalID uint, year int, month time.Month, userID uuid.UUID) ([]domain.Expense, error) {
+	return s.expenseRepo.AllByGoalID(ctx, goalID, year, month, userID)
 }
 
-func (s *ExpenseService) FindMatchingNames(name string, userID uuid.UUID) ([]string, error) {
-	return s.expenseRepo.FindMatchingNames(name, userID)
+func (s *ExpenseService) FindMatchingNames(ctx context.Context, name string, userID uuid.UUID) ([]string, error) {
+	return s.expenseRepo.FindMatchingNames(ctx, name, userID)
 }
 
-func (s *ExpenseService) GetSummary(date time.Time, userID uuid.UUID) (*Summary, error) {
-	salary := util.Must(s.salaryRepo.Get(context.TODO(), userID))
-	monthlyGoalSpendings, err := s.expenseRepo.GetMonthlyGoalSpendings(date, userID)
+func (s *ExpenseService) GetSummary(ctx context.Context, date time.Time, userID uuid.UUID) (*Summary, error) {
+	salary := util.Must(s.salaryRepo.Get(ctx, userID))
+	monthlyGoalSpendings, err := s.expenseRepo.GetMonthlyGoalSpendings(ctx, date, userID)
 	if err != nil {
 		return &Summary{}, err
 	}
@@ -149,7 +149,7 @@ func (s *ExpenseService) GetSummary(date time.Time, userID uuid.UUID) (*Summary,
 		}
 	}
 
-	goals := s.goalRepo.All(context.TODO(), userID)
+	goals := s.goalRepo.All(ctx, userID)
 
 	var totalSpent, totalMustSpend, totalUsed decimal.Decimal
 
