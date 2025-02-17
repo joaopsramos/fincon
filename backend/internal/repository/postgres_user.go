@@ -38,7 +38,7 @@ func (r PostgresUserRepository) Create(ctx context.Context, user *domain.User, s
 		}
 
 		txGoalRepo := NewPostgresGoal(tx)
-		if err := txGoalRepo.Create(goals...); err != nil {
+		if err := txGoalRepo.Create(context.Background(), goals...); err != nil {
 			return err
 		}
 

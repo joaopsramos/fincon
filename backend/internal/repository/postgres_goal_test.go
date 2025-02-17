@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/joaopsramos/fincon/internal/domain"
@@ -30,5 +31,5 @@ func TestPostgresGoal_All(t *testing.T) {
 	}
 
 	r := NewTestPostgresGoalRepo(t, tx)
-	assert.Equal(t, goals, r.All(user.ID))
+	assert.Equal(t, goals, r.All(context.Background(), user.ID))
 }

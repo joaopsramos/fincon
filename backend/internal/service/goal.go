@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	errs "github.com/joaopsramos/fincon/internal/error"
@@ -19,19 +21,19 @@ func NewGoalService(goalRepo domain.GoalRepo) GoalService {
 	return GoalService{goalRepo: goalRepo}
 }
 
-func (s *GoalService) All(userID uuid.UUID) []domain.Goal {
-	return s.goalRepo.All(userID)
+func (s *GoalService) All(ctx context.Context, userID uuid.UUID) []domain.Goal {
+	return s.goalRepo.All(ctx, userID)
 }
 
-func (s *GoalService) Get(id uint, userID uuid.UUID) (*domain.Goal, error) {
-	return s.goalRepo.Get(id, userID)
+func (s *GoalService) Get(ctx context.Context, id uint, userID uuid.UUID) (*domain.Goal, error) {
+	return s.goalRepo.Get(ctx, id, userID)
 }
 
-func (s *GoalService) Create(goals ...domain.Goal) error {
-	return s.goalRepo.Create(goals...)
+func (s *GoalService) Create(ctx context.Context, goals ...domain.Goal) error {
+	return s.goalRepo.Create(ctx, goals...)
 }
 
-func (s *GoalService) UpdateAll(dtos []UpdateGoalDTO, userID uuid.UUID) ([]domain.Goal, error) {
+func (s *GoalService) UpdateAll(ctx context.Context, dtos []UpdateGoalDTO, userID uuid.UUID) ([]domain.Goal, error) {
 	var zero []domain.Goal
 
 	if len(dtos) < len(domain.DefaulGoalPercentages()) {
@@ -51,7 +53,7 @@ func (s *GoalService) UpdateAll(dtos []UpdateGoalDTO, userID uuid.UUID) ([]domai
 		return zero, errs.NewValidationError("the sum of all percentages must be equal to 100")
 	}
 
-	goals := s.All(userID)
+	goals := s.All(ctx, userID)
 
 	dtosByID := make(map[int]UpdateGoalDTO, len(dtos))
 	for _, d := range dtos {
@@ -67,7 +69,7 @@ func (s *GoalService) UpdateAll(dtos []UpdateGoalDTO, userID uuid.UUID) ([]domai
 		goals[i].Percentage = uint(d.Percentage)
 	}
 
-	err := s.goalRepo.UpdateAll(goals)
+	err := s.goalRepo.UpdateAll(ctx, goals)
 
 	return goals, err
 }

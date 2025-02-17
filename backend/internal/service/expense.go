@@ -58,7 +58,7 @@ func (s *ExpenseService) Get(id uint, userID uuid.UUID) (*domain.Expense, error)
 }
 
 func (s *ExpenseService) Create(dto CreateExpenseDTO, userID uuid.UUID) (*domain.Expense, error) {
-	goal, err := s.goalRepo.Get(uint(dto.GoalID), userID)
+	goal, err := s.goalRepo.Get(context.TODO(), uint(dto.GoalID), userID)
 	if err != nil {
 		return &domain.Expense{}, err
 	}
@@ -96,7 +96,7 @@ func (s *ExpenseService) Delete(id uint, userID uuid.UUID) error {
 }
 
 func (s *ExpenseService) ChangeGoal(e *domain.Expense, goalID uint, userID uuid.UUID) error {
-	goal, err := s.goalRepo.Get(goalID, userID)
+	goal, err := s.goalRepo.Get(context.TODO(), goalID, userID)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (s *ExpenseService) GetSummary(date time.Time, userID uuid.UUID) (*Summary,
 		}
 	}
 
-	goals := s.goalRepo.All(userID)
+	goals := s.goalRepo.All(context.TODO(), userID)
 
 	var totalSpent, totalMustSpend, totalUsed decimal.Decimal
 

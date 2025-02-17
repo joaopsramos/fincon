@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -50,8 +52,8 @@ func DefaulGoalPercentages() map[GoalName]uint {
 }
 
 type GoalRepo interface {
-	All(userID uuid.UUID) []Goal
-	Get(id uint, userID uuid.UUID) (*Goal, error)
-	Create(goals ...Goal) error
-	UpdateAll(goals []Goal) error
+	All(ctx context.Context, userID uuid.UUID) []Goal
+	Get(ctx context.Context, id uint, userID uuid.UUID) (*Goal, error)
+	Create(ctx context.Context, goals ...Goal) error
+	UpdateAll(ctx context.Context, goals []Goal) error
 }
