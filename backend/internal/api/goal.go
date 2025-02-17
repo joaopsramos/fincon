@@ -14,7 +14,7 @@ import (
 
 func (a *Api) AllGoals(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
-	goals := a.goalService.All(userID)
+	goals := a.goalService.All(c.Context(), userID)
 	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
 	return c.Status(http.StatusOK).JSON(goalDTOs)
 }
@@ -83,7 +83,7 @@ func (a *Api) UpdateGoals(c *fiber.Ctx) error {
 		}
 	}
 
-	goals, err := a.goalService.UpdateAll(dtos, userID)
+	goals, err := a.goalService.UpdateAll(c.Context(), dtos, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
