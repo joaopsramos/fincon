@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,11 +48,11 @@ func (e *Expense) ToDTO() ExpenseDTO {
 }
 
 type ExpenseRepo interface {
-	Get(id uint, userID uuid.UUID) (*Expense, error)
-	Create(e *Expense) error
-	Update(e *Expense) error
-	Delete(id uint, userID uuid.UUID) error
-	AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) ([]Expense, error)
-	FindMatchingNames(name string, userID uuid.UUID) ([]string, error)
-	GetMonthlyGoalSpendings(date time.Time, userID uuid.UUID) ([]MonthlyGoalSpending, error)
+	Get(ctx context.Context, id uint, userID uuid.UUID) (*Expense, error)
+	Create(ctx context.Context, e *Expense) error
+	Update(ctx context.Context, e *Expense) error
+	Delete(ctx context.Context, id uint, userID uuid.UUID) error
+	AllByGoalID(ctx context.Context, goalID uint, year int, month time.Month, userID uuid.UUID) ([]Expense, error)
+	FindMatchingNames(ctx context.Context, name string, userID uuid.UUID) ([]string, error)
+	GetMonthlyGoalSpendings(ctx context.Context, date time.Time, userID uuid.UUID) ([]MonthlyGoalSpending, error)
 }

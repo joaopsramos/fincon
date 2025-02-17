@@ -32,7 +32,7 @@ func (a *Api) FindExpenseSuggestions(c *fiber.Ctx) error {
 	}
 
 	userID := util.GetUserIDFromCtx(c)
-	names, err := a.expenseService.FindMatchingNames(query, userID)
+	names, err := a.expenseService.FindMatchingNames(c.Context(), query, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -53,7 +53,7 @@ func (h *Api) GetSummary(c *fiber.Ctx) error {
 	}
 
 	userID := util.GetUserIDFromCtx(c)
-	summary, err := h.expenseService.GetSummary(date, userID)
+	summary, err := h.expenseService.GetSummary(c.Context(), date, userID)
 	if err != nil {
 		return h.HandleError(c, err)
 	}
@@ -82,7 +82,7 @@ func (a *Api) CreateExpense(c *fiber.Ctx) error {
 		GoalID: params.GoalID,
 	}
 
-	expense, err := a.expenseService.Create(dto, userID)
+	expense, err := a.expenseService.Create(c.Context(), dto, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -112,7 +112,7 @@ func (a *Api) UpdateExpense(c *fiber.Ctx) error {
 		Date:  params.Date,
 	}
 
-	expense, err := a.expenseService.UpdateByID(uint(id), dto, util.GetUserIDFromCtx(c))
+	expense, err := a.expenseService.UpdateByID(c.Context(), uint(id), dto, util.GetUserIDFromCtx(c))
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -135,12 +135,12 @@ func (a *Api) UpdateExpenseGoal(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	expense, err := a.expenseService.Get(uint(id), userID)
+	expense, err := a.expenseService.Get(c.Context(), uint(id), userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
 
-	err = a.expenseService.ChangeGoal(expense, params.GoalID, userID)
+	err = a.expenseService.ChangeGoal(c.Context(), expense, params.GoalID, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
@@ -156,7 +156,7 @@ func (a *Api) DeleteExpense(c *fiber.Ctx) error {
 
 	userID := util.GetUserIDFromCtx(c)
 
-	err = a.expenseService.Delete(uint(id), userID)
+	err = a.expenseService.Delete(c.Context(), uint(id), userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}

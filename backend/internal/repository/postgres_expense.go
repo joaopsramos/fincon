@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,17 +18,17 @@ func NewPostgresExpense(db *gorm.DB) domain.ExpenseRepo {
 	return PostgresExpenseRepository{db}
 }
 
-func (r PostgresExpenseRepository) FindMatchingNames(name string, userID uuid.UUID) ([]string, error) {
+func (r PostgresExpenseRepository) FindMatchingNames(ctx context.Context, name string, userID uuid.UUID) ([]string, error) {
 	var names []string
-	result := r.db.Model(&domain.Expense{}).Where("user_id = ?", userID).Where("unaccent(name) ILIKE unaccent(?)", "%"+name+"%").Distinct("name").Pluck("name", &names)
+	result := r.db.WithContext(ctx).Model(&domain.Expense{}).Where("user_id = ?", userID).Where("unaccent(name) ILIKE unaccent(?)", "%"+name+"%").Distinct("name").Pluck("name", &names)
 
 	return names, result.Error
 }
 
-func (r PostgresExpenseRepository) Get(id uint, userID uuid.UUID) (*domain.Expense, error) {
+func (r PostgresExpenseRepository) Get(ctx context.Context, id uint, userID uuid.UUID) (*domain.Expense, error) {
 	var e domain.Expense
 
-	if err := r.db.Where("user_id = ?", userID).Take(&e, id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("user_id = ?", userID).Take(&e, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return &domain.Expense{}, errs.NewNotFound("expense")
 		}
@@ -38,24 +39,24 @@ func (r PostgresExpenseRepository) Get(id uint, userID uuid.UUID) (*domain.Expen
 	return &e, nil
 }
 
-func (r PostgresExpenseRepository) Create(e *domain.Expense) error {
-	if err := r.db.Create(e).Error; err != nil {
+func (r PostgresExpenseRepository) Create(ctx context.Context, e *domain.Expense) error {
+	if err := r.db.WithContext(ctx).Create(e).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r PostgresExpenseRepository) Update(e *domain.Expense) error {
-	if err := r.db.Model(e).Updates(e).Error; err != nil {
+func (r PostgresExpenseRepository) Update(ctx context.Context, e *domain.Expense) error {
+	if err := r.db.WithContext(ctx).Model(e).Updates(e).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r PostgresExpenseRepository) Delete(id uint, userID uuid.UUID) error {
-	result := r.db.Where("user_id = ?", userID).Delete(&domain.Expense{}, id)
+func (r PostgresExpenseRepository) Delete(ctx context.Context, id uint, userID uuid.UUID) error {
+	result := r.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&domain.Expense{}, id)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -67,11 +68,11 @@ func (r PostgresExpenseRepository) Delete(id uint, userID uuid.UUID) error {
 	return nil
 }
 
-func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time.Month, userID uuid.UUID) ([]domain.Expense, error) {
+func (r PostgresExpenseRepository) AllByGoalID(ctx context.Context, goalID uint, year int, month time.Month, userID uuid.UUID) ([]domain.Expense, error) {
 	date := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 
 	var e []domain.Expense
-	result := r.db.
+	result := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Where("goal_id = ?", goalID).
 		Where("date_trunc('month', date) = date_trunc('month', ?::timestamp)", date).
@@ -81,9 +82,9 @@ func (r PostgresExpenseRepository) AllByGoalID(goalID uint, year int, month time
 	return e, result.Error
 }
 
-func (r PostgresExpenseRepository) GetMonthlyGoalSpendings(date time.Time, userID uuid.UUID) ([]domain.MonthlyGoalSpending, error) {
+func (r PostgresExpenseRepository) GetMonthlyGoalSpendings(ctx context.Context, date time.Time, userID uuid.UUID) ([]domain.MonthlyGoalSpending, error) {
 	var monthlyGoalSpendings []domain.MonthlyGoalSpending
-	err := r.db.Model(&domain.Goal{}).
+	err := r.db.WithContext(ctx).Model(&domain.Goal{}).
 		Joins("JOIN expenses ON goals.id = expenses.goal_id").
 		Where("date_trunc('month', expenses.date) <= date_trunc('month', ?::date)", date).
 		Where("goals.user_id = ?", userID).
