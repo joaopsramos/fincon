@@ -1,24 +1,32 @@
-import dayjs from "dayjs"
-import type { CreateExpenseParams, Expense } from "@/api/expense"
-import utc from "dayjs/plugin/utc"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/solid"
-import { Goal } from "@/api/goals"
-import { Input } from "@/components/ui/input"
-import { KeyboardEvent, useState } from "react"
-import { QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { createExpense, deleteExpense, editExpense, findMatchingNames, getExpenses } from "@/api/expense"
-import { moneyValueToString } from "@/lib/utils"
-import { useForm } from "react-hook-form"
-import { useToast } from "@/hooks/use-toast"
+"use client"
+
+import type React from "react"
+import { useState } from "react"
+import type { Expense } from "@/api/expense"
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import { CheckIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { Goal } from "@/api/goals"
+import { deleteExpense, editExpense, getExpenses } from "@/api/expense"
+import { moneyValueToString } from "@/lib/utils"
+import CreateExpense from "./create_expense"
 import { LoaderCircle } from "lucide-react"
 
-export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
+export default function Expense({
+  selectedGoal: goal,
+  goals,
+  date,
+}: {
+  goals: Goal[]
+  selectedGoal: Goal
+  date: Date
+}) {
   dayjs.extend(utc)
 
   const commonT = useTranslations("Common")
@@ -62,7 +70,7 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
 
                 {(!expenses || expenses.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={3} className="pt-6 text-center text-gray-500 dark:text-gray-400">
+                    <TableCell colSpan={4} className="pt-6 text-center text-gray-500 dark:text-gray-400">
                       {t("noExpenses")}
                     </TableCell>
                   </TableRow>
@@ -73,10 +81,10 @@ export default function Expense({ goal, date }: { goal: Goal; date: Date }) {
         )}
 
         <div className="mt-4">
-          <CreateExpense goal={goal} invalidateQueries={invalidateQueries} />
+          <CreateExpense selectedGoal={goal} goals={goals} invalidateQueries={invalidateQueries} />
         </div>
       </CardContent>
-    </Card >
+    </Card>
   )
 }
 
@@ -87,7 +95,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueri
   const [value, setValue] = useState(expense.value.toString())
 
   const editExpenseMut = useMutation({
-    mutationFn: () => editExpense({ name, value: parseFloat(value) }, expense.id),
+    mutationFn: () => editExpense({ name, value: Number.parseFloat(value) }, expense.id),
     onSuccess: async () => {
       await invalidateQueries()
       setIsEditing(false)
@@ -102,7 +110,7 @@ function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueri
     },
   })
 
-  const editExpenseOnEnter = (e: KeyboardEvent<HTMLInputElement>) => {
+  const editExpenseOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key == "Enter") {
       editExpenseMut.mutate()
     }
@@ -143,18 +151,20 @@ function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueri
       <TableCell>
         <div className={`flex justify-end gap-1 ${isEditing ? "" : "invisible group-hover:visible"}`}>
           {!isEditing ? (
-            <Tooltip>
-              <TooltipTrigger>
-                <div
-                  className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
-                  onClick={() => setIsEditing(true)}>
-                  <PencilIcon className="size-4 text-white" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t("editTooltip")}</p>
-              </TooltipContent>
-            </Tooltip>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div
+                    className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
+                    onClick={() => setIsEditing(true)}>
+                    <PencilIcon className="size-4 text-white" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t("editTooltip")}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           ) : (
             <div
               className="cursor-pointer bg-green-500 rounded-full p-1 w-min hover:bg-green-600 transition-colors"
@@ -163,152 +173,27 @@ function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueri
             </div>
           )}
 
-          <Tooltip>
-            <TooltipTrigger>
-              <div
-                className="cursor-pointer bg-red-500 rounded-full p-1 w-min hover:bg-red-600 transition-colors"
-                onClick={() => {
-                  if (window.confirm(t("deleteMsg", { name: expense.name }))) {
-                    deleteExpenseMut.mutate()
-                  }
-                }}>
-                <TrashIcon className="size-4 text-white" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t("deleteTooltip")}</p>
-            </TooltipContent>
-          </Tooltip>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <div
+                  className="cursor-pointer bg-red-500 rounded-full p-1 w-min hover:bg-red-600 transition-colors"
+                  onClick={() => {
+                    if (window.confirm(t("deleteMsg", { name: expense.name }))) {
+                      deleteExpenseMut.mutate()
+                    }
+                  }}>
+                  <TrashIcon className="size-4 text-white" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t("deleteTooltip")}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </TableCell>
     </TableRow>
-  )
-}
-
-const createExpenseSchema = z.object({
-  name: z.string().min(2, "stringMin"),
-  value: z.number().gte(0.01, "numberGte"),
-})
-
-type CreateExpenseSchema = z.infer<typeof createExpenseSchema>
-
-function CreateExpense({ goal, invalidateQueries }: { goal: Goal; invalidateQueries: () => Promise<void> }) {
-  const errorsT = useTranslations("Errors")
-  const t = useTranslations("DashboardPage.expenses")
-  const [nameFocused, setNameFocused] = useState(false)
-  const { toast } = useToast()
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<CreateExpenseSchema>({ resolver: zodResolver(createExpenseSchema) })
-  const name = watch("name", "")
-
-  const createExpenseMut = useMutation({
-    mutationFn: async (data: CreateExpenseParams) => await createExpense(data),
-    onSuccess: () => {
-      reset()
-      invalidateQueries()
-    },
-    onError: () =>
-      toast({
-        title: "Error",
-        description: "Something went wrong, please try again.",
-        variant: "destructive",
-      }),
-  })
-
-  const handleCreateExpense = (data: CreateExpenseSchema) => {
-    const params: CreateExpenseParams = {
-      ...data,
-      date: new Date(),
-      goal_id: goal.id,
-    }
-
-    createExpenseMut.mutate(params)
-  }
-
-  const { data: matchingNames = [] } = useQuery({
-    queryKey: ["matchingNames", name],
-    queryFn: () => findMatchingNames(name),
-    enabled: name.length >= 2,
-    placeholderData: [],
-    refetchOnWindowFocus: false,
-  })
-
-  return (
-    <form onSubmit={handleSubmit(handleCreateExpense)} className="relative">
-      <div className="grid grid-cols-11 gap-1">
-        <div className="col-span-5">
-          <Input
-            className={`rounded-md p-1 w-full dark:bg-slate-900 ${errors.name ? "border-red-500" : ""}`}
-            {...register("name")}
-            type="text"
-            placeholder={t("nameInput")}
-            autoComplete="off"
-            onFocus={() => setNameFocused(true)}
-            onBlur={() => setNameFocused(false)}
-            value={name}
-          />
-        </div>
-        <div className="col-span-5">
-          <Input
-            className={`rounded-md p-1 w-full dark:bg-slate-900 ${errors.value ? "border-red-500" : ""}`}
-            {...register("value", { setValueAs: (val) => Number(val) })}
-            type="number"
-            placeholder={t("valueInput")}
-            step="0.01"
-          />
-        </div>
-        <input hidden name="goal_id" value={goal.id} readOnly />
-
-        <Tooltip>
-          <TooltipTrigger>
-            <span className="block self-center w-min h-min ml-1 -mr-1 sm:ml-4 sm:mr-0 bg-slate-900 dark:bg-white rounded-full">
-              <PlusIcon className="size-6 text-white dark:text-slate-900" />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{t("addTooltip")}</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {errors.name && (
-          <span className="row-start-2 col-span-5 text-red-500 text-xs">
-            {errorsT(errors.name.message, { min: 2 })}
-          </span>
-        )}
-
-        {errors.value && (
-          <span className="row-start-2 col-start-6 col-span-5 text-red-500 text-xs">
-            {errorsT(errors.value.message, { gte: 0.01 })}
-          </span>
-        )}
-      </div>
-
-      {matchingNames.length > 0 &&
-        nameFocused && (
-          <div className="absolute top-10 z-10 bg-white dark:bg-slate-900 rounded-lg mt-1 w-min text-nowrap max-h-40 overflow-y-auto scroll border border-slate-300 dark:border-slate-700 shadow">
-            <ul>
-              {matchingNames.map((name) => (
-                <li
-                  key={name}
-                  className="px-2 py-1 border-b dark:border-slate-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setValue("name", name)
-                    setNameFocused(false)
-                  }}>
-                  {name}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-    </form>
   )
 }
 
