@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 
 func TestExpenseHandler_Create(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
@@ -26,13 +26,12 @@ func TestExpenseHandler_Create(t *testing.T) {
 	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
 	f.InsertGoal(&goal)
 
-	var respBody util.M
-
-	data := []struct {
+	tests := []struct {
 		name     string
 		body     util.M
 		status   int
-		expected util.M
+		want     util.M
+		validate func(t *testing.T, respBody util.M)
 	}{
 		{
 			"ensure required fields",
@@ -44,6 +43,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 				"date":    []any{"is required"},
 				"goal_id": []any{"is required"},
 			}},
+			nil,
 		},
 		{
 			"invalid values",
@@ -54,50 +54,103 @@ func TestExpenseHandler_Create(t *testing.T) {
 				"value": []any{"value must be greater than or equal to 0.01"},
 				"date":  []any{"time is invalid"},
 			}},
+			nil,
 		},
 		{
 			"goal not found",
 			util.M{"name": "Food", "value": 123.45, "date": "2025-12-15", "goal_id": goal.ID + 1},
 			404,
 			util.M{"error": "goal not found"},
+			nil,
+		},
+		{
+			"successful expense creation",
+			util.M{"name": "Food", "value": 123.45, "date": "2025-01-15", "goal_id": goal.ID},
+			201,
+			nil,
+			func(t *testing.T, respBody util.M) {
+				a := assert.New(t)
+
+				data := respBody["data"].([]any)
+				a.Len(data, 1)
+
+				expense := data[0].(util.M)
+				id := expense["id"].(float64)
+
+				a.Equal(util.M{
+					"id":      id,
+					"name":    "Food",
+					"value":   123.45,
+					"date":    "2025-01-15T00:00:00Z",
+					"goal_id": float64(goal.ID),
+				}, expense)
+
+				repo := repository.NewPostgresExpense(tx)
+				_, err := repo.Get(context.Background(), uint(id), user.ID)
+				a.Nil(err)
+
+				_, err = repo.Get(context.Background(), uint(id), uuid.New())
+				a.Equal("expense not found", err.Error())
+			},
+		},
+		{
+			"create expense with installments",
+			util.M{"name": "Food", "value": 123.45, "date": "2025-01-15", "goal_id": goal.ID, "installments": 2},
+			201,
+			nil,
+			func(t *testing.T, respBody util.M) {
+				a := assert.New(t)
+
+				data := respBody["data"].([]any)
+				a.Len(data, 2)
+
+				expense := data[0].(util.M)
+				id := expense["id"].(float64)
+
+				a.Equal(util.M{
+					"id":      id,
+					"name":    "Food (1/2)",
+					"value":   123.45,
+					"date":    "2025-01-15T00:00:00Z",
+					"goal_id": float64(goal.ID),
+				}, expense)
+
+				repo := repository.NewPostgresExpense(tx)
+
+				// assert it created two expenses, one for current month and another for the next one
+				for i := range 2 {
+					created, err := repo.AllByGoalID(context.Background(), goal.ID, 2025, time.Month(i+1), user.ID)
+					a.Nil(err)
+					idx := slices.IndexFunc(created, func(e domain.Expense) bool {
+						return e.Name == fmt.Sprintf("Food (%d/2)", i+1)
+					})
+					a.NotEqual(idx, -1)
+				}
+
+				_, err := repo.Get(context.Background(), uint(id), uuid.New())
+				a.Equal("expense not found", err.Error())
+			},
 		},
 	}
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			resp := api.Test(http.MethodPost, "/api/expenses", d.body)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := assert.New(t)
+			var respBody util.M
+
+			resp := api.Test(http.MethodPost, "/api/expenses", tt.body)
 			api.UnmarshalBody(resp.Body, &respBody)
-			assert.Equal(resp.StatusCode, d.status)
-			assert.Equal(d.expected, respBody)
-			clear(respBody)
+
+			a.Equal(tt.status, resp.StatusCode)
+			if tt.want != nil {
+				a.Equal(tt.want, respBody)
+			}
+
+			if tt.validate != nil {
+				tt.validate(t, respBody)
+			}
 		})
 	}
-
-	resp := api.Test(
-		http.MethodPost,
-		"/api/expenses",
-		util.M{"name": "Food", "value": 123.45, "date": "2025-01-15", "goal_id": goal.ID},
-	)
-	api.UnmarshalBody(resp.Body, &respBody)
-
-	assert.Equal(resp.StatusCode, 201)
-
-	id := respBody["id"].(float64)
-	delete(respBody, "id")
-
-	assert.Equal(util.M{
-		"name":    "Food",
-		"value":   123.45,
-		"date":    "2025-01-15T00:00:00Z",
-		"goal_id": float64(goal.ID),
-	}, respBody)
-
-	repo := repository.NewPostgresExpense(tx)
-	_, err := repo.Get(context.Background(), uint(id), user.ID)
-	assert.Nil(err)
-
-	_, err = repo.Get(context.Background(), uint(id), uuid.New())
-	assert.Equal("expense not found", err.Error())
 }
 
 func TestExpenseHandler_FindMatchingNames(t *testing.T) {

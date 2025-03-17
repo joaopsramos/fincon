@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/dromara/carbon/v2"
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -17,10 +19,11 @@ type ExpenseService struct {
 }
 
 type CreateExpenseDTO struct {
-	Name   string
-	Value  float64
-	Date   time.Time
-	GoalID int
+	Name         string
+	Value        float64
+	Date         time.Time
+	Installments int
+	GoalID       int
 }
 
 type UpdateExpenseDTO struct {
@@ -57,13 +60,13 @@ func (s *ExpenseService) Get(ctx context.Context, id uint, userID uuid.UUID) (*d
 	return s.expenseRepo.Get(ctx, id, userID)
 }
 
-func (s *ExpenseService) Create(ctx context.Context, dto CreateExpenseDTO, userID uuid.UUID) (*domain.Expense, error) {
+func (s *ExpenseService) Create(ctx context.Context, dto CreateExpenseDTO, userID uuid.UUID) ([]domain.Expense, error) {
 	goal, err := s.goalRepo.Get(ctx, uint(dto.GoalID), userID)
 	if err != nil {
-		return &domain.Expense{}, err
+		return []domain.Expense{}, err
 	}
 
-	e := domain.Expense{
+	base := domain.Expense{
 		Name:   dto.Name,
 		Value:  int64(dto.Value * 100),
 		Date:   dto.Date,
@@ -71,9 +74,25 @@ func (s *ExpenseService) Create(ctx context.Context, dto CreateExpenseDTO, userI
 		UserID: userID,
 	}
 
-	err = s.expenseRepo.Create(ctx, &e)
+	if dto.Installments <= 0 {
+		dto.Installments = 1
+	}
 
-	return &e, err
+	expenses := make([]domain.Expense, 0, max(1, dto.Installments))
+	for i := range dto.Installments {
+		e := base
+
+		if dto.Installments > 1 {
+			e.Name = fmt.Sprintf("%s (%d/%d)", dto.Name, i+1, dto.Installments)
+			e.Date = carbon.NewCarbon(e.Date).AddMonthsNoOverflow(i).StdTime()
+		}
+
+		expenses = append(expenses, e)
+	}
+
+	err = s.expenseRepo.CreateMany(ctx, expenses)
+
+	return expenses, err
 }
 
 func (s *ExpenseService) UpdateByID(ctx context.Context, id uint, dto UpdateExpenseDTO, userID uuid.UUID) (*domain.Expense, error) {
