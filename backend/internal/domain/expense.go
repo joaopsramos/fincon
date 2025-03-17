@@ -50,6 +50,7 @@ func (e *Expense) ToDTO() ExpenseDTO {
 type ExpenseRepo interface {
 	Get(ctx context.Context, id uint, userID uuid.UUID) (*Expense, error)
 	Create(ctx context.Context, e *Expense) error
+	CreateMany(ctx context.Context, e []Expense) error
 	Update(ctx context.Context, e *Expense) error
 	Delete(ctx context.Context, id uint, userID uuid.UUID) error
 	AllByGoalID(ctx context.Context, goalID uint, year int, month time.Month, userID uuid.UUID) ([]Expense, error)

@@ -8,15 +8,17 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/gofiber/fiber/v2"
+	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
 var expenseCreateSchema = z.Struct(z.Schema{
-	"name":   z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Required(),
-	"value":  z.Float().GTE(0.01, z.Message("value must be greater than or equal to 0.01")).Required(),
-	"date":   z.Time(z.Time.Format(util.ApiDateLayout)).Required(),
-	"goalID": z.Int().Required(),
+	"name":         z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Required(),
+	"value":        z.Float().GTE(0.01, z.Message("value must be greater than or equal to 0.01")).Required(),
+	"date":         z.Time(z.Time.Format(util.ApiDateLayout)).Required(),
+	"goalID":       z.Int().Required(),
+	"installments": z.Int().GTE(1, z.Message("installments must be greater than or equal to 1")).Optional(),
 })
 
 var expenseUpdateSchema = z.Struct(z.Schema{
@@ -63,10 +65,11 @@ func (h *Api) GetSummary(c *fiber.Ctx) error {
 
 func (a *Api) CreateExpense(c *fiber.Ctx) error {
 	var params struct {
-		Name   string
-		Value  float64
-		Date   time.Time
-		GoalID int `zog:"goal_id"`
+		Name         string
+		Value        float64
+		Date         time.Time
+		GoalID       int `zog:"goal_id"`
+		Installments int
 	}
 
 	if errs := util.ParseZodSchema(expenseCreateSchema, c.Body(), &params); errs != nil {
@@ -76,18 +79,24 @@ func (a *Api) CreateExpense(c *fiber.Ctx) error {
 	userID := util.GetUserIDFromCtx(c)
 
 	dto := service.CreateExpenseDTO{
-		Name:   params.Name,
-		Value:  params.Value,
-		Date:   params.Date,
-		GoalID: params.GoalID,
+		Name:         params.Name,
+		Value:        params.Value,
+		Date:         params.Date,
+		GoalID:       params.GoalID,
+		Installments: params.Installments,
 	}
 
-	expense, err := a.expenseService.Create(c.Context(), dto, userID)
+	expenses, err := a.expenseService.Create(c.Context(), dto, userID)
 	if err != nil {
 		return a.HandleError(c, err)
 	}
 
-	return c.Status(http.StatusCreated).JSON(expense.ToDTO())
+	var expenseDTOs []domain.ExpenseDTO
+	for _, e := range expenses {
+		expenseDTOs = append(expenseDTOs, e.ToDTO())
+	}
+
+	return c.Status(http.StatusCreated).JSON(fiber.Map{"data": expenseDTOs})
 }
 
 func (a *Api) UpdateExpense(c *fiber.Ctx) error {

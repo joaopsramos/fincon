@@ -47,6 +47,14 @@ func (r PostgresExpenseRepository) Create(ctx context.Context, e *domain.Expense
 	return nil
 }
 
+func (r PostgresExpenseRepository) CreateMany(ctx context.Context, e []domain.Expense) error {
+	if err := r.db.WithContext(ctx).Create(e).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r PostgresExpenseRepository) Update(ctx context.Context, e *domain.Expense) error {
 	if err := r.db.WithContext(ctx).Model(e).Updates(e).Error; err != nil {
 		return err
