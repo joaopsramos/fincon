@@ -73,7 +73,6 @@ export default function CreateExpense({
       setIsDialogOpen(false)
       invalidateQueries()
       setValue("date", selectedDate)
-      setValue("value", NaN)
     },
     onError: () =>
       toast({
@@ -116,7 +115,7 @@ export default function CreateExpense({
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="top-60">
           <DialogHeader>
             <DialogTitle>{t("addTooltip")}</DialogTitle>
           </DialogHeader>
@@ -173,7 +172,7 @@ export default function CreateExpense({
                     type="number"
                     step="0.01"
                     className={`w-full ${errors.value ? "border-red-500" : ""}`}
-                    {...register("value", { setValueAs: (val) => (val === "NaN" ? undefined : Number(val)) })}
+                    {...register("value", { setValueAs: (val) => Number(val) })}
                   />
                 </div>
 
