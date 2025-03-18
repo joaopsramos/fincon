@@ -22,7 +22,7 @@ RUN apt-get update -qq && \
 
 # Install node modules
 COPY package-lock.json package.json ./
-RUN npm ci --include=dev
+RUN npm ci --include=dev --force
 
 # Copy application code
 COPY . .
@@ -35,7 +35,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npx next build --experimental-build-mode compile
 
 # Remove development dependencies
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev --force
 
 
 # Final stage for app image
