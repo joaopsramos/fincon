@@ -2,24 +2,26 @@ import api from "@/api"
 import dayjs from "dayjs"
 
 export type Expense = {
-  id: number,
-  name: string,
-  value: number,
-  date: Date,
-  goal_id: number,
-
+  id: number
+  name: string
+  value: number
+  date: string
+  goal_id: number
 }
 
 export type CreateExpenseParams = {
-  name: string,
-  value: number,
-  date: Date,
-  goal_id: number,
+  name: string
+  value: number
+  date: Date
+  goal_id: number
+  installments: number
 }
 
-type EditParams = {
-  name: string,
-  value: number,
+export type UpdateExpenseParams = {
+  name: string
+  value: number
+  date: Date
+  goal_id: number
 }
 
 export async function getExpenses({ queryKey }: { queryKey: [string, Date, number] }) {
@@ -33,10 +35,10 @@ export async function createExpense(params: CreateExpenseParams) {
   await api.post("/expenses", { ...params, date: dayjs(params.date).format("YYYY-MM-DD") })
 }
 
-export async function editExpense({ name, value }: EditParams, expenseId: number) {
+export async function updateExpense({ date, ...params }: UpdateExpenseParams, expenseId: number) {
   await api.patch(`/expenses/${expenseId}`, {
-    name: name,
-    value: value,
+    ...params,
+    date: dayjs(date).format("YYYY-MM-DD"),
   })
 }
 

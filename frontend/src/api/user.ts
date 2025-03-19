@@ -1,5 +1,5 @@
-import api from "@/api";
-import { setAuthCookie } from "@/lib/utils";
+import api from "@/api"
+import { setAuthCookie } from "@/lib/utils"
 
 export type SignUpParams = {
   email: string
@@ -8,7 +8,6 @@ export type SignUpParams = {
 }
 
 export async function signUp(params: SignUpParams) {
-  console.log(params)
   try {
     const resp = await api.post("/users", params)
 
