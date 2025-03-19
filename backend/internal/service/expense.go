@@ -69,7 +69,7 @@ func (s *ExpenseService) Create(ctx context.Context, dto CreateExpenseDTO, userI
 
 	base := domain.Expense{
 		Name:   dto.Name,
-		Value:  int64(dto.Value * 100),
+		Value:  decimal.NewFromFloat(dto.Value).Mul(decimal.NewFromInt(100)).IntPart(),
 		Date:   dto.Date,
 		GoalID: goal.ID,
 		UserID: userID,
@@ -110,7 +110,7 @@ func (s *ExpenseService) UpdateByID(ctx context.Context, id uint, dto UpdateExpe
 	}
 
 	util.UpdateIfNotZero(&e.Name, dto.Name)
-	util.UpdateIfNotZero(&e.Value, int64(dto.Value*100))
+	util.UpdateIfNotZero(&e.Value, decimal.NewFromFloat(dto.Value).Mul(decimal.NewFromInt(100)).IntPart())
 	util.UpdateIfNotZero(&e.Date, dto.Date)
 	util.UpdateIfNotZero(&e.GoalID, uint(dto.GoalID))
 

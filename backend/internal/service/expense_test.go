@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
@@ -194,6 +195,113 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 			a.Equal(tt.mustSpend, summary.MustSpend)
 			a.Equal(tt.used, summary.Used)
 			assertSummaryGoals(a, tt.entries, summary.Goals)
+		})
+	}
+}
+
+func TestExpenseService_Create(t *testing.T) {
+	t.Parallel()
+
+	tx := testhelper.NewTestPostgresTx(t)
+	f := testhelper.NewFactory(tx)
+	user := f.InsertUser()
+	expenseService := NewTestExpenseService(t, tx)
+
+	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
+	f.InsertGoal(&goal)
+
+	tests := []struct {
+		name    string
+		dto     service.CreateExpenseDTO
+		userID  uuid.UUID
+		want    []domain.Expense
+		wantErr error
+	}{
+		{
+			"handle float precision edge cases",
+			service.CreateExpenseDTO{Value: 69.99, GoalID: int(goal.ID)},
+			user.ID,
+			[]domain.Expense{{Value: 6999, GoalID: goal.ID, UserID: user.ID}},
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			got, gotErr := expenseService.Create(context.Background(), tt.dto, tt.userID)
+			if tt.wantErr != nil {
+				a.Equal(tt.wantErr, gotErr)
+				return
+			}
+
+			a.Len(got, len(tt.want))
+
+			for i := range tt.want {
+				a.NotZero(got[i].ID)
+				a.Equal(tt.want[i].Name, got[i].Name)
+				a.Equal(tt.want[i].Value, got[i].Value)
+				a.Equal(tt.want[i].GoalID, got[i].GoalID)
+				a.Equal(tt.want[i].UserID, got[i].UserID)
+				a.Equal(tt.want[i].Date, got[i].Date)
+			}
+		})
+	}
+}
+
+func TestExpenseService_UpdateByID(t *testing.T) {
+	t.Parallel()
+
+	tx := testhelper.NewTestPostgresTx(t)
+	f := testhelper.NewFactory(tx)
+	user := f.InsertUser()
+	expenseService := NewTestExpenseService(t, tx)
+
+	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
+	f.InsertGoal(&goal)
+
+	expense := domain.Expense{Value: 7000, GoalID: goal.ID, UserID: user.ID, Date: time.Now().UTC()}
+	f.InsertExpense(&expense)
+
+	tests := []struct {
+		name      string
+		expenseID uint
+		dto       service.UpdateExpenseDTO
+		userID    uuid.UUID
+		want      func() domain.Expense
+		wantErr   error
+	}{
+		{
+			"handle float precision edge cases",
+			expense.ID,
+			service.UpdateExpenseDTO{Value: 69.99},
+			user.ID,
+			func() domain.Expense {
+				e := expense
+				e.Value = 6999
+				return e
+			},
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			got, gotErr := expenseService.UpdateByID(context.Background(), tt.expenseID, tt.dto, tt.userID)
+			if tt.wantErr != nil {
+				a.Equal(tt.wantErr, gotErr)
+				return
+			}
+
+			want := tt.want()
+
+			a.NotZero(got.ID)
+			a.Equal(want.Name, got.Name)
+			a.Equal(want.Value, got.Value)
+			a.Equal(want.GoalID, got.GoalID)
+			a.Equal(want.UserID, got.UserID)
+			a.Equal(want.Date.Truncate(time.Microsecond), got.Date.Truncate(time.Microsecond))
 		})
 	}
 }
