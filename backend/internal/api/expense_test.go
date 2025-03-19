@@ -3,6 +3,7 @@ package api_test
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"slices"
 	"testing"
@@ -220,10 +221,13 @@ func TestExpenseHandler_Update(t *testing.T) {
 	user := f.InsertUser()
 	api := testhelper.NewTestApi(tx, user.ID)
 
-	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
-	f.InsertGoal(&goal)
+	goal1 := domain.Goal{Name: "Comfort", UserID: user.ID}
+	f.InsertGoal(&goal1)
 
-	expense := domain.Expense{Name: "Food", Value: 12345, Date: time.Now().UTC(), GoalID: goal.ID, UserID: user.ID}
+	goal2 := domain.Goal{Name: "Pleasures", UserID: user.ID}
+	f.InsertGoal(&goal2)
+
+	expense := domain.Expense{Name: "Food", Value: 12345, Date: time.Now().UTC(), GoalID: goal1.ID, UserID: user.ID}
 	f.InsertExpense(&expense)
 
 	var respBody util.M
@@ -253,15 +257,21 @@ func TestExpenseHandler_Update(t *testing.T) {
 			util.M{"errors": util.M{"date": []any{"time is invalid"}}},
 		},
 		{
+			"invalid goal",
+			util.M{"goal_id": rand.Int()},
+			404,
+			util.M{"error": "goal not found"},
+		},
+		{
 			"update all fields",
-			util.M{"name": "Groceries", "value": 543.21, "date": "2023-01-15"},
+			util.M{"name": "Groceries", "value": 543.21, "date": "2023-01-15", "goal_id": goal2.ID},
 			200,
 			util.M{
 				"id":      float64(expense.ID),
 				"name":    "Groceries",
 				"value":   543.21,
 				"date":    "2023-01-15T00:00:00Z",
-				"goal_id": float64(goal.ID),
+				"goal_id": float64(goal2.ID),
 			},
 		},
 		{
@@ -273,7 +283,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 				"name":    "Health",
 				"value":   543.21,
 				"date":    "2023-01-15T00:00:00Z",
-				"goal_id": float64(goal.ID),
+				"goal_id": float64(goal2.ID),
 			},
 		},
 		{
@@ -285,7 +295,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 				"name":    "Health",
 				"value":   150.00,
 				"date":    "2023-01-15T00:00:00Z",
-				"goal_id": float64(goal.ID),
+				"goal_id": float64(goal2.ID),
 			},
 		},
 		{
@@ -297,7 +307,19 @@ func TestExpenseHandler_Update(t *testing.T) {
 				"name":    "Health",
 				"value":   150.00,
 				"date":    "2022-01-15T00:00:00Z",
-				"goal_id": float64(goal.ID),
+				"goal_id": float64(goal2.ID),
+			},
+		},
+		{
+			"update only goal id",
+			util.M{"goal_id": goal1.ID},
+			200,
+			util.M{
+				"id":      float64(expense.ID),
+				"name":    "Health",
+				"value":   150.00,
+				"date":    "2022-01-15T00:00:00Z",
+				"goal_id": float64(goal1.ID),
 			},
 		},
 	}

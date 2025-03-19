@@ -22,9 +22,10 @@ var expenseCreateSchema = z.Struct(z.Schema{
 })
 
 var expenseUpdateSchema = z.Struct(z.Schema{
-	"name":  z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Optional(),
-	"value": z.Float().GTE(0.01, z.Message("value must be greater than 0.01")).Optional(),
-	"date":  z.Time(z.Time.Format(util.ApiDateLayout)).Optional(),
+	"name":   z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Optional(),
+	"value":  z.Float().GTE(0.01, z.Message("value must be greater than 0.01")).Optional(),
+	"date":   z.Time(z.Time.Format(util.ApiDateLayout)).Optional(),
+	"goalID": z.Int().Optional(),
 })
 
 func (a *Api) FindExpenseSuggestions(c *fiber.Ctx) error {
@@ -106,9 +107,10 @@ func (a *Api) UpdateExpense(c *fiber.Ctx) error {
 	}
 
 	var params struct {
-		Name  string    `json:"name"`
-		Value float64   `json:"value"`
-		Date  time.Time `json:"date"`
+		Name   string    `json:"name"`
+		Value  float64   `json:"value"`
+		Date   time.Time `json:"date"`
+		GoalID int       `zog:"goal_id"`
 	}
 
 	if errs := util.ParseZodSchema(expenseUpdateSchema, c.Body(), &params); errs != nil {
@@ -116,9 +118,10 @@ func (a *Api) UpdateExpense(c *fiber.Ctx) error {
 	}
 
 	dto := service.UpdateExpenseDTO{
-		Name:  params.Name,
-		Value: params.Value,
-		Date:  params.Date,
+		Name:   params.Name,
+		Value:  params.Value,
+		Date:   params.Date,
+		GoalID: params.GoalID,
 	}
 
 	expense, err := a.expenseService.UpdateByID(c.Context(), uint(id), dto, util.GetUserIDFromCtx(c))

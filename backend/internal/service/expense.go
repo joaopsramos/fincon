@@ -27,9 +27,10 @@ type CreateExpenseDTO struct {
 }
 
 type UpdateExpenseDTO struct {
-	Name  string
-	Value float64
-	Date  time.Time
+	Name   string
+	Value  float64
+	Date   time.Time
+	GoalID int
 }
 
 type SummaryGoal = struct {
@@ -101,9 +102,17 @@ func (s *ExpenseService) UpdateByID(ctx context.Context, id uint, dto UpdateExpe
 		return &domain.Expense{}, err
 	}
 
+	if dto.GoalID > 0 {
+		_, err := s.goalRepo.Get(ctx, uint(dto.GoalID), userID)
+		if err != nil {
+			return &domain.Expense{}, err
+		}
+	}
+
 	util.UpdateIfNotZero(&e.Name, dto.Name)
 	util.UpdateIfNotZero(&e.Value, int64(dto.Value*100))
 	util.UpdateIfNotZero(&e.Date, dto.Date)
+	util.UpdateIfNotZero(&e.GoalID, uint(dto.GoalID))
 
 	err = s.expenseRepo.Update(ctx, e)
 
