@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import Goals from "./goals"
 import Summary from "./summary"
 import { getGoals } from "@/api/goals"
-import Expense from "./expense"
+import Expenses from "./expenses"
 import { useNow } from "next-intl"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { sortGoals } from "@/lib/utils"
@@ -86,7 +86,7 @@ function Content() {
 
       <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
         {sortedGoals?.map((goal) => (
-          <Expense key={goal.id} selectedGoal={goal} goals={goals || []} date={date} />
+          <Expenses key={goal.id} goal={goal} allGoals={sortedGoals} date={date} />
         ))}
       </div>
     </>

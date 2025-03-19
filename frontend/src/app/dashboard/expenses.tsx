@@ -1,38 +1,37 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import type { Expense } from "@/api/expense"
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
-import { CheckIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid"
+import { PencilIcon, TrashIcon } from "@heroicons/react/24/solid"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { Goal } from "@/api/goals"
-import { deleteExpense, editExpense, getExpenses } from "@/api/expense"
+import { deleteExpense, getExpenses } from "@/api/expense"
 import { moneyValueToString } from "@/lib/utils"
-import CreateExpense from "./create_expense"
 import { LoaderCircle } from "lucide-react"
+import UpsertExpenseDialog, { UpsertExpenseDialogRef } from "./upsert_expense_dialog"
 
-export default function Expense({
-  selectedGoal: goal,
-  goals,
-  date,
-}: {
-  goals: Goal[]
-  selectedGoal: Goal
+type ExpensesProps = {
+  allGoals: Goal[]
+  goal: Goal
   date: Date
-}) {
+}
+
+export default function Expenses({ goal, allGoals, date }: ExpensesProps) {
   dayjs.extend(utc)
 
   const commonT = useTranslations("Common")
   const t = useTranslations("DashboardPage.expenses")
   const queryClient = useQueryClient()
   const invalidateQueries = buildInvalidateQueriesFn(queryClient, date, goal.id)
+  const [expenseToEdit, setExpenseToEdit] = useState<Expense>()
+  const dialogRef = useRef<UpsertExpenseDialogRef>(null)
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ["expense", date, goal.id],
@@ -65,7 +64,13 @@ export default function Expense({
 
               <TableBody>
                 {expenses?.map((e) => (
-                  <Row key={e.id} expense={e} invalidateQueries={invalidateQueries} />
+                  <Row
+                    key={e.id}
+                    expense={e}
+                    invalidateQueries={invalidateQueries}
+                    setExpenseToEdit={setExpenseToEdit}
+                    dialogRef={dialogRef}
+                  />
                 ))}
 
                 {(!expenses || expenses.length === 0) && (
@@ -81,97 +86,64 @@ export default function Expense({
         )}
 
         <div className="mt-4">
-          <CreateExpense selectedGoal={goal} goals={goals} invalidateQueries={invalidateQueries} />
+          <UpsertExpenseDialog
+            ref={dialogRef}
+            date={date}
+            goal={goal}
+            allGoals={allGoals}
+            expense={expenseToEdit}
+            onDialogClose={() => setExpenseToEdit(undefined)}
+            invalidateQueries={invalidateQueries}
+          />
         </div>
       </CardContent>
     </Card>
   )
 }
 
-function Row({ expense, invalidateQueries }: { expense: Expense; invalidateQueries: () => Promise<void> }) {
-  const t = useTranslations("DashboardPage.expenses")
-  const [isEditing, setIsEditing] = useState(false)
-  const [name, setName] = useState(expense.name)
-  const [value, setValue] = useState(expense.value.toString())
+type RowProps = {
+  expense: Expense
+  setExpenseToEdit: React.Dispatch<React.SetStateAction<Expense | undefined>>
+  dialogRef: React.RefObject<UpsertExpenseDialogRef | null>
+  invalidateQueries: () => Promise<void>
+}
 
-  const editExpenseMut = useMutation({
-    mutationFn: () => editExpense({ name, value: Number.parseFloat(value) }, expense.id),
-    onSuccess: async () => {
-      await invalidateQueries()
-      setIsEditing(false)
-    },
-  })
+function Row({ expense, dialogRef, setExpenseToEdit, invalidateQueries }: RowProps) {
+  const t = useTranslations("DashboardPage.expenses")
 
   const deleteExpenseMut = useMutation({
     mutationFn: () => deleteExpense(expense.id),
     onSuccess: () => {
-      setIsEditing(false)
       invalidateQueries()
     },
   })
 
-  const editExpenseOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key == "Enter") {
-      editExpenseMut.mutate()
-    }
-  }
-
-  const inputClass = "w-10/12 rounded-md px-2 text-sm h-auto dark:bg-slate-800"
-
   return (
     <TableRow className="group hover:bg-inherit dark:border-slate-800">
       <TableCell>
-        {!isEditing ? (
-          <span className="py-1 inline-block">{expense.name}</span>
-        ) : (
-          <Input
-            type="text"
-            className={inputClass}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={editExpenseOnEnter}
-          />
-        )}
+        <span className="py-1 inline-block">{expense.name}</span>
       </TableCell>
-      <TableCell>
-        {!isEditing ? (
-          moneyValueToString(expense.value)
-        ) : (
-          <Input
-            type="number"
-            step="0.01"
-            className={inputClass}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={editExpenseOnEnter}
-          />
-        )}
-      </TableCell>
+      <TableCell>{moneyValueToString(expense.value)}</TableCell>
       <TableCell>{dayjs(expense.date).utc().format("DD/MM/YY")}</TableCell>
       <TableCell>
-        <div className={`flex justify-end gap-1 ${isEditing ? "" : "invisible group-hover:visible"}`}>
-          {!isEditing ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <div
-                    className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
-                    onClick={() => setIsEditing(true)}>
-                    <PencilIcon className="size-4 text-white" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{t("editTooltip")}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <div
-              className="cursor-pointer bg-green-500 rounded-full p-1 w-min hover:bg-green-600 transition-colors"
-              onClick={() => editExpenseMut.mutate()}>
-              <CheckIcon className="size-4 text-white" />
-            </div>
-          )}
+        <div className={"flex justify-end gap-1 invisible group-hover:visible"}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <div
+                  className="cursor-pointer bg-yellow-400 rounded-full p-1 w-min hover:bg-yellow-500 transition-colors"
+                  onClick={() => {
+                    setExpenseToEdit(expense)
+                    dialogRef.current?.openDialog()
+                  }}>
+                  <PencilIcon className="size-4 text-white" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t("editTooltip")}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <TooltipProvider>
             <Tooltip>
