@@ -18,7 +18,7 @@ func NewPostgresUser(db *gorm.DB) domain.UserRepo {
 }
 
 func (r PostgresUserRepository) Create(ctx context.Context, user *domain.User, salary *domain.Salary) error {
-	defaultPercentages := domain.DefaulGoalPercentages()
+	defaultPercentages := domain.DefaultGoalPercentages()
 	goals := make([]domain.Goal, 0, len(defaultPercentages))
 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

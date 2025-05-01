@@ -36,7 +36,7 @@ func (s *GoalService) Create(ctx context.Context, goals ...domain.Goal) error {
 func (s *GoalService) UpdateAll(ctx context.Context, dtos []UpdateGoalDTO, userID uuid.UUID) ([]domain.Goal, error) {
 	var zero []domain.Goal
 
-	if len(dtos) < len(domain.DefaulGoalPercentages()) {
+	if len(dtos) < len(domain.DefaultGoalPercentages()) {
 		return zero, errs.NewValidationError("one or more goals are missing")
 	}
 

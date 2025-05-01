@@ -199,7 +199,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
 	_ = anotherUserApi
 
-	defaultPercentages := domain.DefaulGoalPercentages()
+	defaultPercentages := domain.DefaultGoalPercentages()
 	goals := make([]*domain.Goal, 0, len(defaultPercentages)*2)
 	for _, u := range []domain.User{user, anotherUser} {
 		for name, percentage := range defaultPercentages {
