@@ -13,7 +13,7 @@ func init() {
 }
 
 func main() {
-	dns := fmt.Sprintf(
+	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s sslmode=disable",
 		os.Getenv("POSTGRES_HOST"),
 		os.Getenv("POSTGRES_PORT"),
@@ -21,7 +21,7 @@ func main() {
 		os.Getenv("POSTGRES_PASS"),
 	)
 
-	db := config.NewPostgresConn(dns)
+	db := config.NewPostgresConn(dsn)
 
 	slog.Info("Creating datbase...")
 	tx := db.Exec("CREATE DATABASE " + os.Getenv("POSTGRES_DB"))

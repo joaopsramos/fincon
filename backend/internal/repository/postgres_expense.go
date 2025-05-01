@@ -20,7 +20,12 @@ func NewPostgresExpense(db *gorm.DB) domain.ExpenseRepo {
 
 func (r PostgresExpenseRepository) FindMatchingNames(ctx context.Context, name string, userID uuid.UUID) ([]string, error) {
 	var names []string
-	result := r.db.WithContext(ctx).Model(&domain.Expense{}).Where("user_id = ?", userID).Where("unaccent(name) ILIKE unaccent(?)", "%"+name+"%").Distinct("name").Pluck("name", &names)
+	result := r.db.
+		WithContext(ctx).
+		Model(&domain.Expense{}).
+		Where("user_id = ?", userID).
+		Where("unaccent(name) ILIKE unaccent(?)", "%"+name+"%").
+		Distinct("name").Pluck("name", &names)
 
 	return names, result.Error
 }
