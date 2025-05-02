@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -24,25 +23,26 @@ func TestApi_ErrorHandler(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		handler      func(c *fiber.Ctx) error
+		handler      http.HandlerFunc
 		expectedCode int
-		expectedBody fiber.Map
+		expectedBody util.M
 	}{
 		{
 			name: "panic error",
-			handler: func(c *fiber.Ctx) error {
+			handler: func(w http.ResponseWriter, r *http.Request) {
 				panic("test error")
 			},
 			expectedCode: 500,
-			expectedBody: fiber.Map{"error": "internal server error"},
+			expectedBody: nil,
 		},
 		{
-			name: "fiber error",
-			handler: func(c *fiber.Ctx) error {
-				return fiber.NewError(http.StatusNotFound, "resource not found")
+			name: "not found error",
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+				_ = json.NewEncoder(w).Encode(util.M{"error": "resource not found"})
 			},
 			expectedCode: 404,
-			expectedBody: fiber.Map{"error": "resource not found"},
+			expectedBody: util.M{"error": "resource not found"},
 		},
 	}
 
@@ -52,12 +52,13 @@ func TestApi_ErrorHandler(t *testing.T) {
 			api.Router.Get(routePath, tt.handler)
 
 			req := httptest.NewRequest("GET", routePath, nil)
-			resp, _ := api.Router.Test(req)
+			w := httptest.NewRecorder()
+			api.Router.ServeHTTP(w, req)
 
-			var respBody fiber.Map
-			_ = json.NewDecoder(resp.Body).Decode(&respBody)
+			var respBody util.M
+			_ = json.NewDecoder(w.Body).Decode(&respBody)
 
-			assert.Equal(tt.expectedCode, resp.StatusCode)
+			assert.Equal(tt.expectedCode, w.Code)
 			assert.Equal(tt.expectedBody, respBody)
 		})
 	}
@@ -70,22 +71,23 @@ func TestApi_GobalRateLimiter(t *testing.T) {
 	api := api.NewApi(tx)
 	api.SetupMiddlewares()
 
-	api.Router.Get("/some-route", func(c *fiber.Ctx) error {
-		return c.Status(http.StatusNoContent).Send(nil)
+	api.Router.Get("/some-route", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	for i := 1; i <= 101; i++ {
 		req := httptest.NewRequest("GET", "/some-route", nil)
-		resp, _ := api.Router.Test(req)
+		w := httptest.NewRecorder()
+		api.Router.ServeHTTP(w, req)
 
 		if i == 101 {
-			assert.Equal(http.StatusTooManyRequests, resp.StatusCode)
-			retry := util.Must(strconv.Atoi(resp.Header.Get("retry-after")))
+			assert.Equal(http.StatusTooManyRequests, w.Code)
+			retry := util.Must(strconv.Atoi(w.Header().Get("retry-after")))
 			assert.InDelta(60, retry, 3)
 			break
 		}
 
-		assert.Equal(http.StatusNoContent, resp.StatusCode)
+		assert.Equal(http.StatusNoContent, w.Code)
 	}
 }
 

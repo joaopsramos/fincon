@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/api"
-	"github.com/joaopsramos/fincon/internal/domain"
 	"gorm.io/gorm"
 )
 
@@ -26,7 +25,7 @@ func NewTestApi(tx *gorm.DB, userID ...uuid.UUID) *TestApi {
 	var token string
 
 	if len(userID) > 0 {
-		token = domain.CreateAccessToken(userID[0], time.Minute*1)
+		token = api.GenerateToken(userID[0], time.Minute*1)
 	}
 
 	return &TestApi{api: api, token: token}
@@ -41,17 +40,16 @@ func (t *TestApi) Test(method string, path string, body ...any) *http.Response {
 	}
 
 	req := httptest.NewRequest(method, path, bodyReader)
+	req.Header.Set("Content-Type", "application/json")
 
 	if t.token != "" {
 		req.Header.Set("Authorization", "Bearer "+t.token)
 	}
 
-	resp, err := t.api.Router.Test(req)
-	if err != nil {
-		panic(err)
-	}
+	w := httptest.NewRecorder()
+	t.api.Router.ServeHTTP(w, req)
 
-	return resp
+	return w.Result()
 }
 
 func (t *TestApi) UnmarshalBody(body io.ReadCloser, dst any) {

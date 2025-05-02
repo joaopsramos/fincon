@@ -1,26 +1,24 @@
 package api_test
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/google/uuid"
-	originalApi "github.com/joaopsramos/fincon/internal/api"
-	"github.com/joaopsramos/fincon/internal/domain"
+	apiPackage "github.com/joaopsramos/fincon/internal/api"
+	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
+	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestApi_CreateUser(t *testing.T) {
 	t.Parallel()
 	tx := testhelper.NewTestPostgresTx(t)
-	api := testhelper.NewTestApi(tx)
 
 	data := []struct {
 		name           string
@@ -106,6 +104,9 @@ func TestApi_CreateUser(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			a := assert.New(t)
+			api := testhelper.NewTestApi(tx)
+			api2 := apiPackage.NewApi(tx)
+			api2.SetupAll()
 
 			var respBody util.M
 
@@ -113,22 +114,25 @@ func TestApi_CreateUser(t *testing.T) {
 			api.UnmarshalBody(resp.Body, &respBody)
 			a.Equal(d.expectedStatus, resp.StatusCode)
 
-			if d.expectedStatus == 201 {
-				a.Equal(d.expectedBody["email"], respBody["email"])
-				a.Equal(d.expectedBody["salary"], respBody["salary"])
-				a.NotEmpty(respBody["user"].(util.M)["id"])
-				a.NotEmpty(respBody["token"])
-
-				// assert valid token
-				api2 := originalApi.NewApi(tx)
-				api2.SetupAll()
-				req := httptest.NewRequest("GET", "/api/salary", nil)
-				req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
-				resp, _ := api2.Router.Test(req)
-				a.Equal(200, resp.StatusCode)
-			} else {
+			if d.expectedStatus != 201 {
 				a.Equal(d.expectedBody, respBody)
+				return
 			}
+
+			a.Equal(d.expectedBody["email"], respBody["email"])
+			a.Equal(d.expectedBody["salary"], respBody["salary"])
+			a.NotEmpty(respBody["user"].(util.M)["id"])
+			a.NotEmpty(respBody["token"])
+
+			// assert valid token
+			req := httptest.NewRequest("GET", "/api/salary", nil)
+			req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
+
+			w := httptest.NewRecorder()
+			api2.Router.ServeHTTP(w, req)
+
+			resp2 := w.Result()
+			a.Equal(200, resp2.StatusCode)
 		})
 	}
 }
@@ -205,95 +209,16 @@ func TestApi_UserLogin(t *testing.T) {
 				a.NotEmpty(respBody["token"])
 
 				// Verify the token works
-				api2 := originalApi.NewApi(tx)
+				api2 := apiPackage.NewApi(tx)
 				api2.SetupAll()
 				req := httptest.NewRequest("GET", "/api/salary", nil)
 				req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
-				tokenResp, _ := api2.Router.Test(req)
-				a.Equal(200, tokenResp.StatusCode)
+				w := httptest.NewRecorder()
+				api2.Router.ServeHTTP(w, req)
+				resp := w.Result()
+				a.Equal(200, resp.StatusCode)
 			} else {
 				a.Equal(d.expectedBody, respBody)
-			}
-		})
-	}
-}
-
-func TestApi_ValidateTokenMiddleware(t *testing.T) {
-	t.Parallel()
-
-	tx := testhelper.NewTestPostgresTx(t)
-	api := originalApi.NewApi(tx)
-	api.Router.Use(api.ValidateTokenMiddleware())
-
-	userID := uuid.New()
-
-	tests := []struct {
-		name           string
-		setupToken     func() string
-		handler        fiber.Handler
-		expectedStatus int
-		expectedError  string
-	}{
-		{
-			name: "with valid token continue to the next handler",
-			setupToken: func() string {
-				return domain.CreateAccessToken(userID, time.Minute)
-			},
-			handler: func(c *fiber.Ctx) error {
-				return c.SendStatus(http.StatusNoContent)
-			},
-			expectedStatus: http.StatusNoContent,
-		},
-		{
-			name: "expired token should return unauthorized",
-			setupToken: func() string {
-				return domain.CreateAccessToken(userID, -time.Minute)
-			},
-			handler: func(c *fiber.Ctx) error {
-				panic("cannot get here")
-			},
-			expectedStatus: http.StatusUnauthorized,
-			expectedError:  "invalid or expired JWT",
-		},
-		{
-			name: "malformed token should return unauthorized",
-			setupToken: func() string {
-				return "invalid-token"
-			},
-			handler: func(c *fiber.Ctx) error {
-				panic("cannot get here")
-			},
-			expectedStatus: http.StatusUnauthorized,
-			expectedError:  "invalid or expired JWT",
-		},
-		{
-			name:           "empty token should return unauthorized",
-			setupToken:     func() string { return "" },
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  "missing or malformed JWT",
-		},
-	}
-
-	for i, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			a := assert.New(t)
-			token := tt.setupToken()
-
-			path := fmt.Sprintf("/test-%d", i)
-			api.Router.Get(path, tt.handler)
-
-			req := httptest.NewRequest(http.MethodGet, path, nil)
-			req.Header.Set("Authorization", "Bearer "+token)
-
-			resp, err := api.Router.Test(req)
-			a.NoError(err)
-			a.Equal(tt.expectedStatus, resp.StatusCode)
-
-			if tt.expectedError != "" {
-				var respBody util.M
-				err := json.NewDecoder(resp.Body).Decode(&respBody)
-				a.NoError(err)
-				a.Equal(tt.expectedError, respBody["error"])
 			}
 		})
 	}
@@ -304,23 +229,25 @@ func TestApi_PutUserIDMiddleware(t *testing.T) {
 	a := assert.New(t)
 
 	tx := testhelper.NewTestPostgresTx(t)
-	api := originalApi.NewApi(tx)
-	middleware := api.PutUserIDMiddleware()
+	api := apiPackage.NewApi(tx)
 
 	userID := uuid.New()
-	token := domain.CreateAccessToken(userID, time.Minute)
+	token := api.GenerateToken(userID, time.Minute)
 
-	api.Router.Use(api.ValidateTokenMiddleware())
-	api.Router.Use(middleware)
-	api.Router.Get("/test", func(c *fiber.Ctx) error {
-		a.Equal(userID.String(), c.Locals("user_id"))
-		return c.SendStatus(http.StatusOK)
+	tokenAuth := jwtauth.New(jwa.HS256.String(), config.SecretKey(), nil)
+	api.Router.Use(jwtauth.Verifier(tokenAuth))
+	api.Router.Use(jwtauth.Authenticator(tokenAuth))
+	api.Router.Use(api.PutUserIDMiddleware)
+	api.Router.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+		a.Equal(userID, r.Context().Value(apiPackage.UserIDKey).(uuid.UUID))
+		w.WriteHeader(http.StatusOK)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	resp, err := api.Router.Test(req)
-	a.NoError(err)
-	a.Equal(http.StatusOK, resp.StatusCode)
+	w := httptest.NewRecorder()
+	api.Router.ServeHTTP(w, req)
+
+	a.Equal(http.StatusOK, w.Result().StatusCode)
 }

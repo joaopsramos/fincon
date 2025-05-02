@@ -70,7 +70,7 @@ func TestGoalHandler_Index(t *testing.T) {
 	}
 }
 
-func TestGoalHandler_GetExpenses(t *testing.T) {
+func TestGoalHandler_GetGoalExpenses(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
@@ -145,10 +145,10 @@ func TestGoalHandler_GetExpenses(t *testing.T) {
 			var query string
 
 			if d.date != nil {
-				query = fmt.Sprintf("?year=%d&month=%d", d.date.Year(), d.date.Month())
+				query = fmt.Sprintf("year=%d&month=%d", d.date.Year(), d.date.Month())
 			}
 
-			resp := d.api.Test(http.MethodGet, fmt.Sprintf("/api/goals/%d/expenses/%s", d.goalID, query))
+			resp := d.api.Test(http.MethodGet, fmt.Sprintf("/api/goals/%d/expenses?%s", d.goalID, query))
 			d.api.UnmarshalBody(resp.Body, &respBody)
 
 			assert.Equal(d.status, resp.StatusCode)
