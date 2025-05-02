@@ -14,24 +14,24 @@ import (
 	"gorm.io/gorm"
 )
 
-type TestApi struct {
-	api   *api.Api
+type TestApp struct {
+	app   *api.App
 	token string
 }
 
-func NewTestApi(tx *gorm.DB, userID ...uuid.UUID) *TestApi {
-	api := api.NewApi(tx)
-	api.SetupAll()
+func NewTestApp(tx *gorm.DB, userID ...uuid.UUID) *TestApp {
+	app := api.NewApp(tx)
+	app.SetupAll()
 	var token string
 
 	if len(userID) > 0 {
-		token = api.GenerateToken(userID[0], time.Minute*1)
+		token = app.GenerateToken(userID[0], time.Minute*1)
 	}
 
-	return &TestApi{api: api, token: token}
+	return &TestApp{app: app, token: token}
 }
 
-func (t *TestApi) Test(method string, path string, body ...any) *http.Response {
+func (t *TestApp) Test(method string, path string, body ...any) *http.Response {
 	var bodyReader io.Reader
 
 	if len(body) > 0 {
@@ -47,12 +47,12 @@ func (t *TestApi) Test(method string, path string, body ...any) *http.Response {
 	}
 
 	w := httptest.NewRecorder()
-	t.api.Router.ServeHTTP(w, req)
+	t.app.Router.ServeHTTP(w, req)
 
 	return w.Result()
 }
 
-func (t *TestApi) UnmarshalBody(body io.ReadCloser, dst any) {
+func (t *TestApp) UnmarshalBody(body io.ReadCloser, dst any) {
 	err := json.NewDecoder(body).Decode(dst)
 	if err != nil && !errors.Is(err, io.EOF) {
 		panic(err)

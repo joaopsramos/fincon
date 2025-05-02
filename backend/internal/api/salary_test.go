@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApi_GetSalary(t *testing.T) {
+func TestApp_GetSalary(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
@@ -18,8 +18,8 @@ func TestApi_GetSalary(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(tx, user.ID)
-	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
+	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
 
 	salaries := []*domain.Salary{
 		{Amount: 50000, UserID: user.ID},
@@ -29,19 +29,19 @@ func TestApi_GetSalary(t *testing.T) {
 
 	data := []struct {
 		name     string
-		api      *testhelper.TestApi
+		app      *testhelper.TestApp
 		status   int
 		expected util.M
 	}{
 		{
 			"get user salary",
-			api,
+			app,
 			200,
 			util.M{"amount": 500.0},
 		},
 		{
 			"ensure user only gets his salary",
-			anotherUserApi,
+			anotherUserApp,
 			200,
 			util.M{"amount": 1000.0},
 		},
@@ -51,15 +51,15 @@ func TestApi_GetSalary(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			var respBody util.M
 
-			resp := d.api.Test(http.MethodGet, "/api/salary")
-			d.api.UnmarshalBody(resp.Body, &respBody)
+			resp := d.app.Test(http.MethodGet, "/api/salary")
+			d.app.UnmarshalBody(resp.Body, &respBody)
 			assert.Equal(resp.StatusCode, d.status)
 			assert.Equal(d.expected, respBody)
 		})
 	}
 }
 
-func TestApi_UpdateSalary(t *testing.T) {
+func TestApp_UpdateSalary(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
@@ -67,8 +67,8 @@ func TestApi_UpdateSalary(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(tx, user.ID)
-	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
+	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
 
 	f.InsertSalary([]*domain.Salary{
 		{Amount: 50000, UserID: user.ID},
@@ -77,35 +77,35 @@ func TestApi_UpdateSalary(t *testing.T) {
 
 	data := []struct {
 		name           string
-		api            *testhelper.TestApi
+		app            *testhelper.TestApp
 		body           util.M
 		expectedStatus int
 		expectedBody   util.M
 	}{
 		{
 			"update user salary",
-			api,
+			app,
 			util.M{"amount": 1000},
 			200,
 			util.M{"amount": 1000.0},
 		},
 		{
 			"ensure user only update his salary",
-			anotherUserApi,
+			anotherUserApp,
 			util.M{"amount": 2000.50},
 			200,
 			util.M{"amount": 2000.50},
 		},
 		{
 			"salary amount is required",
-			api,
+			app,
 			util.M{"not-amount": 1},
 			400,
 			util.M{"errors": util.M{"amount": []any{"is required"}}},
 		},
 		{
 			"salary amount must be greater than zero",
-			api,
+			app,
 			util.M{"amount": -1},
 			400,
 			util.M{"errors": util.M{"amount": []any{"must be greater than 0"}}},
@@ -116,8 +116,8 @@ func TestApi_UpdateSalary(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			var respBody util.M
 
-			resp := d.api.Test(http.MethodPatch, "/api/salary", d.body)
-			d.api.UnmarshalBody(resp.Body, &respBody)
+			resp := d.app.Test(http.MethodPatch, "/api/salary", d.body)
+			d.app.UnmarshalBody(resp.Body, &respBody)
 			assert.Equal(resp.StatusCode, d.expectedStatus)
 			assert.Equal(d.expectedBody, respBody)
 		})

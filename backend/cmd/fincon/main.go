@@ -18,7 +18,7 @@ func main() {
 	defer honeybadger.Monitor()
 
 	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
-	api := api.NewApi(db)
+	api := api.NewApp(db)
 	api.SetupAll()
 	log.Fatal(api.Listen())
 }

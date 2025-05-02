@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/google/uuid"
-	apiPackage "github.com/joaopsramos/fincon/internal/api"
+	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApi_CreateUser(t *testing.T) {
+func TestApp_CreateUser(t *testing.T) {
 	t.Parallel()
 	tx := testhelper.NewTestPostgresTx(t)
 
@@ -104,14 +104,14 @@ func TestApi_CreateUser(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			a := assert.New(t)
-			api := testhelper.NewTestApi(tx)
-			api2 := apiPackage.NewApi(tx)
-			api2.SetupAll()
+			app := testhelper.NewTestApp(tx)
+			app2 := api.NewApp(tx)
+			app2.SetupAll()
 
 			var respBody util.M
 
-			resp := api.Test(http.MethodPost, "/api/users", d.body)
-			api.UnmarshalBody(resp.Body, &respBody)
+			resp := app.Test(http.MethodPost, "/api/users", d.body)
+			app.UnmarshalBody(resp.Body, &respBody)
 			a.Equal(d.expectedStatus, resp.StatusCode)
 
 			if d.expectedStatus != 201 {
@@ -129,7 +129,7 @@ func TestApi_CreateUser(t *testing.T) {
 			req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
 
 			w := httptest.NewRecorder()
-			api2.Router.ServeHTTP(w, req)
+			app2.Router.ServeHTTP(w, req)
 
 			resp2 := w.Result()
 			a.Equal(200, resp2.StatusCode)
@@ -137,14 +137,14 @@ func TestApi_CreateUser(t *testing.T) {
 	}
 }
 
-func TestApi_UserLogin(t *testing.T) {
+func TestApp_UserLogin(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := testhelper.NewTestApi(tx)
+	app := testhelper.NewTestApp(tx)
 
 	// Create a user first
-	resp := api.Test(http.MethodPost, "/api/users", util.M{
+	resp := app.Test(http.MethodPost, "/api/users", util.M{
 		"email":    "test@example.com",
 		"password": "password123",
 		"salary":   5000.00,
@@ -201,20 +201,20 @@ func TestApi_UserLogin(t *testing.T) {
 
 			var respBody util.M
 
-			resp := api.Test(http.MethodPost, "/api/sessions", d.body)
-			api.UnmarshalBody(resp.Body, &respBody)
+			resp := app.Test(http.MethodPost, "/api/sessions", d.body)
+			app.UnmarshalBody(resp.Body, &respBody)
 			a.Equal(d.expectedStatus, resp.StatusCode)
 
 			if d.expectedStatus == 201 {
 				a.NotEmpty(respBody["token"])
 
 				// Verify the token works
-				api2 := apiPackage.NewApi(tx)
-				api2.SetupAll()
+				app2 := api.NewApp(tx)
+				app2.SetupAll()
 				req := httptest.NewRequest("GET", "/api/salary", nil)
 				req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
 				w := httptest.NewRecorder()
-				api2.Router.ServeHTTP(w, req)
+				app2.Router.ServeHTTP(w, req)
 				resp := w.Result()
 				a.Equal(200, resp.StatusCode)
 			} else {
@@ -224,22 +224,22 @@ func TestApi_UserLogin(t *testing.T) {
 	}
 }
 
-func TestApi_PutUserIDMiddleware(t *testing.T) {
+func TestApp_PutUserIDMiddleware(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 
 	tx := testhelper.NewTestPostgresTx(t)
-	api := apiPackage.NewApi(tx)
+	app := api.NewApp(tx)
 
 	userID := uuid.New()
-	token := api.GenerateToken(userID, time.Minute)
+	token := app.GenerateToken(userID, time.Minute)
 
 	tokenAuth := jwtauth.New(jwa.HS256.String(), config.SecretKey(), nil)
-	api.Router.Use(jwtauth.Verifier(tokenAuth))
-	api.Router.Use(jwtauth.Authenticator(tokenAuth))
-	api.Router.Use(api.PutUserIDMiddleware)
-	api.Router.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		a.Equal(userID, r.Context().Value(apiPackage.UserIDKey).(uuid.UUID))
+	app.Router.Use(jwtauth.Verifier(tokenAuth))
+	app.Router.Use(jwtauth.Authenticator(tokenAuth))
+	app.Router.Use(app.PutUserIDMiddleware)
+	app.Router.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+		a.Equal(userID, r.Context().Value(api.UserIDKey).(uuid.UUID))
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -247,7 +247,7 @@ func TestApi_PutUserIDMiddleware(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	w := httptest.NewRecorder()
-	api.Router.ServeHTTP(w, req)
+	app.Router.ServeHTTP(w, req)
 
 	a.Equal(http.StatusOK, w.Result().StatusCode)
 }

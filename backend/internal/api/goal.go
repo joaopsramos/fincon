@@ -12,14 +12,14 @@ import (
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
-func (a *Api) AllGoals(w http.ResponseWriter, r *http.Request) {
+func (a *App) AllGoals(w http.ResponseWriter, r *http.Request) {
 	userID := a.GetUserIDFromCtx(r)
 	goals := a.goalService.All(r.Context(), userID)
 	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
 	a.sendJSON(w, http.StatusOK, goalDTOs)
 }
 
-func (a *Api) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
+func (a *App) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	now := time.Now()
 	year, month, _ := now.Date()
@@ -66,7 +66,7 @@ func (a *Api) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
 	a.sendJSON(w, http.StatusOK, expenseDTOs)
 }
 
-func (a *Api) UpdateGoals(w http.ResponseWriter, r *http.Request) {
+func (a *App) UpdateGoals(w http.ResponseWriter, r *http.Request) {
 	var params []struct {
 		ID         int `json:"id"`
 		Percentage int `json:"percentage"`

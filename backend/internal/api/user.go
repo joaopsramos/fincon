@@ -36,7 +36,7 @@ var userLoginSchema = z.Struct(z.Schema{
 	"password": z.String().Trim().Required(),
 })
 
-func (a *Api) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (a *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Email    string  `json:"email"`
 		Password string  `json:"password"`
@@ -76,7 +76,7 @@ func (a *Api) CreateUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (a *Api) UserLogin(w http.ResponseWriter, r *http.Request) {
+func (a *App) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -98,7 +98,7 @@ func (a *Api) UserLogin(w http.ResponseWriter, r *http.Request) {
 	a.sendJSON(w, http.StatusCreated, util.M{"token": a.GenerateToken(user.ID, tokenExpiresIn)})
 }
 
-func (a *Api) GenerateToken(userID uuid.UUID, expiresIn time.Duration) string {
+func (a *App) GenerateToken(userID uuid.UUID, expiresIn time.Duration) string {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{"sub": userID, "exp": time.Now().UTC().Add(expiresIn).Unix()},
@@ -112,11 +112,11 @@ func (a *Api) GenerateToken(userID uuid.UUID, expiresIn time.Duration) string {
 	return tokenString
 }
 
-func (a *Api) invalidCredentials(w http.ResponseWriter) {
+func (a *App) invalidCredentials(w http.ResponseWriter) {
 	a.sendError(w, http.StatusUnauthorized, "invalid email or password")
 }
 
-func (a *Api) PutUserIDMiddleware(next http.Handler) http.Handler {
+func (a *App) PutUserIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, claims, err := jwtauth.FromContext(r.Context())
 		if err != nil {

@@ -22,7 +22,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Api struct {
+type App struct {
 	Router *chi.Mux
 
 	logger *slog.Logger
@@ -33,7 +33,7 @@ type Api struct {
 	expenseService service.ExpenseService
 }
 
-func NewApi(db *gorm.DB) *Api {
+func NewApp(db *gorm.DB) *App {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	userRepo := repository.NewPostgresUser(db)
@@ -41,7 +41,7 @@ func NewApi(db *gorm.DB) *Api {
 	goalRepo := repository.NewPostgresGoal(db)
 	expenseRepo := repository.NewPostgresExpense(db)
 
-	return &Api{
+	return &App{
 		Router: chi.NewRouter(),
 		logger: logger,
 
@@ -52,17 +52,17 @@ func NewApi(db *gorm.DB) *Api {
 	}
 }
 
-func (a *Api) SetupAll() {
+func (a *App) SetupAll() {
 	a.SetupMiddlewares()
 	a.SetupRoutes()
 }
 
-func (a *Api) Listen() error {
+func (a *App) Listen() error {
 	slog.Info("Listening on port 4000")
 	return http.ListenAndServe(":4000", honeybadger.Handler(a.Router))
 }
 
-func (a *Api) SetupMiddlewares() {
+func (a *App) SetupMiddlewares() {
 	if os.Getenv("APP_ENV") != "test" {
 		a.Router.Use(middleware.Logger)
 	}
@@ -76,7 +76,7 @@ func (a *Api) SetupMiddlewares() {
 	})
 }
 
-func (a *Api) corsMiddleware() func(http.Handler) http.Handler {
+func (a *App) corsMiddleware() func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
@@ -86,7 +86,7 @@ func (a *Api) corsMiddleware() func(http.Handler) http.Handler {
 	})
 }
 
-func (a *Api) SetupRoutes() {
+func (a *App) SetupRoutes() {
 	tokenAuth := jwtauth.New(jwa.HS256.String(), config.SecretKey(), nil)
 
 	a.Router.Route("/api", func(r chi.Router) {
@@ -118,7 +118,7 @@ func (a *Api) SetupRoutes() {
 }
 
 // Helper to send JSON responses
-func (a *Api) sendJSON(w http.ResponseWriter, status int, data interface{}) {
+func (a *App) sendJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -127,11 +127,11 @@ func (a *Api) sendJSON(w http.ResponseWriter, status int, data interface{}) {
 }
 
 // Helper to send error responses
-func (a *Api) sendError(w http.ResponseWriter, status int, message string) {
+func (a *App) sendError(w http.ResponseWriter, status int, message string) {
 	a.sendJSON(w, status, util.M{"error": message})
 }
 
-func (a *Api) rateLimiter(limit int, windowLength time.Duration) func(http.Handler) http.Handler {
+func (a *App) rateLimiter(limit int, windowLength time.Duration) func(http.Handler) http.Handler {
 	rateLimiter := httprate.NewRateLimiter(
 		limit,
 		windowLength,

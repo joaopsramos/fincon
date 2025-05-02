@@ -19,15 +19,15 @@ import (
 func Test_HandleError(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := api.NewApi(tx)
-	api.SetupMiddlewares()
+	app := api.NewApp(tx)
+	app.SetupMiddlewares()
 
-	api.Router.Get("/not-found", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleError(w, errs.NewNotFound("some resource"))
+	app.Router.Get("/not-found", func(w http.ResponseWriter, r *http.Request) {
+		app.HandleError(w, errs.NewNotFound("some resource"))
 	})
 
-	api.Router.Get("/some-error", func(w http.ResponseWriter, r *http.Request) {
-		api.HandleError(w, errors.New("some error"))
+	app.Router.Get("/some-error", func(w http.ResponseWriter, r *http.Request) {
+		app.HandleError(w, errors.New("some error"))
 	})
 
 	data := []struct {
@@ -43,7 +43,7 @@ func Test_HandleError(t *testing.T) {
 	for _, d := range data {
 		w := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, d.url, nil)
-		api.Router.ServeHTTP(w, req)
+		app.Router.ServeHTTP(w, req)
 
 		var respBody util.M
 		_ = json.NewDecoder(w.Body).Decode(&respBody)
@@ -56,22 +56,22 @@ func Test_HandleError(t *testing.T) {
 func Test_HandleZodError(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := api.NewApi(tx)
-	api.SetupMiddlewares()
+	app := api.NewApp(tx)
+	app.SetupMiddlewares()
 
-	api.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
+	app.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
 		schema := z.Struct(z.Schema{
 			"name": z.String().Required(),
 		})
 
 		var dst struct{ Name string }
 		errs := util.ParseZodSchema(schema, r.Body, &dst)
-		api.HandleZodError(w, errs)
+		app.HandleZodError(w, errs)
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/some-route", strings.NewReader(`{"not-name": 1}`))
 	w := httptest.NewRecorder()
-	api.Router.ServeHTTP(w, req)
+	app.Router.ServeHTTP(w, req)
 
 	var respBody util.M
 	_ = json.NewDecoder(w.Body).Decode(&respBody)
@@ -83,18 +83,18 @@ func Test_HandleZodError(t *testing.T) {
 func Test_InvalidJSONBody(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := api.NewApi(tx)
-	api.SetupMiddlewares()
+	app := api.NewApp(tx)
+	app.SetupMiddlewares()
 
-	api.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
+	app.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
 		var body util.M
 		err := json.NewDecoder(r.Body).Decode(&body)
-		api.InvalidJSONBody(w, err)
+		app.InvalidJSONBody(w, err)
 	})
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/some-route", strings.NewReader(`{"invalid": json}`))
-	api.Router.ServeHTTP(w, req)
+	app.Router.ServeHTTP(w, req)
 
 	var respBody util.M
 	_ = json.NewDecoder(w.Body).Decode(&respBody)

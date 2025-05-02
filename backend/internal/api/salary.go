@@ -11,13 +11,13 @@ var salaryUpdateSchema = z.Struct(z.Schema{
 	"amount": z.Float().GT(0, z.Message("must be greater than 0")).Required(),
 })
 
-func (a *Api) GetSalary(w http.ResponseWriter, r *http.Request) {
+func (a *App) GetSalary(w http.ResponseWriter, r *http.Request) {
 	userID := a.GetUserIDFromCtx(r)
 	salary := util.Must(a.salaryService.Get(r.Context(), userID))
 	a.sendJSON(w, http.StatusOK, salary.ToDTO())
 }
 
-func (a *Api) UpdateSalary(w http.ResponseWriter, r *http.Request) {
+func (a *App) UpdateSalary(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Amount float64 `json:"amount"`
 	}

@@ -21,8 +21,8 @@ func TestGoalHandler_Index(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(tx, user.ID)
-	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
+	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
@@ -34,13 +34,13 @@ func TestGoalHandler_Index(t *testing.T) {
 
 	data := []struct {
 		name     string
-		api      *testhelper.TestApi
+		app      *testhelper.TestApp
 		status   int
 		expected []util.M
 	}{
 		{
 			"get all goals",
-			api,
+			app,
 			200,
 			[]util.M{
 				{"id": float64(goals[0].ID), "name": "Comfort", "percentage": float64(40)},
@@ -50,7 +50,7 @@ func TestGoalHandler_Index(t *testing.T) {
 		},
 		{
 			"only return goals from the current user",
-			anotherUserApi,
+			anotherUserApp,
 			200,
 			[]util.M{
 				{"id": float64(goals[3].ID), "name": "Pleasures", "percentage": float64(100)},
@@ -62,8 +62,8 @@ func TestGoalHandler_Index(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			var respBody []util.M
 
-			resp := d.api.Test(http.MethodGet, "/api/goals")
-			d.api.UnmarshalBody(resp.Body, &respBody)
+			resp := d.app.Test(http.MethodGet, "/api/goals")
+			d.app.UnmarshalBody(resp.Body, &respBody)
 			assert.Equal(resp.StatusCode, d.status)
 			assert.ElementsMatch(d.expected, respBody)
 		})
@@ -78,8 +78,8 @@ func TestGoalHandler_GetGoalExpenses(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(tx, user.ID)
-	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
+	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
@@ -105,35 +105,35 @@ func TestGoalHandler_GetGoalExpenses(t *testing.T) {
 
 	data := []struct {
 		name     string
-		api      *testhelper.TestApi
+		app      *testhelper.TestApp
 		goalID   uint
 		date     *time.Time
 		status   int
 		expected []util.M
 	}{
 		{
-			"get all goal expenses of current month", api, goals[0].ID, nil, 200, []util.M{
+			"get all goal expenses of current month", app, goals[0].ID, nil, 200, []util.M{
 				testhelper.FormatExpense(*expenses[0], *goals[0]),
 				testhelper.FormatExpense(*expenses[1], *goals[0]),
 			},
 		},
 		{
-			"get expenses of a specific month", api, goals[0].ID, &oneMonthAgo, 200, []util.M{
+			"get expenses of a specific month", app, goals[0].ID, &oneMonthAgo, 200, []util.M{
 				testhelper.FormatExpense(*expenses[2], *goals[0]),
 			},
 		},
 		{
-			"get expenses of a specific year and month", api, goals[0].ID, &oneYearAndOneMonthAgo, 200, []util.M{
+			"get expenses of a specific year and month", app, goals[0].ID, &oneYearAndOneMonthAgo, 200, []util.M{
 				testhelper.FormatExpense(*expenses[3], *goals[0]),
 			},
 		},
 		{
-			"get expenses of another goal", api, goals[1].ID, &now, 200, []util.M{
+			"get expenses of another goal", app, goals[1].ID, &now, 200, []util.M{
 				testhelper.FormatExpense(*expenses[4], *goals[1]),
 			},
 		},
 		{
-			"only return expenses from the current user", anotherUserApi, goals[2].ID, &now, 200, []util.M{
+			"only return expenses from the current user", anotherUserApp, goals[2].ID, &now, 200, []util.M{
 				testhelper.FormatExpense(*expenses[5], *goals[2]),
 			},
 		},
@@ -148,8 +148,8 @@ func TestGoalHandler_GetGoalExpenses(t *testing.T) {
 				query = fmt.Sprintf("year=%d&month=%d", d.date.Year(), d.date.Month())
 			}
 
-			resp := d.api.Test(http.MethodGet, fmt.Sprintf("/api/goals/%d/expenses?%s", d.goalID, query))
-			d.api.UnmarshalBody(resp.Body, &respBody)
+			resp := d.app.Test(http.MethodGet, fmt.Sprintf("/api/goals/%d/expenses?%s", d.goalID, query))
+			d.app.UnmarshalBody(resp.Body, &respBody)
 
 			assert.Equal(d.status, resp.StatusCode)
 			assert.ElementsMatch(d.expected, respBody)
@@ -178,8 +178,8 @@ func TestGoalHandler_GetGoalExpenses(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			var respBody util.M
 
-			resp := api.Test(http.MethodGet, fmt.Sprintf("/api/goals/%s/expenses?year=%s&month=%s", d.goalID, d.year, d.month))
-			api.UnmarshalBody(resp.Body, &respBody)
+			resp := app.Test(http.MethodGet, fmt.Sprintf("/api/goals/%s/expenses?year=%s&month=%s", d.goalID, d.year, d.month))
+			app.UnmarshalBody(resp.Body, &respBody)
 
 			assert.Equal(d.status, resp.StatusCode)
 			assert.Equal(d.expected, respBody)
@@ -195,9 +195,9 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	api := testhelper.NewTestApi(tx, user.ID)
-	anotherUserApi := testhelper.NewTestApi(tx, anotherUser.ID)
-	_ = anotherUserApi
+	app := testhelper.NewTestApp(tx, user.ID)
+	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
+	_ = anotherUserApp
 
 	defaultPercentages := domain.DefaultGoalPercentages()
 	goals := make([]*domain.Goal, 0, len(defaultPercentages)*2)
@@ -214,14 +214,14 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 
 	data := []struct {
 		name           string
-		api            *testhelper.TestApi
+		app            *testhelper.TestApp
 		body           []util.M
 		expectedStatus int
 		expectedBody   any
 	}{
 		{
 			"update goals percentages",
-			api,
+			app,
 			[]util.M{
 				{"id": goals[0].ID, "percentage": 20},
 				{"id": goals[1].ID, "percentage": 20},
@@ -242,7 +242,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 		},
 		{
 			"missing goals",
-			api,
+			app,
 			[]util.M{
 				{"id": goals[0].ID, "percentage": 20},
 				{"id": goals[1].ID, "percentage": 20},
@@ -255,7 +255,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 		},
 		{
 			"goals length matches but one is still missing",
-			api,
+			app,
 			[]util.M{
 				{"id": goals[0].ID, "percentage": 20},
 				{"id": goals[1].ID, "percentage": 20},
@@ -269,7 +269,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 		},
 		{
 			"ignore goals of another user",
-			anotherUserApi,
+			anotherUserApp,
 			[]util.M{
 				{"id": goals[6].ID, "percentage": 20},
 				{"id": goals[7].ID, "percentage": 20},
@@ -284,7 +284,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 		},
 		{
 			"percentage lesser than 0",
-			api,
+			app,
 			[]util.M{
 				{"id": goals[0].ID, "percentage": -1},
 				{"id": goals[1].ID, "percentage": 20},
@@ -298,7 +298,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 		},
 		{
 			"percentage greater than 100",
-			api,
+			app,
 			[]util.M{
 				{"id": goals[0].ID, "percentage": 101},
 				{"id": goals[1].ID, "percentage": 20},
@@ -312,7 +312,7 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 		},
 		{
 			"sum of percentages greater than 100",
-			api,
+			app,
 			[]util.M{
 				{"id": goals[0].ID, "percentage": 20},
 				{"id": goals[1].ID, "percentage": 20},
@@ -330,8 +330,8 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			var respBody any
 
-			resp := d.api.Test(http.MethodPost, "/api/goals", d.body)
-			d.api.UnmarshalBody(resp.Body, &respBody)
+			resp := d.app.Test(http.MethodPost, "/api/goals", d.body)
+			d.app.UnmarshalBody(resp.Body, &respBody)
 
 			assert.Equal(d.expectedStatus, resp.StatusCode)
 
@@ -345,8 +345,8 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 
 	// assert goals of first user has been updated
 	var respBody []util.M
-	resp := api.Test(http.MethodGet, "/api/goals")
-	api.UnmarshalBody(resp.Body, &respBody)
+	resp := app.Test(http.MethodGet, "/api/goals")
+	app.UnmarshalBody(resp.Body, &respBody)
 	assert.ElementsMatch([]util.M{
 		formatGoal(goals[0], 20),
 		formatGoal(goals[1], 20),
@@ -357,8 +357,8 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 	}, respBody)
 
 	// assert goals of second user has not been updated
-	resp = anotherUserApi.Test(http.MethodGet, "/api/goals")
-	api.UnmarshalBody(resp.Body, &respBody)
+	resp = anotherUserApp.Test(http.MethodGet, "/api/goals")
+	app.UnmarshalBody(resp.Body, &respBody)
 	assert.ElementsMatch([]util.M{
 		formatGoal(goals[6], goals[6].Percentage),
 		formatGoal(goals[7], goals[7].Percentage),

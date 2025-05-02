@@ -28,7 +28,7 @@ var expenseUpdateSchema = z.Struct(z.Schema{
 	"goalID": z.Int().Optional(),
 })
 
-func (a *Api) FindExpenseSuggestions(w http.ResponseWriter, r *http.Request) {
+func (a *App) FindExpenseSuggestions(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("query")
 	if len(query) < 2 {
 		a.sendError(w, http.StatusBadRequest, "query must be present and have at least 2 characters")
@@ -45,7 +45,7 @@ func (a *Api) FindExpenseSuggestions(w http.ResponseWriter, r *http.Request) {
 	a.sendJSON(w, http.StatusOK, names)
 }
 
-func (a *Api) GetSummary(w http.ResponseWriter, r *http.Request) {
+func (a *App) GetSummary(w http.ResponseWriter, r *http.Request) {
 	date := time.Now()
 
 	if queryDate := r.URL.Query().Get("date"); queryDate != "" {
@@ -68,7 +68,7 @@ func (a *Api) GetSummary(w http.ResponseWriter, r *http.Request) {
 	a.sendJSON(w, http.StatusOK, summary)
 }
 
-func (a *Api) CreateExpense(w http.ResponseWriter, r *http.Request) {
+func (a *App) CreateExpense(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Name         string
 		Value        float64
@@ -106,7 +106,7 @@ func (a *Api) CreateExpense(w http.ResponseWriter, r *http.Request) {
 	a.sendJSON(w, http.StatusCreated, util.M{"data": expenseDTOs})
 }
 
-func (a *Api) UpdateExpense(w http.ResponseWriter, r *http.Request) {
+func (a *App) UpdateExpense(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		a.sendError(w, http.StatusBadRequest, "invalid expense id")
@@ -141,7 +141,7 @@ func (a *Api) UpdateExpense(w http.ResponseWriter, r *http.Request) {
 	a.sendJSON(w, http.StatusOK, expense.ToDTO())
 }
 
-func (a *Api) UpdateExpenseGoal(w http.ResponseWriter, r *http.Request) {
+func (a *App) UpdateExpenseGoal(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
@@ -174,7 +174,7 @@ func (a *Api) UpdateExpenseGoal(w http.ResponseWriter, r *http.Request) {
 	a.sendJSON(w, http.StatusOK, expense.ToDTO())
 }
 
-func (a *Api) DeleteExpense(w http.ResponseWriter, r *http.Request) {
+func (a *App) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		a.sendError(w, http.StatusBadRequest, "invalid expense id")
