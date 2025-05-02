@@ -1,25 +1,29 @@
 package api
 
 import (
-	"errors"
+	"encoding/json"
 	"log/slog"
+	"net/http"
 	"os"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	recoverMiddleware "github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/honeybadger-io/honeybadger-go"
+	"github.com/joaopsramos/fincon/internal/config"
+	errs "github.com/joaopsramos/fincon/internal/error"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
+	"github.com/lestrrat-go/jwx/jwa"
 	"gorm.io/gorm"
 )
 
 type Api struct {
-	Router *fiber.App
+	Router *chi.Mux
 
 	logger *slog.Logger
 
@@ -38,7 +42,7 @@ func NewApi(db *gorm.DB) *Api {
 	expenseRepo := repository.NewPostgresExpense(db)
 
 	return &Api{
-		Router: newFiber(logger),
+		Router: chi.NewRouter(),
 		logger: logger,
 
 		userService:    service.NewUserService(userRepo),
@@ -55,109 +59,86 @@ func (a *Api) SetupAll() {
 
 func (a *Api) Listen() error {
 	slog.Info("Listening on port 4000")
-
-	return a.Router.Listen(":4000")
+	return http.ListenAndServe(":4000", honeybadger.Handler(a.Router))
 }
 
 func (a *Api) SetupMiddlewares() {
 	if os.Getenv("APP_ENV") != "test" {
-		a.Router.Use(logger.New())
+		a.Router.Use(middleware.Logger)
 	}
-	a.Router.Use(cors.New())
-	a.Router.Use(recoverMiddleware.New())
-	a.Router.Use(a.HoneybadgerMiddleware())
-	a.Router.Use(limiter.New(limiter.Config{
-		Max:          100,
-		Expiration:   1 * time.Minute,
-		LimitReached: a.limitReached,
-	}))
+
+	a.Router.Use(middleware.Recoverer)
+	a.Router.Use(a.corsMiddleware())
+	a.Router.Use(a.rateLimiter(100, time.Minute))
+
+	a.Router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		a.HandleError(w, errs.NewNotFound("not found"))
+	})
+}
+
+func (a *Api) corsMiddleware() func(http.Handler) http.Handler {
+	return cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	})
 }
 
 func (a *Api) SetupRoutes() {
-	api := a.Router.Group("/api")
+	tokenAuth := jwtauth.New(jwa.HS256.String(), config.SecretKey(), nil)
 
-	api.Post("/users", limiter.New(limiter.Config{
-		Max:                5,
-		Expiration:         1 * time.Hour,
-		SkipFailedRequests: true,
-		LimitReached:       a.limitReached,
-	}), a.CreateUser)
+	a.Router.Route("/api", func(r chi.Router) {
+		// Public routes
+		r.With(a.rateLimiter(5, time.Hour)).Post("/users", a.CreateUser)
+		r.With(a.rateLimiter(10, 5*time.Minute)).Post("/sessions", a.UserLogin)
 
-	api.Post("/sessions", limiter.New(limiter.Config{
-		Max:               10,
-		Expiration:        5 * time.Minute,
-		LimiterMiddleware: limiter.SlidingWindow{},
-		LimitReached:      a.limitReached,
-	}), a.UserLogin)
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(jwtauth.Verifier(tokenAuth))
+			r.Use(jwtauth.Authenticator(tokenAuth))
+			r.Use(a.PutUserIDMiddleware)
 
-	api.Use(a.ValidateTokenMiddleware())
-	api.Use(a.PutUserIDMiddleware())
+			r.Get("/salary", a.GetSalary)
+			r.Patch("/salary", a.UpdateSalary)
 
-	api.Get("/salary", a.GetSalary)
-	api.Patch("/salary", a.UpdateSalary)
+			r.Post("/expenses", a.CreateExpense)
+			r.Patch("/expenses/{id}", a.UpdateExpense)
+			r.Delete("/expenses/{id}", a.DeleteExpense)
+			r.Patch("/expenses/{id}/update-goal", a.UpdateExpenseGoal)
+			r.Get("/expenses/summary", a.GetSummary)
+			r.Get("/expenses/matching-names", a.FindExpenseSuggestions)
 
-	api.Post("/expenses", a.CreateExpense)
-	api.Patch("/expenses/:id", a.UpdateExpense)
-	api.Delete("/expenses/:id", a.DeleteExpense)
-	api.Patch("/expenses/:id/update-goal", a.UpdateExpenseGoal)
-	api.Get("/expenses/summary", a.GetSummary)
-	api.Get("/expenses/matching-names", a.FindExpenseSuggestions)
-
-	api.Get("/goals", a.AllGoals)
-	api.Get("/goals/:id/expenses", a.GetGoalExpenses)
-	api.Post("/goals", a.UpdateGoals)
+			r.Get("/goals", a.AllGoals)
+			r.Get("/goals/{id}/expenses", a.GetGoalExpenses)
+			r.Post("/goals", a.UpdateGoals)
+		})
+	})
 }
 
-func (a *Api) limitReached(c *fiber.Ctx) error {
-	return c.Status(fiber.StatusTooManyRequests).JSON(util.M{"error": "too many requests"})
-}
-
-func (a *Api) HoneybadgerMiddleware() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		defer func() {
-			if r := recover(); r != nil {
-				headers := c.GetReqHeaders()
-				delete(headers, "Authorization")
-				delete(headers, "Cookie")
-
-				context := honeybadger.Context{
-					"method":     c.Method(),
-					"path":       c.Path(),
-					"headers":    headers,
-					"params":     c.AllParams(),
-					"query":      c.Queries(),
-					"user_id":    c.Locals("user_id"),
-					"client_ip":  c.IP(),
-					"user_agent": c.Get("User-Agent"),
-				}
-
-				_, err := honeybadger.Notify(r, honeybadger.ErrorClass{Name: "RuntimeError"}, context)
-				if err != nil {
-					a.logger.Error(err.Error())
-				}
-
-				panic(r)
-			}
-		}()
-
-		return c.Next()
+// Helper to send JSON responses
+func (a *Api) sendJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		a.logger.Error("Failed to encode response", "error", err)
 	}
 }
 
-func newFiber(logger *slog.Logger) *fiber.App {
-	return fiber.New(fiber.Config{
-		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-			code := fiber.StatusInternalServerError
-			msg := "internal server error"
+// Helper to send error responses
+func (a *Api) sendError(w http.ResponseWriter, status int, message string) {
+	a.sendJSON(w, status, util.M{"error": message})
+}
 
-			var e *fiber.Error
-			if errors.As(err, &e) {
-				code = e.Code
-				msg = e.Message
-			}
+func (a *Api) rateLimiter(limit int, windowLength time.Duration) func(http.Handler) http.Handler {
+	rateLimiter := httprate.NewRateLimiter(
+		limit,
+		windowLength,
+		httprate.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, err error) {
+			a.sendError(w, http.StatusTooManyRequests, "too many requests")
+		}),
+	)
 
-			logger.Error(err.Error())
-			return ctx.Status(code).JSON(util.M{"error": msg})
-		},
-	})
+	return rateLimiter.Handler
 }

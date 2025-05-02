@@ -5,32 +5,36 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	errs "github.com/joaopsramos/fincon/internal/error"
-	"github.com/joaopsramos/fincon/internal/util"
 )
 
-func (a *Api) HandleError(c *fiber.Ctx, err error) error {
+func (a *Api) GetUserIDFromCtx(r *http.Request) uuid.UUID {
+	return r.Context().Value(UserIDKey).(uuid.UUID)
+}
+
+func (a *Api) HandleError(w http.ResponseWriter, err error) {
 	if errors.Is(err, errs.ErrNotFound{}) {
-		return c.Status(http.StatusNotFound).JSON(util.M{"error": err.Error()})
+		a.sendError(w, http.StatusNotFound, err.Error())
+		return
 	}
 
 	if errors.Is(err, errs.ErrValidation{}) {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": err.Error()})
+		a.sendError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
-	a.logger.Error(err.Error())
 	panic(err)
 }
 
-func (a *Api) HandleZodError(c *fiber.Ctx, err map[string]any) error {
-	return c.Status(http.StatusBadRequest).JSON(err)
+func (a *Api) HandleZodError(w http.ResponseWriter, err map[string]any) {
+	a.sendJSON(w, http.StatusBadRequest, err)
 }
 
-func (a *Api) InvalidJSONBody(c *fiber.Ctx, err error) error {
+func (a *Api) InvalidJSONBody(w http.ResponseWriter, err error) {
 	if errors.Is(err, &json.InvalidUnmarshalError{}) {
 		panic(err)
 	}
 
-	return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid json body"})
+	a.sendError(w, http.StatusBadRequest, "invalid json body")
 }

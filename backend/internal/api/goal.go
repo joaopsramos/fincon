@@ -6,52 +6,56 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
-func (a *Api) AllGoals(c *fiber.Ctx) error {
-	userID := util.GetUserIDFromCtx(c)
-	goals := a.goalService.All(c.Context(), userID)
+func (a *Api) AllGoals(w http.ResponseWriter, r *http.Request) {
+	userID := a.GetUserIDFromCtx(r)
+	goals := a.goalService.All(r.Context(), userID)
 	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
-	return c.Status(http.StatusOK).JSON(goalDTOs)
+	a.sendJSON(w, http.StatusOK, goalDTOs)
 }
 
-func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
-	query := c.Queries()
+func (a *Api) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
 	now := time.Now()
 	year, month, _ := now.Date()
 
-	if queryYear, ok := query["year"]; ok {
+	if queryYear := query.Get("year"); queryYear != "" {
 		parsedYear, err := strconv.Atoi(queryYear)
 		if err != nil || parsedYear < 1 {
-			return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid year"})
+			a.sendError(w, http.StatusBadRequest, "invalid year")
+			return
 		}
 
 		year = parsedYear
 	}
 
-	if queryMonth, ok := query["month"]; ok {
+	if queryMonth := query.Get("month"); queryMonth != "" {
 		parsedMonth, err := strconv.Atoi(queryMonth)
 		if err != nil || parsedMonth < 1 || parsedMonth > 12 {
-			return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid month"})
+			a.sendError(w, http.StatusBadRequest, "invalid month")
+			return
 		}
 
 		month = time.Month(parsedMonth)
 	}
 
-	id, err := strconv.Atoi(c.Params("id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id < 1 {
-		return c.Status(http.StatusBadRequest).JSON(util.M{"error": "invalid goal id"})
+		a.sendError(w, http.StatusBadRequest, "invalid goal id")
+		return
 	}
 
-	userID := util.GetUserIDFromCtx(c)
+	userID := a.GetUserIDFromCtx(r)
 
-	expenses, err := a.expenseService.AllByGoalID(c.Context(), uint(id), year, month, userID)
+	expenses, err := a.expenseService.AllByGoalID(r.Context(), uint(id), year, month, userID)
 	if err != nil {
-		return a.HandleError(c, err)
+		a.HandleError(w, err)
+		return
 	}
 
 	var expenseDTOs []domain.ExpenseDTO
@@ -59,21 +63,21 @@ func (a *Api) GetGoalExpenses(c *fiber.Ctx) error {
 		expenseDTOs = append(expenseDTOs, e.ToDTO())
 	}
 
-	return c.Status(http.StatusOK).JSON(expenseDTOs)
+	a.sendJSON(w, http.StatusOK, expenseDTOs)
 }
 
-func (a *Api) UpdateGoals(c *fiber.Ctx) error {
+func (a *Api) UpdateGoals(w http.ResponseWriter, r *http.Request) {
 	var params []struct {
 		ID         int `json:"id"`
 		Percentage int `json:"percentage"`
 	}
 
-	err := json.Unmarshal(c.Body(), &params)
-	if err != nil {
-		return a.InvalidJSONBody(c, err)
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		a.InvalidJSONBody(w, err)
+		return
 	}
 
-	userID := util.GetUserIDFromCtx(c)
+	userID := a.GetUserIDFromCtx(r)
 
 	dtos := make([]service.UpdateGoalDTO, len(params))
 	for i, p := range params {
@@ -83,11 +87,12 @@ func (a *Api) UpdateGoals(c *fiber.Ctx) error {
 		}
 	}
 
-	goals, err := a.goalService.UpdateAll(c.Context(), dtos, userID)
+	goals, err := a.goalService.UpdateAll(r.Context(), dtos, userID)
 	if err != nil {
-		return a.HandleError(c, err)
+		a.HandleError(w, err)
+		return
 	}
 
 	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
-	return c.Status(http.StatusOK).JSON(goalDTOs)
+	a.sendJSON(w, http.StatusOK, goalDTOs)
 }
