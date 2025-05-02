@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 	"github.com/go-chi/jwtauth/v5"
+	"github.com/google/uuid"
 	"github.com/honeybadger-io/honeybadger-go"
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/errs"
@@ -24,11 +26,11 @@ import (
 
 type App struct {
 	Router *chi.Mux
-
 	logger *slog.Logger
 
-	userService    service.UserService
-	salaryService  service.SalaryService
+	userHandler   *UserHandler
+	salaryHandler *SalaryHandler
+
 	goalService    service.GoalService
 	expenseService service.ExpenseService
 }
@@ -41,12 +43,18 @@ func NewApp(db *gorm.DB) *App {
 	goalRepo := repository.NewPostgresGoal(db)
 	expenseRepo := repository.NewPostgresExpense(db)
 
+	handler := NewHandler(logger)
+
+	userService := service.NewUserService(userRepo)
+	salaryService := service.NewSalaryService(salaryRepo)
+
 	return &App{
 		Router: chi.NewRouter(),
 		logger: logger,
 
-		userService:    service.NewUserService(userRepo),
-		salaryService:  service.NewSalaryService(salaryRepo),
+		userHandler:   NewUserHandler(userService, handler),
+		salaryHandler: NewSalaryHandler(salaryService, handler),
+
 		goalService:    service.NewGoalService(goalRepo),
 		expenseService: service.NewExpenseService(expenseRepo, goalRepo, salaryRepo),
 	}
@@ -91,8 +99,7 @@ func (a *App) SetupRoutes() {
 
 	a.Router.Route("/api", func(r chi.Router) {
 		// Public routes
-		r.With(a.rateLimiter(5, time.Hour)).Post("/users", a.CreateUser)
-		r.With(a.rateLimiter(10, 5*time.Minute)).Post("/sessions", a.UserLogin)
+		a.userHandler.RegisterRoutes(r)
 
 		// Protected routes
 		r.Group(func(r chi.Router) {
@@ -100,8 +107,7 @@ func (a *App) SetupRoutes() {
 			r.Use(jwtauth.Authenticator(tokenAuth))
 			r.Use(a.PutUserIDMiddleware)
 
-			r.Get("/salary", a.GetSalary)
-			r.Patch("/salary", a.UpdateSalary)
+			a.salaryHandler.RegisterRoutes(r)
 
 			r.Post("/expenses", a.CreateExpense)
 			r.Patch("/expenses/{id}", a.UpdateExpense)
@@ -141,4 +147,26 @@ func (a *App) rateLimiter(limit int, windowLength time.Duration) func(http.Handl
 	)
 
 	return rateLimiter.Handler
+}
+
+func (a *App) PutUserIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, claims, err := jwtauth.FromContext(r.Context())
+		if err != nil {
+			panic(err)
+		}
+
+		sub, ok := claims["sub"].(string)
+		if !ok {
+			panic("failed to get subject from token")
+		}
+
+		userID, err := uuid.Parse(sub)
+		if err != nil {
+			panic(err)
+		}
+
+		ctx := context.WithValue(r.Context(), UserIDKey, userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

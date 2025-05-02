@@ -1,18 +1,13 @@
 package api
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/go-chi/jwtauth/v5"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"github.com/joaopsramos/fincon/internal/config"
-
+	"github.com/go-chi/chi/v5"
+	"github.com/joaopsramos/fincon/internal/auth"
 	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -25,6 +20,18 @@ var (
 	UserIDKey      UserIDKeyType = "user_id"
 )
 
+type UserHandler struct {
+	*Handler
+	userService service.UserService
+}
+
+func NewUserHandler(userService service.UserService, handler *Handler) *UserHandler {
+	return &UserHandler{
+		Handler:     handler,
+		userService: userService,
+	}
+}
+
 var userCreateSchema = z.Struct(z.Schema{
 	"email":    z.String().Trim().Max(160).Email(z.Message("must be valid")).Required(),
 	"password": z.String().Trim().Min(8, z.Message("must contain at least 8 characters")).Max(72, z.Message("must have at most 72 characters")).Required(),
@@ -36,7 +43,12 @@ var userLoginSchema = z.Struct(z.Schema{
 	"password": z.String().Trim().Required(),
 })
 
-func (a *App) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) RegisterRoutes(r chi.Router) {
+	r.With(h.rateLimiter(5, time.Hour)).Post("/users", h.CreateUser)
+	r.With(h.rateLimiter(10, 5*time.Minute)).Post("/sessions", h.UserLogin)
+}
+
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Email    string  `json:"email"`
 		Password string  `json:"password"`
@@ -44,16 +56,15 @@ func (a *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if errs := util.ParseZodSchema(userCreateSchema, r.Body, &params); errs != nil {
-		fmt.Println(params, errs)
-		a.HandleZodError(w, errs)
+		h.HandleZodError(w, errs)
 		return
 	}
 
-	if _, err := a.userService.GetByEmail(r.Context(), params.Email); err == nil {
-		a.sendError(w, http.StatusConflict, "email already in use")
+	if _, err := h.userService.GetByEmail(r.Context(), params.Email); err == nil {
+		h.sendError(w, http.StatusConflict, "email already in use")
 		return
 	} else if !errors.Is(err, errs.ErrNotFound{}) {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
@@ -63,77 +74,37 @@ func (a *App) CreateUser(w http.ResponseWriter, r *http.Request) {
 		CreateSalaryDTO: service.CreateSalaryDTO{Amount: params.Salary},
 	}
 
-	user, salary, err := a.userService.Create(r.Context(), dto)
+	user, salary, err := h.userService.Create(r.Context(), dto)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
-	a.sendJSON(w, http.StatusCreated, util.M{
+	h.sendJSON(w, http.StatusCreated, util.M{
 		"user":   user.ToDTO(),
 		"salary": salary.ToDTO(),
-		"token":  a.GenerateToken(user.ID, tokenExpiresIn),
+		"token":  auth.GenerateJWTToken(user.ID, tokenExpiresIn),
 	})
 }
 
-func (a *App) UserLogin(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
 	if errs := util.ParseZodSchema(userLoginSchema, r.Body, &params); errs != nil {
-		a.HandleZodError(w, errs)
+		h.HandleZodError(w, errs)
 		return
 	}
 
-	user, err := a.userService.GetByEmailAndPassword(r.Context(), params.Email, params.Password)
+	user, err := h.userService.GetByEmailAndPassword(r.Context(), params.Email, params.Password)
 	if errors.Is(err, errs.ErrInvalidCredentials) {
-		a.invalidCredentials(w)
+		h.sendError(w, http.StatusUnauthorized, "invalid email or password")
 		return
 	} else if err != nil {
 		panic(err)
 	}
 
-	a.sendJSON(w, http.StatusCreated, util.M{"token": a.GenerateToken(user.ID, tokenExpiresIn)})
-}
-
-func (a *App) GenerateToken(userID uuid.UUID, expiresIn time.Duration) string {
-	token := jwt.NewWithClaims(
-		jwt.SigningMethodHS256,
-		jwt.MapClaims{"sub": userID, "exp": time.Now().UTC().Add(expiresIn).Unix()},
-	)
-
-	tokenString, err := token.SignedString(config.SecretKey())
-	if err != nil {
-		panic(err)
-	}
-
-	return tokenString
-}
-
-func (a *App) invalidCredentials(w http.ResponseWriter) {
-	a.sendError(w, http.StatusUnauthorized, "invalid email or password")
-}
-
-func (a *App) PutUserIDMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, claims, err := jwtauth.FromContext(r.Context())
-		if err != nil {
-			panic(err)
-		}
-
-		sub, ok := claims["sub"].(string)
-		if !ok {
-			panic("failed to get subject from token")
-		}
-
-		userID, err := uuid.Parse(sub)
-		if err != nil {
-			panic(err)
-		}
-
-		ctx := context.WithValue(r.Context(), UserIDKey, userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+	h.sendJSON(w, http.StatusCreated, util.M{"token": auth.GenerateJWTToken(user.ID, tokenExpiresIn)})
 }

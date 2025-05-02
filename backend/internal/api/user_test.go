@@ -4,19 +4,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
-	"github.com/go-chi/jwtauth/v5"
-	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/api"
-	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
-	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApp_CreateUser(t *testing.T) {
+func TestUserHandler_CreateUser(t *testing.T) {
 	t.Parallel()
 	tx := testhelper.NewTestPostgresTx(t)
 
@@ -137,7 +132,7 @@ func TestApp_CreateUser(t *testing.T) {
 	}
 }
 
-func TestApp_UserLogin(t *testing.T) {
+func TestUserHandler_UserLogin(t *testing.T) {
 	t.Parallel()
 	a := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
@@ -222,32 +217,4 @@ func TestApp_UserLogin(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestApp_PutUserIDMiddleware(t *testing.T) {
-	t.Parallel()
-	a := assert.New(t)
-
-	tx := testhelper.NewTestPostgresTx(t)
-	app := api.NewApp(tx)
-
-	userID := uuid.New()
-	token := app.GenerateToken(userID, time.Minute)
-
-	tokenAuth := jwtauth.New(jwa.HS256.String(), config.SecretKey(), nil)
-	app.Router.Use(jwtauth.Verifier(tokenAuth))
-	app.Router.Use(jwtauth.Authenticator(tokenAuth))
-	app.Router.Use(app.PutUserIDMiddleware)
-	app.Router.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		a.Equal(userID, r.Context().Value(api.UserIDKey).(uuid.UUID))
-		w.WriteHeader(http.StatusOK)
-	})
-
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	w := httptest.NewRecorder()
-	app.Router.ServeHTTP(w, req)
-
-	a.Equal(http.StatusOK, w.Result().StatusCode)
 }

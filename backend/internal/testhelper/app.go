@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/api"
+	"github.com/joaopsramos/fincon/internal/auth"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +26,7 @@ func NewTestApp(tx *gorm.DB, userID ...uuid.UUID) *TestApp {
 	var token string
 
 	if len(userID) > 0 {
-		token = app.GenerateToken(userID[0], time.Minute*1)
+		token = auth.GenerateJWTToken(userID[0], time.Minute*1)
 	}
 
 	return &TestApp{app: app, token: token}
