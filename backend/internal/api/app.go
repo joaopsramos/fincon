@@ -28,11 +28,10 @@ type App struct {
 	Router *chi.Mux
 	logger *slog.Logger
 
-	userHandler   *UserHandler
-	salaryHandler *SalaryHandler
-
-	goalService    service.GoalService
-	expenseService service.ExpenseService
+	userHandler    *UserHandler
+	salaryHandler  *SalaryHandler
+	goalHandler    *GoalHandler
+	expenseHandler *ExpenseHandler
 }
 
 func NewApp(db *gorm.DB) *App {
@@ -43,20 +42,21 @@ func NewApp(db *gorm.DB) *App {
 	goalRepo := repository.NewPostgresGoal(db)
 	expenseRepo := repository.NewPostgresExpense(db)
 
-	handler := NewHandler(logger)
+	baseHandler := NewBaseHandler(logger)
 
 	userService := service.NewUserService(userRepo)
 	salaryService := service.NewSalaryService(salaryRepo)
+	goalService := service.NewGoalService(goalRepo)
+	expenseService := service.NewExpenseService(expenseRepo, goalRepo, salaryRepo)
 
 	return &App{
 		Router: chi.NewRouter(),
 		logger: logger,
 
-		userHandler:   NewUserHandler(userService, handler),
-		salaryHandler: NewSalaryHandler(salaryService, handler),
-
-		goalService:    service.NewGoalService(goalRepo),
-		expenseService: service.NewExpenseService(expenseRepo, goalRepo, salaryRepo),
+		userHandler:    NewUserHandler(baseHandler, userService),
+		salaryHandler:  NewSalaryHandler(baseHandler, salaryService),
+		goalHandler:    NewGoalHandler(baseHandler, goalService, expenseService),
+		expenseHandler: NewExpenseHandler(baseHandler, expenseService),
 	}
 }
 
@@ -108,17 +108,8 @@ func (a *App) SetupRoutes() {
 			r.Use(a.PutUserIDMiddleware)
 
 			a.salaryHandler.RegisterRoutes(r)
-
-			r.Post("/expenses", a.CreateExpense)
-			r.Patch("/expenses/{id}", a.UpdateExpense)
-			r.Delete("/expenses/{id}", a.DeleteExpense)
-			r.Patch("/expenses/{id}/update-goal", a.UpdateExpenseGoal)
-			r.Get("/expenses/summary", a.GetSummary)
-			r.Get("/expenses/matching-names", a.FindExpenseSuggestions)
-
-			r.Get("/goals", a.AllGoals)
-			r.Get("/goals/{id}/expenses", a.GetGoalExpenses)
-			r.Post("/goals", a.UpdateGoals)
+			a.goalHandler.RegisterRoutes(r)
+			a.expenseHandler.RegisterRoutes(r)
 		})
 	})
 }

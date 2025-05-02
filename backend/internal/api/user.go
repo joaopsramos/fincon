@@ -21,13 +21,13 @@ var (
 )
 
 type UserHandler struct {
-	*Handler
+	*BaseHandler
 	userService service.UserService
 }
 
-func NewUserHandler(userService service.UserService, handler *Handler) *UserHandler {
+func NewUserHandler(baseHandler *BaseHandler, userService service.UserService) *UserHandler {
 	return &UserHandler{
-		Handler:     handler,
+		BaseHandler: baseHandler,
 		userService: userService,
 	}
 }

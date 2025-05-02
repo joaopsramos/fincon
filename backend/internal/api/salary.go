@@ -10,7 +10,7 @@ import (
 )
 
 type SalaryHandler struct {
-	*Handler
+	*BaseHandler
 	salaryService service.SalaryService
 }
 
@@ -18,9 +18,9 @@ var salaryUpdateSchema = z.Struct(z.Schema{
 	"amount": z.Float().GT(0, z.Message("must be greater than 0")).Required(),
 })
 
-func NewSalaryHandler(salaryService service.SalaryService, handler *Handler) *SalaryHandler {
+func NewSalaryHandler(baseHandler *BaseHandler, salaryService service.SalaryService) *SalaryHandler {
 	return &SalaryHandler{
-		Handler:       handler,
+		BaseHandler:   baseHandler,
 		salaryService: salaryService,
 	}
 }

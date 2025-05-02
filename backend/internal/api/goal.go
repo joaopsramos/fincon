@@ -12,14 +12,34 @@ import (
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
-func (a *App) AllGoals(w http.ResponseWriter, r *http.Request) {
-	userID := a.GetUserIDFromCtx(r)
-	goals := a.goalService.All(r.Context(), userID)
-	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
-	a.sendJSON(w, http.StatusOK, goalDTOs)
+type GoalHandler struct {
+	*BaseHandler
+	goalService    service.GoalService
+	expenseService service.ExpenseService
 }
 
-func (a *App) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
+func NewGoalHandler(handler *BaseHandler, goalService service.GoalService, expenseService service.ExpenseService) *GoalHandler {
+	return &GoalHandler{
+		BaseHandler:    handler,
+		goalService:    goalService,
+		expenseService: expenseService,
+	}
+}
+
+func (h *GoalHandler) RegisterRoutes(r chi.Router) {
+	r.Get("/goals", h.AllGoals)
+	r.Get("/goals/{id}/expenses", h.GetGoalExpenses)
+	r.Post("/goals", h.UpdateGoals)
+}
+
+func (h *GoalHandler) AllGoals(w http.ResponseWriter, r *http.Request) {
+	userID := h.getUserIDFromCtx(r)
+	goals := h.goalService.All(r.Context(), userID)
+	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
+	h.sendJSON(w, http.StatusOK, goalDTOs)
+}
+
+func (h *GoalHandler) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	now := time.Now()
 	year, month, _ := now.Date()
@@ -27,7 +47,7 @@ func (a *App) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
 	if queryYear := query.Get("year"); queryYear != "" {
 		parsedYear, err := strconv.Atoi(queryYear)
 		if err != nil || parsedYear < 1 {
-			a.sendError(w, http.StatusBadRequest, "invalid year")
+			h.sendError(w, http.StatusBadRequest, "invalid year")
 			return
 		}
 
@@ -37,7 +57,7 @@ func (a *App) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
 	if queryMonth := query.Get("month"); queryMonth != "" {
 		parsedMonth, err := strconv.Atoi(queryMonth)
 		if err != nil || parsedMonth < 1 || parsedMonth > 12 {
-			a.sendError(w, http.StatusBadRequest, "invalid month")
+			h.sendError(w, http.StatusBadRequest, "invalid month")
 			return
 		}
 
@@ -46,15 +66,15 @@ func (a *App) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || id < 1 {
-		a.sendError(w, http.StatusBadRequest, "invalid goal id")
+		h.sendError(w, http.StatusBadRequest, "invalid goal id")
 		return
 	}
 
-	userID := a.GetUserIDFromCtx(r)
+	userID := h.getUserIDFromCtx(r)
 
-	expenses, err := a.expenseService.AllByGoalID(r.Context(), uint(id), year, month, userID)
+	expenses, err := h.expenseService.AllByGoalID(r.Context(), uint(id), year, month, userID)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
@@ -63,21 +83,21 @@ func (a *App) GetGoalExpenses(w http.ResponseWriter, r *http.Request) {
 		expenseDTOs = append(expenseDTOs, e.ToDTO())
 	}
 
-	a.sendJSON(w, http.StatusOK, expenseDTOs)
+	h.sendJSON(w, http.StatusOK, expenseDTOs)
 }
 
-func (a *App) UpdateGoals(w http.ResponseWriter, r *http.Request) {
+func (h *GoalHandler) UpdateGoals(w http.ResponseWriter, r *http.Request) {
 	var params []struct {
 		ID         int `json:"id"`
 		Percentage int `json:"percentage"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		a.InvalidJSONBody(w, err)
+		h.InvalidJSONBody(w, err)
 		return
 	}
 
-	userID := a.GetUserIDFromCtx(r)
+	userID := h.getUserIDFromCtx(r)
 
 	dtos := make([]service.UpdateGoalDTO, len(params))
 	for i, p := range params {
@@ -87,12 +107,12 @@ func (a *App) UpdateGoals(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	goals, err := a.goalService.UpdateAll(r.Context(), dtos, userID)
+	goals, err := h.goalService.UpdateAll(r.Context(), dtos, userID)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
 	goalDTOs := util.Map(goals, func(g domain.Goal) domain.GoalDTO { return g.ToDTO() })
-	a.sendJSON(w, http.StatusOK, goalDTOs)
+	h.sendJSON(w, http.StatusOK, goalDTOs)
 }

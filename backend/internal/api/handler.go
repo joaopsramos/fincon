@@ -13,19 +13,19 @@ import (
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
-type Handler struct {
+type BaseHandler struct {
 	logger *slog.Logger
 }
 
-func NewHandler(logger *slog.Logger) *Handler {
-	return &Handler{logger: logger}
+func NewBaseHandler(logger *slog.Logger) *BaseHandler {
+	return &BaseHandler{logger: logger}
 }
 
-func (h *Handler) getUserIDFromCtx(r *http.Request) uuid.UUID {
+func (h *BaseHandler) getUserIDFromCtx(r *http.Request) uuid.UUID {
 	return r.Context().Value(UserIDKey).(uuid.UUID)
 }
 
-func (h *Handler) sendJSON(w http.ResponseWriter, status int, data interface{}) {
+func (h *BaseHandler) sendJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
@@ -35,11 +35,11 @@ func (h *Handler) sendJSON(w http.ResponseWriter, status int, data interface{}) 
 	}
 }
 
-func (h *Handler) sendError(w http.ResponseWriter, status int, message string) {
+func (h *BaseHandler) sendError(w http.ResponseWriter, status int, message string) {
 	h.sendJSON(w, status, util.M{"error": message})
 }
 
-func (h *Handler) HandleError(w http.ResponseWriter, err error) {
+func (h *BaseHandler) HandleError(w http.ResponseWriter, err error) {
 	if errors.Is(err, errs.ErrNotFound{}) {
 		h.sendError(w, http.StatusNotFound, err.Error())
 		return
@@ -53,11 +53,11 @@ func (h *Handler) HandleError(w http.ResponseWriter, err error) {
 	panic(err)
 }
 
-func (h *Handler) HandleZodError(w http.ResponseWriter, err util.M) {
+func (h *BaseHandler) HandleZodError(w http.ResponseWriter, err util.M) {
 	h.sendJSON(w, http.StatusBadRequest, err)
 }
 
-func (h *Handler) rateLimiter(limit int, windowLength time.Duration) func(http.Handler) http.Handler {
+func (h *BaseHandler) rateLimiter(limit int, windowLength time.Duration) func(http.Handler) http.Handler {
 	rateLimiter := httprate.NewRateLimiter(
 		limit,
 		windowLength,
@@ -67,4 +67,8 @@ func (h *Handler) rateLimiter(limit int, windowLength time.Duration) func(http.H
 	)
 
 	return rateLimiter.Handler
+}
+
+func (h *BaseHandler) InvalidJSONBody(w http.ResponseWriter, err error) {
+	h.sendError(w, http.StatusBadRequest, "invalid json body")
 }

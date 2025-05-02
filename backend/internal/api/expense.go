@@ -13,6 +13,11 @@ import (
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
+type ExpenseHandler struct {
+	*BaseHandler
+	expenseService service.ExpenseService
+}
+
 var expenseCreateSchema = z.Struct(z.Schema{
 	"name":         z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Required(),
 	"value":        z.Float().GTE(0.01, z.Message("value must be greater than or equal to 0.01")).Required(),
@@ -28,47 +33,63 @@ var expenseUpdateSchema = z.Struct(z.Schema{
 	"goalID": z.Int().Optional(),
 })
 
-func (a *App) FindExpenseSuggestions(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("query")
-	if len(query) < 2 {
-		a.sendError(w, http.StatusBadRequest, "query must be present and have at least 2 characters")
-		return
+func NewExpenseHandler(baseHandler *BaseHandler, expenseService service.ExpenseService) *ExpenseHandler {
+	return &ExpenseHandler{
+		BaseHandler:    baseHandler,
+		expenseService: expenseService,
 	}
-
-	userID := a.GetUserIDFromCtx(r)
-	names, err := a.expenseService.FindMatchingNames(r.Context(), query, userID)
-	if err != nil {
-		a.HandleError(w, err)
-		return
-	}
-
-	a.sendJSON(w, http.StatusOK, names)
 }
 
-func (a *App) GetSummary(w http.ResponseWriter, r *http.Request) {
+func (h *ExpenseHandler) RegisterRoutes(r chi.Router) {
+	r.Post("/expenses", h.Create)
+	r.Patch("/expenses/{id}", h.Update)
+	r.Delete("/expenses/{id}", h.Delete)
+	r.Patch("/expenses/{id}/update-goal", h.UpdateGoal)
+	r.Get("/expenses/summary", h.GetSummary)
+	r.Get("/expenses/matching-names", h.FindSuggestions)
+}
+
+func (h *ExpenseHandler) FindSuggestions(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+	if len(query) < 2 {
+		h.sendError(w, http.StatusBadRequest, "query must be present and have at least 2 characters")
+		return
+	}
+
+	userID := h.getUserIDFromCtx(r)
+	names, err := h.expenseService.FindMatchingNames(r.Context(), query, userID)
+	if err != nil {
+		h.HandleError(w, err)
+		return
+	}
+
+	h.sendJSON(w, http.StatusOK, names)
+}
+
+func (h *ExpenseHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 	date := time.Now()
 
 	if queryDate := r.URL.Query().Get("date"); queryDate != "" {
 		parsedDate, err := time.Parse(util.ApiDateLayout, queryDate)
 		if err != nil {
-			a.sendError(w, http.StatusBadRequest, "invalid date")
+			h.sendError(w, http.StatusBadRequest, "invalid date")
 			return
 		}
 
 		date = parsedDate
 	}
 
-	userID := a.GetUserIDFromCtx(r)
-	summary, err := a.expenseService.GetSummary(r.Context(), date, userID)
+	userID := h.getUserIDFromCtx(r)
+	summary, err := h.expenseService.GetSummary(r.Context(), date, userID)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
-	a.sendJSON(w, http.StatusOK, summary)
+	h.sendJSON(w, http.StatusOK, summary)
 }
 
-func (a *App) CreateExpense(w http.ResponseWriter, r *http.Request) {
+func (h *ExpenseHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Name         string
 		Value        float64
@@ -78,11 +99,11 @@ func (a *App) CreateExpense(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if errs := util.ParseZodSchema(expenseCreateSchema, r.Body, &params); errs != nil {
-		a.HandleZodError(w, errs)
+		h.HandleZodError(w, errs)
 		return
 	}
 
-	userID := a.GetUserIDFromCtx(r)
+	userID := h.getUserIDFromCtx(r)
 
 	dto := service.CreateExpenseDTO{
 		Name:         params.Name,
@@ -92,9 +113,9 @@ func (a *App) CreateExpense(w http.ResponseWriter, r *http.Request) {
 		Installments: params.Installments,
 	}
 
-	expenses, err := a.expenseService.Create(r.Context(), dto, userID)
+	expenses, err := h.expenseService.Create(r.Context(), dto, userID)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
@@ -103,13 +124,13 @@ func (a *App) CreateExpense(w http.ResponseWriter, r *http.Request) {
 		expenseDTOs = append(expenseDTOs, e.ToDTO())
 	}
 
-	a.sendJSON(w, http.StatusCreated, util.M{"data": expenseDTOs})
+	h.sendJSON(w, http.StatusCreated, util.M{"data": expenseDTOs})
 }
 
-func (a *App) UpdateExpense(w http.ResponseWriter, r *http.Request) {
+func (h *ExpenseHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		a.sendError(w, http.StatusBadRequest, "invalid expense id")
+		h.sendError(w, http.StatusBadRequest, "invalid expense id")
 		return
 	}
 
@@ -121,7 +142,7 @@ func (a *App) UpdateExpense(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if errs := util.ParseZodSchema(expenseUpdateSchema, r.Body, &params); errs != nil {
-		a.HandleZodError(w, errs)
+		h.HandleZodError(w, errs)
 		return
 	}
 
@@ -132,60 +153,60 @@ func (a *App) UpdateExpense(w http.ResponseWriter, r *http.Request) {
 		GoalID: params.GoalID,
 	}
 
-	expense, err := a.expenseService.UpdateByID(r.Context(), uint(id), dto, a.GetUserIDFromCtx(r))
+	expense, err := h.expenseService.UpdateByID(r.Context(), uint(id), dto, h.getUserIDFromCtx(r))
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
-	a.sendJSON(w, http.StatusOK, expense.ToDTO())
+	h.sendJSON(w, http.StatusOK, expense.ToDTO())
 }
 
-func (a *App) UpdateExpenseGoal(w http.ResponseWriter, r *http.Request) {
+func (h *ExpenseHandler) UpdateGoal(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		a.InvalidJSONBody(w, err)
+		h.InvalidJSONBody(w, err)
 		return
 	}
 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		a.sendError(w, http.StatusBadRequest, "invalid expense id")
+		h.sendError(w, http.StatusBadRequest, "invalid expense id")
 		return
 	}
 
-	userID := a.GetUserIDFromCtx(r)
+	userID := h.getUserIDFromCtx(r)
 
-	expense, err := a.expenseService.Get(r.Context(), uint(id), userID)
+	expense, err := h.expenseService.Get(r.Context(), uint(id), userID)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
-	err = a.expenseService.ChangeGoal(r.Context(), expense, params.GoalID, userID)
+	err = h.expenseService.ChangeGoal(r.Context(), expense, params.GoalID, userID)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
-	a.sendJSON(w, http.StatusOK, expense.ToDTO())
+	h.sendJSON(w, http.StatusOK, expense.ToDTO())
 }
 
-func (a *App) DeleteExpense(w http.ResponseWriter, r *http.Request) {
+func (h *ExpenseHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		a.sendError(w, http.StatusBadRequest, "invalid expense id")
+		h.sendError(w, http.StatusBadRequest, "invalid expense id")
 		return
 	}
 
-	userID := a.GetUserIDFromCtx(r)
+	userID := h.getUserIDFromCtx(r)
 
-	err = a.expenseService.Delete(r.Context(), uint(id), userID)
+	err = h.expenseService.Delete(r.Context(), uint(id), userID)
 	if err != nil {
-		a.HandleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 
