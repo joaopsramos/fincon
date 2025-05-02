@@ -2,7 +2,9 @@ package main
 
 import (
 	"log"
+	"os"
 
+	"github.com/honeybadger-io/honeybadger-go"
 	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/config"
 )
@@ -12,8 +14,10 @@ func init() {
 }
 
 func main() {
-	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
+	honeybadger.Configure(honeybadger.Configuration{APIKey: os.Getenv("HONEYBADGER_API_KEY")})
+	defer honeybadger.Monitor()
 
+	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
 	api := api.NewApi(db)
 	api.SetupAll()
 	log.Fatal(api.Listen())

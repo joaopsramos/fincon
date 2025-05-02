@@ -10,7 +10,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	recoverMiddleware "github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/honeybadger-io/honeybadger-go"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -37,7 +38,7 @@ func NewApi(db *gorm.DB) *Api {
 	expenseRepo := repository.NewPostgresExpense(db)
 
 	return &Api{
-		Router: newFiber(),
+		Router: newFiber(logger),
 		logger: logger,
 
 		userService:    service.NewUserService(userRepo),
@@ -63,7 +64,8 @@ func (a *Api) SetupMiddlewares() {
 		a.Router.Use(logger.New())
 	}
 	a.Router.Use(cors.New())
-	a.Router.Use(recover.New())
+	a.Router.Use(recoverMiddleware.New())
+	a.Router.Use(a.HoneybadgerMiddleware())
 	a.Router.Use(limiter.New(limiter.Config{
 		Max:          100,
 		Expiration:   1 * time.Minute,
@@ -110,7 +112,39 @@ func (a *Api) limitReached(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusTooManyRequests).JSON(util.M{"error": "too many requests"})
 }
 
-func newFiber() *fiber.App {
+func (a *Api) HoneybadgerMiddleware() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		defer func() {
+			if r := recover(); r != nil {
+				headers := c.GetReqHeaders()
+				delete(headers, "Authorization")
+				delete(headers, "Cookie")
+
+				context := honeybadger.Context{
+					"method":     c.Method(),
+					"path":       c.Path(),
+					"headers":    headers,
+					"params":     c.AllParams(),
+					"query":      c.Queries(),
+					"user_id":    c.Locals("user_id"),
+					"client_ip":  c.IP(),
+					"user_agent": c.Get("User-Agent"),
+				}
+
+				_, err := honeybadger.Notify(r, honeybadger.ErrorClass{Name: "RuntimeError"}, context)
+				if err != nil {
+					a.logger.Error(err.Error())
+				}
+
+				panic(r)
+			}
+		}()
+
+		return c.Next()
+	}
+}
+
+func newFiber(logger *slog.Logger) *fiber.App {
 	return fiber.New(fiber.Config{
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
@@ -122,7 +156,7 @@ func newFiber() *fiber.App {
 				msg = e.Message
 			}
 
-			slog.Error(err.Error())
+			logger.Error(err.Error())
 			return ctx.Status(code).JSON(util.M{"error": msg})
 		},
 	})

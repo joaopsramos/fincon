@@ -3,4 +3,5 @@ fincon
 tmp/
 
 .prod.env
+.env
 coverage.out
