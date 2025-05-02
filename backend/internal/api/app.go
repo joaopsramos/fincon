@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/honeybadger-io/honeybadger-go"
 	"github.com/joaopsramos/fincon/internal/config"
-	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"

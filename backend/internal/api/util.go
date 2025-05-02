@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/errs"
 )
 
 func (a *App) GetUserIDFromCtx(r *http.Request) uuid.UUID {

@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/config"
 
-	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 )

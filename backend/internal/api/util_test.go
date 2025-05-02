@@ -10,7 +10,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/joaopsramos/fincon/internal/api"
-	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
 	"github.com/stretchr/testify/assert"
