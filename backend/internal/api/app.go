@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/honeybadger-io/honeybadger-go"
 	"github.com/joaopsramos/fincon/internal/config"
-	"github.com/joaopsramos/fincon/internal/errs"
+	"github.com/joaopsramos/fincon/internal/mail"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -43,8 +43,9 @@ func NewApp(db *gorm.DB) *App {
 	expenseRepo := repository.NewPostgresExpense(db)
 
 	baseHandler := NewBaseHandler(logger)
+	mailer := mail.NewMailer()
 
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, mailer)
 	salaryService := service.NewSalaryService(salaryRepo)
 	goalService := service.NewGoalService(goalRepo)
 	expenseService := service.NewExpenseService(expenseRepo, goalRepo, salaryRepo)
@@ -80,7 +81,7 @@ func (a *App) SetupMiddlewares() {
 	a.Router.Use(a.rateLimiter(100, time.Minute))
 
 	a.Router.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		a.HandleError(w, errs.NewNotFound("not found"))
+		w.WriteHeader(http.StatusNotFound)
 	})
 }
 
