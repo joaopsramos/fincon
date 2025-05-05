@@ -6,21 +6,31 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	jwtware "github.com/gofiber/contrib/jwt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"github.com/joaopsramos/fincon/internal/config"
-	"github.com/joaopsramos/fincon/internal/domain"
-	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/go-chi/chi/v5"
+	"github.com/joaopsramos/fincon/internal/auth"
+	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 )
 
+type UserIDKeyType string
+
 var (
-	tokenExpiresIn = time.Hour * 24 * 7
-	jwtContextKey  = "token"
+	tokenExpiresIn               = time.Hour * 24 * 7
+	UserIDKey      UserIDKeyType = "user_id"
 )
+
+type UserHandler struct {
+	*BaseHandler
+	userService service.UserService
+}
+
+func NewUserHandler(baseHandler *BaseHandler, userService service.UserService) *UserHandler {
+	return &UserHandler{
+		BaseHandler: baseHandler,
+		userService: userService,
+	}
+}
 
 var userCreateSchema = z.Struct(z.Schema{
 	"email":    z.String().Trim().Max(160).Email(z.Message("must be valid")).Required(),
@@ -33,21 +43,29 @@ var userLoginSchema = z.Struct(z.Schema{
 	"password": z.String().Trim().Required(),
 })
 
-func (a *Api) CreateUser(c *fiber.Ctx) error {
+func (h *UserHandler) RegisterRoutes(r chi.Router) {
+	r.With(h.rateLimiter(5, time.Hour)).Post("/users", h.CreateUser)
+	r.With(h.rateLimiter(10, 5*time.Minute)).Post("/sessions", h.UserLogin)
+}
+
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Email    string  `json:"email"`
 		Password string  `json:"password"`
 		Salary   float64 `json:"salary"`
 	}
 
-	if errs := util.ParseZodSchema(userCreateSchema, c.Body(), &params); errs != nil {
-		return a.HandleZodError(c, errs)
+	if errs := util.ParseZodSchema(userCreateSchema, r.Body, &params); errs != nil {
+		h.HandleZodError(w, errs)
+		return
 	}
 
-	if _, err := a.userService.GetByEmail(c.Context(), params.Email); err == nil {
-		return c.Status(http.StatusConflict).JSON(util.M{"error": "email already in use"})
+	if _, err := h.userService.GetByEmail(r.Context(), params.Email); err == nil {
+		h.sendError(w, http.StatusConflict, "email already in use")
+		return
 	} else if !errors.Is(err, errs.ErrNotFound{}) {
-		return a.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
 	dto := service.CreateUserDTO{
@@ -56,69 +74,37 @@ func (a *Api) CreateUser(c *fiber.Ctx) error {
 		CreateSalaryDTO: service.CreateSalaryDTO{Amount: params.Salary},
 	}
 
-	user, salary, err := a.userService.Create(c.Context(), dto)
+	user, salary, err := h.userService.Create(r.Context(), dto)
 	if err != nil {
-		return a.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
-	return c.Status(http.StatusCreated).JSON(util.M{
+	h.sendJSON(w, http.StatusCreated, util.M{
 		"user":   user.ToDTO(),
 		"salary": salary.ToDTO(),
-		"token":  a.generateToken(user.ID),
+		"token":  auth.GenerateJWTToken(user.ID, tokenExpiresIn),
 	})
 }
 
-func (a *Api) UserLogin(c *fiber.Ctx) error {
+func (h *UserHandler) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var params struct {
-		Email    string
-		Password string
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
-	if errs := util.ParseZodSchema(userLoginSchema, c.Body(), &params); errs != nil {
-		return a.HandleZodError(c, errs)
+	if errs := util.ParseZodSchema(userLoginSchema, r.Body, &params); errs != nil {
+		h.HandleZodError(w, errs)
+		return
 	}
 
-	user, err := a.userService.GetByEmailAndPassword(c.Context(), params.Email, params.Password)
+	user, err := h.userService.GetByEmailAndPassword(r.Context(), params.Email, params.Password)
 	if errors.Is(err, errs.ErrInvalidCredentials) {
-		return a.invalidCredentials(c)
+		h.sendError(w, http.StatusUnauthorized, "invalid email or password")
+		return
 	} else if err != nil {
 		panic(err)
 	}
 
-	return c.Status(http.StatusCreated).JSON(util.M{"token": a.generateToken(user.ID)})
-}
-
-func (a *Api) ValidateTokenMiddleware() fiber.Handler {
-	return jwtware.New(jwtware.Config{
-		SigningKey: jwtware.SigningKey{Key: config.SecretKey()},
-		ContextKey: jwtContextKey,
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			if err.Error() == jwtware.ErrJWTMissingOrMalformed.Error() {
-				return c.Status(fiber.StatusBadRequest).JSON(util.M{"error": jwtware.ErrJWTMissingOrMalformed.Error()})
-			}
-			return c.Status(fiber.StatusUnauthorized).JSON(util.M{"error": "invalid or expired JWT"})
-		},
-	})
-}
-
-func (a *Api) PutUserIDMiddleware() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		token := c.Locals(jwtContextKey).(*jwt.Token)
-		id, err := token.Claims.GetSubject()
-		if err != nil {
-			panic(err)
-		}
-
-		c.Locals("user_id", id)
-
-		return c.Next()
-	}
-}
-
-func (a *Api) generateToken(userID uuid.UUID) string {
-	return domain.CreateAccessToken(userID, tokenExpiresIn)
-}
-
-func (a *Api) invalidCredentials(c *fiber.Ctx) error {
-	return c.Status(http.StatusUnauthorized).JSON(util.M{"error": "invalid email or password"})
+	h.sendJSON(w, http.StatusCreated, util.M{"token": auth.GenerateJWTToken(user.ID, tokenExpiresIn)})
 }

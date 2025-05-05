@@ -1,15 +1,13 @@
 package util
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 
 	z "github.com/Oudwins/zog"
 	"github.com/Oudwins/zog/parsers/zjson"
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
 
@@ -17,13 +15,8 @@ type M = map[string]any
 
 const ApiDateLayout = "2006-01-02"
 
-func GetUserIDFromCtx(c *fiber.Ctx) uuid.UUID {
-	id := c.Locals("user_id").(string)
-	return uuid.MustParse(id)
-}
-
-func ParseZodSchema(schema z.ComplexZogSchema, body []byte, dest any) map[string]any {
-	err := schema.Parse(zjson.Decode(bytes.NewReader(body)), dest)
+func ParseZodSchema(schema z.ComplexZogSchema, body io.Reader, dest any) map[string]any {
+	err := schema.Parse(zjson.Decode(body), dest)
 	return ParseZogErrors(err)
 }
 

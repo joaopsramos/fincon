@@ -3,14 +3,14 @@ package api_test
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	z "github.com/Oudwins/zog"
-	"github.com/gofiber/fiber/v2"
 	"github.com/joaopsramos/fincon/internal/api"
-	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
 	"github.com/stretchr/testify/assert"
@@ -19,35 +19,36 @@ import (
 func Test_HandleError(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := api.NewApi(tx)
-	api.SetupMiddlewares()
+	app := api.NewApp(tx)
+	app.SetupMiddlewares()
 
-	api.Router.Get("/not-found", func(c *fiber.Ctx) error {
-		return api.HandleError(c, errs.NewNotFound("some resource"))
+	app.Router.Get("/not-found", func(w http.ResponseWriter, r *http.Request) {
+		app.HandleError(w, errs.NewNotFound("some resource"))
 	})
 
-	api.Router.Get("/some-error", func(c *fiber.Ctx) error {
-		return api.HandleError(c, errors.New("some error"))
+	app.Router.Get("/some-error", func(w http.ResponseWriter, r *http.Request) {
+		app.HandleError(w, errors.New("some error"))
 	})
 
 	data := []struct {
 		name           string
 		url            string
 		expectedStatus int
-		expectedBody   fiber.Map
+		expectedBody   util.M
 	}{
-		{"not found error", "/not-found", 404, fiber.Map{"error": "some resource not found"}},
-		{"any other error", "/some-error", 500, fiber.Map{"error": "internal server error"}},
+		{"not found error", "/not-found", 404, util.M{"error": "some resource not found"}},
+		{"any other error", "/some-error", 500, nil},
 	}
 
 	for _, d := range data {
-		var respBody fiber.Map
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, d.url, nil)
+		app.Router.ServeHTTP(w, req)
 
-		req := httptest.NewRequest("GET", d.url, nil)
-		resp, _ := api.Router.Test(req)
-		_ = json.NewDecoder(resp.Body).Decode(&respBody)
+		var respBody util.M
+		_ = json.NewDecoder(w.Body).Decode(&respBody)
 
-		assert.Equal(d.expectedStatus, resp.StatusCode)
+		assert.Equal(d.expectedStatus, w.Code)
 		assert.Equal(d.expectedBody, respBody)
 	}
 }
@@ -55,46 +56,49 @@ func Test_HandleError(t *testing.T) {
 func Test_HandleZodError(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := api.NewApi(tx)
+	app := api.NewApp(tx)
+	app.SetupMiddlewares()
 
-	api.SetupMiddlewares()
-
-	api.Router.Post("/some-route", func(c *fiber.Ctx) error {
+	app.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
 		schema := z.Struct(z.Schema{
 			"name": z.String().Required(),
 		})
-		errs := util.ParseZodSchema(schema, c.Body(), &struct{ Name string }{})
-		return api.HandleZodError(c, errs)
+
+		var dst struct{ Name string }
+		errs := util.ParseZodSchema(schema, r.Body, &dst)
+		app.HandleZodError(w, errs)
 	})
 
-	req := httptest.NewRequest("POST", "/some-route", strings.NewReader(`{"not-name": 1}`))
-	resp, _ := api.Router.Test(req)
+	req := httptest.NewRequest(http.MethodPost, "/some-route", strings.NewReader(`{"not-name": 1}`))
+	w := httptest.NewRecorder()
+	app.Router.ServeHTTP(w, req)
 
-	var respBody fiber.Map
-	_ = json.NewDecoder(resp.Body).Decode(&respBody)
+	var respBody util.M
+	_ = json.NewDecoder(w.Body).Decode(&respBody)
 
-	assert.Equal(400, resp.StatusCode)
-	assert.Equal(fiber.Map{"errors": util.M{"name": []any{"is required"}}}, respBody)
+	assert.Equal(400, w.Code)
+	assert.Equal(util.M{"errors": util.M{"name": []any{"is required"}}}, respBody)
 }
 
 func Test_InvalidJSONBody(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	api := api.NewApi(tx)
+	app := api.NewApp(tx)
+	app.SetupMiddlewares()
 
-	api.SetupMiddlewares()
-
-	api.Router.Post("/some-route", func(c *fiber.Ctx) error {
-		err := json.Unmarshal(c.Body(), &fiber.Map{})
-		return api.InvalidJSONBody(c, err)
+	app.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
+		var body util.M
+		err := json.NewDecoder(r.Body).Decode(&body)
+		app.InvalidJSONBody(w, err)
 	})
 
-	req := httptest.NewRequest("POST", "/some-route", strings.NewReader(`{"invalid": json}`))
-	resp, _ := api.Router.Test(req)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/some-route", strings.NewReader(`{"invalid": json}`))
+	app.Router.ServeHTTP(w, req)
 
-	var respBody fiber.Map
-	_ = json.NewDecoder(resp.Body).Decode(&respBody)
+	var respBody util.M
+	_ = json.NewDecoder(w.Body).Decode(&respBody)
 
-	assert.Equal(400, resp.StatusCode)
-	assert.Equal(fiber.Map{"error": "invalid json body"}, respBody)
+	assert.Equal(400, w.Code)
+	assert.Equal(util.M{"error": "invalid json body"}, respBody)
 }

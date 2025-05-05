@@ -7,11 +7,16 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 )
+
+type ExpenseHandler struct {
+	*BaseHandler
+	expenseService service.ExpenseService
+}
 
 var expenseCreateSchema = z.Struct(z.Schema{
 	"name":         z.String().Trim().Min(2, z.Message("name must contain at least 2 characters")).Required(),
@@ -28,43 +33,63 @@ var expenseUpdateSchema = z.Struct(z.Schema{
 	"goalID": z.Int().Optional(),
 })
 
-func (a *Api) FindExpenseSuggestions(c *fiber.Ctx) error {
-	query := c.Query("query")
-	if len(query) < 2 {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "query must be present and have at least 2 characters"})
+func NewExpenseHandler(baseHandler *BaseHandler, expenseService service.ExpenseService) *ExpenseHandler {
+	return &ExpenseHandler{
+		BaseHandler:    baseHandler,
+		expenseService: expenseService,
 	}
-
-	userID := util.GetUserIDFromCtx(c)
-	names, err := a.expenseService.FindMatchingNames(c.Context(), query, userID)
-	if err != nil {
-		return a.HandleError(c, err)
-	}
-
-	return c.Status(http.StatusOK).JSON(names)
 }
 
-func (h *Api) GetSummary(c *fiber.Ctx) error {
+func (h *ExpenseHandler) RegisterRoutes(r chi.Router) {
+	r.Post("/expenses", h.Create)
+	r.Patch("/expenses/{id}", h.Update)
+	r.Delete("/expenses/{id}", h.Delete)
+	r.Patch("/expenses/{id}/update-goal", h.UpdateGoal)
+	r.Get("/expenses/summary", h.GetSummary)
+	r.Get("/expenses/matching-names", h.FindSuggestions)
+}
+
+func (h *ExpenseHandler) FindSuggestions(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+	if len(query) < 2 {
+		h.sendError(w, http.StatusBadRequest, "query must be present and have at least 2 characters")
+		return
+	}
+
+	userID := h.getUserIDFromCtx(r)
+	names, err := h.expenseService.FindMatchingNames(r.Context(), query, userID)
+	if err != nil {
+		h.HandleError(w, err)
+		return
+	}
+
+	h.sendJSON(w, http.StatusOK, names)
+}
+
+func (h *ExpenseHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 	date := time.Now()
 
-	if queryDate := c.Query("date"); queryDate != "" {
+	if queryDate := r.URL.Query().Get("date"); queryDate != "" {
 		parsedDate, err := time.Parse(util.ApiDateLayout, queryDate)
 		if err != nil {
-			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid date"})
+			h.sendError(w, http.StatusBadRequest, "invalid date")
+			return
 		}
 
 		date = parsedDate
 	}
 
-	userID := util.GetUserIDFromCtx(c)
-	summary, err := h.expenseService.GetSummary(c.Context(), date, userID)
+	userID := h.getUserIDFromCtx(r)
+	summary, err := h.expenseService.GetSummary(r.Context(), date, userID)
 	if err != nil {
-		return h.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
-	return c.Status(http.StatusOK).JSON(summary)
+	h.sendJSON(w, http.StatusOK, summary)
 }
 
-func (a *Api) CreateExpense(c *fiber.Ctx) error {
+func (h *ExpenseHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Name         string
 		Value        float64
@@ -73,11 +98,12 @@ func (a *Api) CreateExpense(c *fiber.Ctx) error {
 		Installments int
 	}
 
-	if errs := util.ParseZodSchema(expenseCreateSchema, c.Body(), &params); errs != nil {
-		return a.HandleZodError(c, errs)
+	if errs := util.ParseZodSchema(expenseCreateSchema, r.Body, &params); errs != nil {
+		h.HandleZodError(w, errs)
+		return
 	}
 
-	userID := util.GetUserIDFromCtx(c)
+	userID := h.getUserIDFromCtx(r)
 
 	dto := service.CreateExpenseDTO{
 		Name:         params.Name,
@@ -87,9 +113,10 @@ func (a *Api) CreateExpense(c *fiber.Ctx) error {
 		Installments: params.Installments,
 	}
 
-	expenses, err := a.expenseService.Create(c.Context(), dto, userID)
+	expenses, err := h.expenseService.Create(r.Context(), dto, userID)
 	if err != nil {
-		return a.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
 	var expenseDTOs []domain.ExpenseDTO
@@ -97,13 +124,14 @@ func (a *Api) CreateExpense(c *fiber.Ctx) error {
 		expenseDTOs = append(expenseDTOs, e.ToDTO())
 	}
 
-	return c.Status(http.StatusCreated).JSON(fiber.Map{"data": expenseDTOs})
+	h.sendJSON(w, http.StatusCreated, util.M{"data": expenseDTOs})
 }
 
-func (a *Api) UpdateExpense(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (h *ExpenseHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
+		h.sendError(w, http.StatusBadRequest, "invalid expense id")
+		return
 	}
 
 	var params struct {
@@ -113,8 +141,9 @@ func (a *Api) UpdateExpense(c *fiber.Ctx) error {
 		GoalID int       `zog:"goal_id"`
 	}
 
-	if errs := util.ParseZodSchema(expenseUpdateSchema, c.Body(), &params); errs != nil {
-		return a.HandleZodError(c, errs)
+	if errs := util.ParseZodSchema(expenseUpdateSchema, r.Body, &params); errs != nil {
+		h.HandleZodError(w, errs)
+		return
 	}
 
 	dto := service.UpdateExpenseDTO{
@@ -124,54 +153,62 @@ func (a *Api) UpdateExpense(c *fiber.Ctx) error {
 		GoalID: params.GoalID,
 	}
 
-	expense, err := a.expenseService.UpdateByID(c.Context(), uint(id), dto, util.GetUserIDFromCtx(c))
+	expense, err := h.expenseService.UpdateByID(r.Context(), uint(id), dto, h.getUserIDFromCtx(r))
 	if err != nil {
-		return a.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
-	return c.Status(http.StatusOK).JSON(expense.ToDTO())
+	h.sendJSON(w, http.StatusOK, expense.ToDTO())
 }
 
-func (a *Api) UpdateExpenseGoal(c *fiber.Ctx) error {
+func (h *ExpenseHandler) UpdateGoal(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		GoalID uint `json:"goal_id"`
 	}
-	if err := json.Unmarshal(c.Body(), &params); err != nil {
-		return a.InvalidJSONBody(c, err)
+
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		h.InvalidJSONBody(w, err)
+		return
 	}
 
-	id, err := strconv.Atoi(c.Params("id"))
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
+		h.sendError(w, http.StatusBadRequest, "invalid expense id")
+		return
 	}
 
-	userID := util.GetUserIDFromCtx(c)
+	userID := h.getUserIDFromCtx(r)
 
-	expense, err := a.expenseService.Get(c.Context(), uint(id), userID)
+	expense, err := h.expenseService.Get(r.Context(), uint(id), userID)
 	if err != nil {
-		return a.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
-	err = a.expenseService.ChangeGoal(c.Context(), expense, params.GoalID, userID)
+	err = h.expenseService.ChangeGoal(r.Context(), expense, params.GoalID, userID)
 	if err != nil {
-		return a.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
-	return c.Status(http.StatusOK).JSON(expense.ToDTO())
+	h.sendJSON(w, http.StatusOK, expense.ToDTO())
 }
 
-func (a *Api) DeleteExpense(c *fiber.Ctx) error {
-	id, err := strconv.Atoi(c.Params("id"))
+func (h *ExpenseHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "invalid expense id"})
+		h.sendError(w, http.StatusBadRequest, "invalid expense id")
+		return
 	}
 
-	userID := util.GetUserIDFromCtx(c)
+	userID := h.getUserIDFromCtx(r)
 
-	err = a.expenseService.Delete(c.Context(), uint(id), userID)
+	err = h.expenseService.Delete(r.Context(), uint(id), userID)
 	if err != nil {
-		return a.HandleError(c, err)
+		h.HandleError(w, err)
+		return
 	}
 
-	return c.Status(http.StatusNoContent).Send(nil)
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -10,10 +10,14 @@ import (
 )
 
 func NewTestPostgresTx(t *testing.T) *gorm.DB {
-	os.Setenv("APP_ENV", "test")
-	config.LoadEnv(path.Join("..", ".."))
+	err := os.Setenv("APP_ENV", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
+	config.Load(path.Join("..", ".."))
+
+	db := config.NewPostgresConn(config.Get().PostgresDSN())
 
 	tx := db.Begin()
 

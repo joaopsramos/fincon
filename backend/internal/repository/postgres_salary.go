@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
-	errs "github.com/joaopsramos/fincon/internal/error"
+	"github.com/joaopsramos/fincon/internal/errs"
 	"gorm.io/gorm"
 )
 

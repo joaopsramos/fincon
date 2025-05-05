@@ -22,7 +22,7 @@ func TestExpenseHandler_Create(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(tx, user.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
 
 	goal := domain.Goal{Name: "Comfort", UserID: user.ID}
 	f.InsertGoal(&goal)
@@ -139,8 +139,8 @@ func TestExpenseHandler_Create(t *testing.T) {
 			a := assert.New(t)
 			var respBody util.M
 
-			resp := api.Test(http.MethodPost, "/api/expenses", tt.body)
-			api.UnmarshalBody(resp.Body, &respBody)
+			resp := app.Test(http.MethodPost, "/api/expenses", tt.body)
+			app.UnmarshalBody(resp.Body, &respBody)
 
 			a.Equal(tt.status, resp.StatusCode)
 			if tt.want != nil {
@@ -160,7 +160,7 @@ func TestExpenseHandler_FindMatchingNames(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(tx, user.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
 
 	now := time.Now().UTC()
 	// Use middle of month to avoid errors when subtracting/adding months
@@ -193,8 +193,8 @@ func TestExpenseHandler_FindMatchingNames(t *testing.T) {
 	}
 
 	for _, d := range data {
-		resp := api.Test(http.MethodGet, "/api/expenses/matching-names?query="+d.query)
-		api.UnmarshalBody(resp.Body, &respBody)
+		resp := app.Test(http.MethodGet, "/api/expenses/matching-names?query="+d.query)
+		app.UnmarshalBody(resp.Body, &respBody)
 
 		assert.Equal(200, resp.StatusCode)
 		assert.ElementsMatch(d.expected, respBody)
@@ -205,8 +205,8 @@ func TestExpenseHandler_FindMatchingNames(t *testing.T) {
 	var errBody util.M
 
 	for _, q := range []string{"", "a"} {
-		resp := api.Test(http.MethodGet, "/api/expenses/matching-names?query="+q)
-		api.UnmarshalBody(resp.Body, &errBody)
+		resp := app.Test(http.MethodGet, "/api/expenses/matching-names?query="+q)
+		app.UnmarshalBody(resp.Body, &errBody)
 		assert.Equal(400, resp.StatusCode)
 		assert.Equal(util.M{"error": "query must be present and have at least 2 characters"}, errBody)
 
@@ -219,7 +219,7 @@ func TestExpenseHandler_Update(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(tx, user.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
 
 	goal1 := domain.Goal{Name: "Comfort", UserID: user.ID}
 	f.InsertGoal(&goal1)
@@ -326,22 +326,22 @@ func TestExpenseHandler_Update(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			resp := api.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d", expense.ID), d.body)
-			api.UnmarshalBody(resp.Body, &respBody)
+			resp := app.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d", expense.ID), d.body)
+			app.UnmarshalBody(resp.Body, &respBody)
 			assert.Equal(d.status, resp.StatusCode)
 			assert.Equal(d.expected, respBody)
 			clear(respBody)
 		})
 	}
 
-	resp := api.Test(http.MethodPatch, "/api/expenses/invalid-id", util.M{})
-	api.UnmarshalBody(resp.Body, &respBody)
+	resp := app.Test(http.MethodPatch, "/api/expenses/invalid-id", util.M{})
+	app.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(400, resp.StatusCode)
 	assert.Equal(util.M{"error": "invalid expense id"}, respBody)
 
-	anotherUserApi := testhelper.NewTestApi(tx, uuid.New())
-	resp = anotherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d", expense.ID), util.M{})
-	api.UnmarshalBody(resp.Body, &respBody)
+	anotherUserApp := testhelper.NewTestApp(tx, uuid.New())
+	resp = anotherUserApp.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d", expense.ID), util.M{})
+	app.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(404, resp.StatusCode)
 	assert.Equal(util.M{"error": "expense not found"}, respBody)
 }
@@ -352,7 +352,7 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(tx, user.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
 
 	goal1 := domain.Goal{Name: "Comfort", UserID: user.ID}
 	goal2 := domain.Goal{Name: "Pleasures", UserID: user.ID}
@@ -392,22 +392,22 @@ func TestExpenseHandler_UpdateGoal(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			resp := api.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), d.body)
-			api.UnmarshalBody(resp.Body, &respBody)
+			resp := app.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), d.body)
+			app.UnmarshalBody(resp.Body, &respBody)
 			assert.Equal(d.status, resp.StatusCode)
 			assert.Equal(d.expected, respBody)
 			clear(respBody)
 		})
 	}
 
-	resp := api.Test(http.MethodPatch, "/api/expenses/invalid-id/update-goal", util.M{"goal_id": goal1.ID})
-	api.UnmarshalBody(resp.Body, &respBody)
+	resp := app.Test(http.MethodPatch, "/api/expenses/invalid-id/update-goal", util.M{"goal_id": goal1.ID})
+	app.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(400, resp.StatusCode)
 	assert.Equal(util.M{"error": "invalid expense id"}, respBody)
 
-	anotherUserApi := testhelper.NewTestApi(tx, uuid.New())
-	resp = anotherUserApi.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), util.M{"goal_id": goal1.ID})
-	api.UnmarshalBody(resp.Body, &respBody)
+	anotherUserApp := testhelper.NewTestApp(tx, uuid.New())
+	resp = anotherUserApp.Test(http.MethodPatch, fmt.Sprintf("/api/expenses/%d/update-goal", expense.ID), util.M{"goal_id": goal1.ID})
+	app.UnmarshalBody(resp.Body, &respBody)
 	assert.Equal(404, resp.StatusCode)
 	assert.Equal(util.M{"error": "expense not found"}, respBody)
 }
@@ -418,46 +418,46 @@ func TestExpenseHandler_Delete(t *testing.T) {
 	tx := testhelper.NewTestPostgresTx(t)
 	f := testhelper.NewFactory(tx)
 	user := f.InsertUser()
-	api := testhelper.NewTestApi(tx, user.ID)
+	app := testhelper.NewTestApp(tx, user.ID)
 
 	expense := domain.Expense{GoalID: f.InsertGoal().ID, UserID: user.ID}
 	f.InsertExpense(&expense)
 
 	var respBody util.M
 
-	anotherUserApi := testhelper.NewTestApi(tx, uuid.New())
+	anotherUserApp := testhelper.NewTestApp(tx, uuid.New())
 
 	data := []struct {
 		name      string
-		api       *testhelper.TestApi
+		app       *testhelper.TestApp
 		expenseID string
 		status    int
 		expected  util.M
 	}{
 		{
 			"invalid expense id",
-			api,
+			app,
 			"invalid-id",
 			400,
 			util.M{"error": "invalid expense id"},
 		},
 		{
 			"only owner can delete",
-			anotherUserApi,
+			anotherUserApp,
 			fmt.Sprintf("%d", expense.ID),
 			404,
 			util.M{"error": "expense not found"},
 		},
 		{
 			"successfull delete",
-			api,
+			app,
 			fmt.Sprintf("%d", expense.ID),
 			204,
 			util.M{},
 		},
 		{
 			"not found after delete",
-			api,
+			app,
 			fmt.Sprintf("%d", expense.ID),
 			404,
 			util.M{"error": "expense not found"},
@@ -466,8 +466,8 @@ func TestExpenseHandler_Delete(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			resp := d.api.Test(http.MethodDelete, "/api/expenses/"+d.expenseID)
-			d.api.UnmarshalBody(resp.Body, &respBody)
+			resp := d.app.Test(http.MethodDelete, "/api/expenses/"+d.expenseID)
+			d.app.UnmarshalBody(resp.Body, &respBody)
 			assert.Equal(d.status, resp.StatusCode)
 			assert.Equal(d.expected, respBody)
 			clear(respBody)

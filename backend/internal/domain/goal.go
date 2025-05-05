@@ -40,7 +40,7 @@ func (g *Goal) ToDTO() GoalDTO {
 	}
 }
 
-func DefaulGoalPercentages() map[GoalName]uint {
+func DefaultGoalPercentages() map[GoalName]uint {
 	return map[GoalName]uint{
 		FixedCosts:           40,
 		Comfort:              20,

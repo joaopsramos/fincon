@@ -4,35 +4,55 @@ import (
 	"net/http"
 
 	z "github.com/Oudwins/zog"
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
+	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
 )
+
+type SalaryHandler struct {
+	*BaseHandler
+	salaryService service.SalaryService
+}
 
 var salaryUpdateSchema = z.Struct(z.Schema{
 	"amount": z.Float().GT(0, z.Message("must be greater than 0")).Required(),
 })
 
-func (a *Api) GetSalary(c *fiber.Ctx) error {
-	userID := util.GetUserIDFromCtx(c)
-	salary := util.Must(a.salaryService.Get(c.Context(), userID))
-
-	return c.Status(http.StatusOK).JSON(salary.ToDTO())
+func NewSalaryHandler(baseHandler *BaseHandler, salaryService service.SalaryService) *SalaryHandler {
+	return &SalaryHandler{
+		BaseHandler:   baseHandler,
+		salaryService: salaryService,
+	}
 }
 
-func (a *Api) UpdateSalary(c *fiber.Ctx) error {
+func (h *SalaryHandler) RegisterRoutes(r chi.Router) {
+	r.Get("/salary", h.GetSalary)
+	r.Patch("/salary", h.UpdateSalary)
+}
+
+func (h *SalaryHandler) GetSalary(w http.ResponseWriter, r *http.Request) {
+	userID := h.getUserIDFromCtx(r)
+	salary := util.Must(h.salaryService.Get(r.Context(), userID))
+	h.sendJSON(w, http.StatusOK, salary.ToDTO())
+}
+
+func (h *SalaryHandler) UpdateSalary(w http.ResponseWriter, r *http.Request) {
 	var params struct {
 		Amount float64 `json:"amount"`
 	}
-	if errs := util.ParseZodSchema(salaryUpdateSchema, c.Body(), &params); errs != nil {
-		return a.HandleZodError(c, errs)
+
+	if errs := util.ParseZodSchema(salaryUpdateSchema, r.Body, &params); errs != nil {
+		h.HandleZodError(w, errs)
+		return
 	}
 
-	userID := util.GetUserIDFromCtx(c)
-	salary := util.Must(a.salaryService.Get(c.Context(), userID))
+	userID := h.getUserIDFromCtx(r)
+	salary := util.Must(h.salaryService.Get(r.Context(), userID))
 
-	if err := a.salaryService.UpdateAmount(c.Context(), salary, params.Amount); err != nil {
-		return a.HandleError(c, err)
+	if err := h.salaryService.UpdateAmount(r.Context(), salary, params.Amount); err != nil {
+		h.HandleError(w, err)
+		return
 	}
 
-	return c.Status(http.StatusOK).JSON(salary.ToDTO())
+	h.sendJSON(w, http.StatusOK, salary.ToDTO())
 }
