@@ -15,9 +15,9 @@ func NewTestPostgresTx(t *testing.T) *gorm.DB {
 		t.Fatal(err)
 	}
 
-	config.LoadEnv(path.Join("..", ".."))
+	config.Load(path.Join("..", ".."))
 
-	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
+	db := config.NewPostgresConn(config.Get().PostgresDSN())
 
 	tx := db.Begin()
 

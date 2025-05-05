@@ -15,12 +15,11 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/google/uuid"
 	"github.com/honeybadger-io/honeybadger-go"
-	"github.com/joaopsramos/fincon/internal/config"
+	"github.com/joaopsramos/fincon/internal/auth"
 	"github.com/joaopsramos/fincon/internal/mail"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
 	"github.com/joaopsramos/fincon/internal/util"
-	"github.com/lestrrat-go/jwx/jwa"
 	"gorm.io/gorm"
 )
 
@@ -96,7 +95,7 @@ func (a *App) corsMiddleware() func(http.Handler) http.Handler {
 }
 
 func (a *App) SetupRoutes() {
-	tokenAuth := jwtauth.New(jwa.HS256.String(), config.SecretKey(), nil)
+	tokenAuth := auth.NewTokenAuth()
 
 	a.Router.Route("/api", func(r chi.Router) {
 		// Public routes

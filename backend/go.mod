@@ -24,6 +24,7 @@ require (
 )
 
 require (
+	github.com/caarlos0/env v3.5.0+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect

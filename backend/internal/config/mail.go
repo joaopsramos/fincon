@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-
 	"github.com/joaopsramos/fincon/internal/types"
 )
 
@@ -23,14 +21,12 @@ type MailDefaults struct {
 }
 
 func NewMailConfig() *MailConfig {
-	driver := os.Getenv("MAIL_DRIVER")
-	name := os.Getenv("MAIL_FROM_NAME")
-	email := os.Getenv("MAIL_FROM_EMAIL")
+	cfg := Get()
 
 	return &MailConfig{
-		Driver: Driver(driver),
+		Driver: Driver(cfg.MailDriver),
 		Defaults: MailDefaults{
-			From: types.MailContact{Name: name, Email: email},
+			From: types.MailContact{Name: cfg.MailFromName, Email: cfg.MailFromEmail},
 		},
 	}
 }

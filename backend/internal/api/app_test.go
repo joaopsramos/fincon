@@ -13,10 +13,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/auth"
-	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
-	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -152,7 +150,7 @@ func TestApp_PutUserIDMiddleware(t *testing.T) {
 	userID := uuid.New()
 	token := auth.GenerateJWTToken(userID, time.Minute)
 
-	tokenAuth := jwtauth.New(jwa.HS256.String(), config.SecretKey(), nil)
+	tokenAuth := auth.NewTokenAuth()
 	app.Router.Use(jwtauth.Verifier(tokenAuth))
 	app.Router.Use(jwtauth.Authenticator(tokenAuth))
 	app.Router.Use(app.PutUserIDMiddleware)

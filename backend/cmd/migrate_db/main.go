@@ -9,11 +9,11 @@ import (
 )
 
 func init() {
-	config.LoadEnv(".")
+	config.Load(".")
 }
 
 func main() {
-	db := config.NewPostgresConn(config.PostgresDSNFromEnv())
+	db := config.NewPostgresConn(config.Get().PostgresDSN())
 
 	slog.Info("Creating extension 'unnaccent'")
 	db.Exec("CREATE EXTENSION IF NOT EXISTS unaccent")
