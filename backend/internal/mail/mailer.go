@@ -9,16 +9,21 @@ import (
 	"github.com/joaopsramos/fincon/internal/types"
 )
 
-type EmailTemplate string
+type (
+	EmailTemplate string
+	EmailSubject  string
+)
 
 const (
 	ForgotPasswordTemplate EmailTemplate = "forgot_password"
+
+	ForgotPasswordSubject EmailSubject = "[Fincon] Recuperação de senha"
 )
 
 type Email struct {
 	To       types.MailContact
 	From     types.MailContact
-	Subject  string
+	Subject  EmailSubject
 	Template EmailTemplate
 	Data     any
 }

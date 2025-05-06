@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"fmt"
 	"net/smtp"
 
 	"github.com/joaopsramos/fincon/internal/config"
@@ -36,10 +37,10 @@ func (m *MailPit) Send(email Email) error {
 		return err
 	}
 
-	mime := "Content-Type: text/html; charset=\"UTF-8\";\r\n"
-	headers := "Subject: " + email.Subject + "\r\n\r\n"
+	mime := "Content-Type: text/html; charset=\"UTF-8\";"
+	headers := "Subject: " + email.Subject
 
-	message := []byte(mime + headers + body)
+	message := fmt.Sprintf("%s\r\n%s\r\n%s\r\n\r\n", mime, headers, body)
 
-	return smtp.SendMail(m.addr, m.auth, sender, []string{email.To.Email}, message)
+	return smtp.SendMail(m.addr, m.auth, sender, []string{email.To.Email}, []byte(message))
 }
