@@ -5,6 +5,7 @@ go 1.23.4
 require (
 	github.com/Oudwins/zog v0.15.1
 	github.com/brianvoe/gofakeit/v7 v7.2.1
+	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/dromara/carbon/v2 v2.6.4
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/cors v1.2.1
@@ -24,7 +25,6 @@ require (
 )
 
 require (
-	github.com/caarlos0/env v3.5.0+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
@@ -49,6 +49,7 @@ require (
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	golang.org/x/sync v0.13.0 // indirect

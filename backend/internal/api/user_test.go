@@ -8,6 +8,7 @@ import (
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestUserHandler_CreateUser(t *testing.T) {
@@ -98,8 +99,7 @@ func TestUserHandler_CreateUser(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			a := assert.New(t)
-			app := testhelper.NewTestApp(tx)
-			app2 := testhelper.NewTestApp(tx)
+			app := testhelper.NewTestApp(t, tx)
 
 			var respBody util.M
 
@@ -117,12 +117,12 @@ func TestUserHandler_CreateUser(t *testing.T) {
 			a.NotEmpty(respBody["user"].(util.M)["id"])
 			a.NotEmpty(respBody["token"])
 
-			// assert valid token
+			// assert valid token without using helper function
 			req := httptest.NewRequest("GET", "/api/salary", nil)
 			req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
 
 			w := httptest.NewRecorder()
-			app2.Router.ServeHTTP(w, req)
+			app.Router.ServeHTTP(w, req)
 
 			resp2 := w.Result()
 			a.Equal(200, resp2.StatusCode)
@@ -132,9 +132,8 @@ func TestUserHandler_CreateUser(t *testing.T) {
 
 func TestUserHandler_UserLogin(t *testing.T) {
 	t.Parallel()
-	a := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := testhelper.NewTestApp(tx)
+	app := testhelper.NewTestApp(t, tx)
 
 	// Create a user first
 	resp := app.Test(http.MethodPost, "/api/users", util.M{
@@ -142,7 +141,7 @@ func TestUserHandler_UserLogin(t *testing.T) {
 		"password": "password123",
 		"salary":   5000.00,
 	})
-	a.Equal(201, resp.StatusCode)
+	assert.Equal(t, 201, resp.StatusCode)
 
 	data := []struct {
 		name           string
@@ -190,27 +189,27 @@ func TestUserHandler_UserLogin(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			a := assert.New(t)
+			assert := assert.New(t)
 
 			var respBody util.M
 
 			resp := app.Test(http.MethodPost, "/api/sessions", d.body)
 			app.UnmarshalBody(resp.Body, &respBody)
-			a.Equal(d.expectedStatus, resp.StatusCode)
+			assert.Equal(d.expectedStatus, resp.StatusCode)
 
 			if d.expectedStatus == 201 {
-				a.NotEmpty(respBody["token"])
+				assert.NotEmpty(respBody["token"])
 
 				// Verify the token works
-				app2 := testhelper.NewTestApp(tx)
+				app2 := testhelper.NewTestApp(t, tx)
 				req := httptest.NewRequest("GET", "/api/salary", nil)
 				req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
 				w := httptest.NewRecorder()
 				app2.Router.ServeHTTP(w, req)
 				resp := w.Result()
-				a.Equal(200, resp.StatusCode)
+				assert.Equal(200, resp.StatusCode)
 			} else {
-				a.Equal(d.expectedBody, respBody)
+				assert.Equal(d.expectedBody, respBody)
 			}
 		})
 	}

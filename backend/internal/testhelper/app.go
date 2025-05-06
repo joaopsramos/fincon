@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,14 +31,14 @@ type TestAppOpts struct {
 	WithoutSetup bool
 }
 
-func NewTestApp(tx *gorm.DB, options ...TestAppOpts) *TestApp {
+func NewTestApp(t testing.TB, tx *gorm.DB, options ...TestAppOpts) *TestApp {
 	var opts TestAppOpts
 	if len(options) > 0 {
 		opts = options[0]
 	}
 
 	if opts.Mailer == nil {
-		opts.Mailer = &MockMailer{SentEmails: make([]mail.Email, 0)}
+		opts.Mailer = NewMockMailer(t)
 	}
 
 	app := api.NewApp(tx, opts.Logger, opts.Mailer)
@@ -74,7 +75,7 @@ func (t *TestApp) Test(method string, path string, body ...any) *http.Response {
 	}
 
 	w := httptest.NewRecorder()
-	t.App.Router.ServeHTTP(w, req)
+	t.Router.ServeHTTP(w, req)
 
 	return w.Result()
 }

@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func NewTestPostgresTx(t *testing.T) *gorm.DB {
+func NewTestPostgresTx(t testing.TB) *gorm.DB {
 	db := config.NewPostgresConn(config.Get().PostgresDSN())
 	tx := db.Begin()
 

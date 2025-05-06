@@ -22,7 +22,7 @@ func TestApp_ErrorHandler(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := testhelper.NewTestApp(tx)
+	app := testhelper.NewTestApp(t, tx)
 
 	tests := []struct {
 		name         string
@@ -71,7 +71,7 @@ func TestApp_GobalRateLimiter(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := testhelper.NewTestApp(tx)
+	app := testhelper.NewTestApp(t, tx)
 
 	app.Router.Get("/some-route", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -97,7 +97,7 @@ func TestApp_CreateUserRateLimiter(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := testhelper.NewTestApp(tx)
+	app := testhelper.NewTestApp(t, tx)
 
 	for i := 1; i <= 6; i++ {
 		user := util.M{"email": fmt.Sprintf("user-%d@mail.com", i), "password": 12345678, "salary": 1000}
@@ -118,7 +118,7 @@ func TestApp_CreateSessionRateLimiter(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := testhelper.NewTestApp(tx)
+	app := testhelper.NewTestApp(t, tx)
 
 	user := util.M{"email": "user@mail.com", "password": 12345678, "salary": 1000}
 	resp := app.Test(http.MethodPost, "/api/users", user)
@@ -143,7 +143,7 @@ func TestApp_PutUserIDMiddleware(t *testing.T) {
 	a := assert.New(t)
 
 	tx := testhelper.NewTestPostgresTx(t)
-	app := testhelper.NewTestApp(tx, testhelper.TestAppOpts{WithoutSetup: true})
+	app := testhelper.NewTestApp(t, tx, testhelper.TestAppOpts{WithoutSetup: true})
 
 	userID := uuid.New()
 	token := auth.GenerateJWTToken(userID, time.Minute)
