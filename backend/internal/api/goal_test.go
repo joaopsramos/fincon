@@ -21,8 +21,8 @@ func TestGoalHandler_Index(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	app := testhelper.NewTestApp(tx, user.ID)
-	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: user.ID})
+	anotherUserApp := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: anotherUser.ID})
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
@@ -78,8 +78,8 @@ func TestGoalHandler_GetGoalExpenses(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	app := testhelper.NewTestApp(tx, user.ID)
-	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: user.ID})
+	anotherUserApp := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: anotherUser.ID})
 
 	goals := []*domain.Goal{
 		{Name: "Comfort", Percentage: 40, UserID: user.ID},
@@ -195,8 +195,8 @@ func TestGoalHandler_UpdateGoals(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	app := testhelper.NewTestApp(tx, user.ID)
-	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: user.ID})
+	anotherUserApp := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: anotherUser.ID})
 	_ = anotherUserApp
 
 	defaultPercentages := domain.DefaultGoalPercentages()

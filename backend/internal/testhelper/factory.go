@@ -53,7 +53,7 @@ func mergeStructs[T any](src T, dst *T) {
 	sv := reflect.ValueOf(src)
 	dv := reflect.ValueOf(dst).Elem()
 
-	for i := 0; i < dv.NumField(); i++ {
+	for i := range dv.NumField() {
 		if dv.Field(i).IsZero() {
 			dv.Field(i).Set(sv.Field(i))
 		}

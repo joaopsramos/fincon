@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
 	"github.com/stretchr/testify/assert"
@@ -100,8 +99,7 @@ func TestUserHandler_CreateUser(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			a := assert.New(t)
 			app := testhelper.NewTestApp(tx)
-			app2 := api.NewApp(tx)
-			app2.SetupAll()
+			app2 := testhelper.NewTestApp(tx)
 
 			var respBody util.M
 
@@ -204,8 +202,7 @@ func TestUserHandler_UserLogin(t *testing.T) {
 				a.NotEmpty(respBody["token"])
 
 				// Verify the token works
-				app2 := api.NewApp(tx)
-				app2.SetupAll()
+				app2 := testhelper.NewTestApp(tx)
 				req := httptest.NewRequest("GET", "/api/salary", nil)
 				req.Header.Set("Authorization", "Bearer "+respBody["token"].(string))
 				w := httptest.NewRecorder()

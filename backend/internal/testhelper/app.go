@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -12,24 +13,49 @@ import (
 	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/auth"
+	"github.com/joaopsramos/fincon/internal/mail"
 	"gorm.io/gorm"
 )
 
 type TestApp struct {
-	app   *api.App
-	token string
+	*api.App
+	token  string
+	Mailer mail.Mailer
 }
 
-func NewTestApp(tx *gorm.DB, userID ...uuid.UUID) *TestApp {
-	app := api.NewApp(tx)
-	app.SetupAll()
-	var token string
+type TestAppOpts struct {
+	UserID       uuid.UUID
+	Logger       *slog.Logger
+	Mailer       mail.Mailer
+	WithoutSetup bool
+}
 
-	if len(userID) > 0 {
-		token = auth.GenerateJWTToken(userID[0], time.Minute)
+func NewTestApp(tx *gorm.DB, options ...TestAppOpts) *TestApp {
+	var opts TestAppOpts
+	if len(options) > 0 {
+		opts = options[0]
 	}
 
-	return &TestApp{app: app, token: token}
+	if opts.Mailer == nil {
+		opts.Mailer = &MockMailer{SentEmails: make([]mail.Email, 0)}
+	}
+
+	app := api.NewApp(tx, opts.Logger, opts.Mailer)
+
+	if !opts.WithoutSetup {
+		app.SetupAll()
+	}
+
+	var token string
+	if opts.UserID != uuid.Nil {
+		token = auth.GenerateJWTToken(opts.UserID, time.Minute)
+	}
+
+	return &TestApp{
+		App:    app,
+		token:  token,
+		Mailer: opts.Mailer,
+	}
 }
 
 func (t *TestApp) Test(method string, path string, body ...any) *http.Response {
@@ -48,7 +74,7 @@ func (t *TestApp) Test(method string, path string, body ...any) *http.Response {
 	}
 
 	w := httptest.NewRecorder()
-	t.app.Router.ServeHTTP(w, req)
+	t.App.Router.ServeHTTP(w, req)
 
 	return w.Result()
 }

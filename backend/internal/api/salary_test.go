@@ -18,8 +18,8 @@ func TestSalaryHandler_GetSalary(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	app := testhelper.NewTestApp(tx, user.ID)
-	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: user.ID})
+	anotherUserApp := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: anotherUser.ID})
 
 	salaries := []*domain.Salary{
 		{Amount: 50000, UserID: user.ID},
@@ -67,8 +67,8 @@ func TestSalaryHandler_UpdateSalary(t *testing.T) {
 	user := f.InsertUser()
 	anotherUser := f.InsertUser()
 
-	app := testhelper.NewTestApp(tx, user.ID)
-	anotherUserApp := testhelper.NewTestApp(tx, anotherUser.ID)
+	app := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: user.ID})
+	anotherUserApp := testhelper.NewTestApp(tx, testhelper.TestAppOpts{UserID: anotherUser.ID})
 
 	f.InsertSalary([]*domain.Salary{
 		{Amount: 50000, UserID: user.ID},

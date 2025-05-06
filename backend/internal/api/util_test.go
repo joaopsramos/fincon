@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	z "github.com/Oudwins/zog"
-	"github.com/joaopsramos/fincon/internal/api"
 	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/testhelper"
 	"github.com/joaopsramos/fincon/internal/util"
@@ -19,8 +18,7 @@ import (
 func Test_HandleError(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := api.NewApp(tx)
-	app.SetupMiddlewares()
+	app := testhelper.NewTestApp(tx)
 
 	app.Router.Get("/not-found", func(w http.ResponseWriter, r *http.Request) {
 		app.HandleError(w, errs.NewNotFound("some resource"))
@@ -56,8 +54,7 @@ func Test_HandleError(t *testing.T) {
 func Test_HandleZodError(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := api.NewApp(tx)
-	app.SetupMiddlewares()
+	app := testhelper.NewTestApp(tx)
 
 	app.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
 		schema := z.Struct(z.Schema{
@@ -83,8 +80,7 @@ func Test_HandleZodError(t *testing.T) {
 func Test_InvalidJSONBody(t *testing.T) {
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := api.NewApp(tx)
-	app.SetupMiddlewares()
+	app := testhelper.NewTestApp(tx)
 
 	app.Router.Post("/some-route", func(w http.ResponseWriter, r *http.Request) {
 		var body util.M

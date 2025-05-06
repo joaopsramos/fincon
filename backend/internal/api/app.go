@@ -33,16 +33,13 @@ type App struct {
 	expenseHandler *ExpenseHandler
 }
 
-func NewApp(db *gorm.DB) *App {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
+func NewApp(db *gorm.DB, logger *slog.Logger, mailer mail.Mailer) *App {
 	userRepo := repository.NewPostgresUser(db)
 	salaryRepo := repository.NewPostgresSalary(db)
 	goalRepo := repository.NewPostgresGoal(db)
 	expenseRepo := repository.NewPostgresExpense(db)
 
 	baseHandler := NewBaseHandler(logger)
-	mailer := mail.NewMailer()
 
 	userService := service.NewUserService(userRepo, mailer)
 	salaryService := service.NewSalaryService(salaryRepo)

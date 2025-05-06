@@ -22,8 +22,7 @@ func TestApp_ErrorHandler(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := api.NewApp(tx)
-	app.SetupMiddlewares()
+	app := testhelper.NewTestApp(tx)
 
 	tests := []struct {
 		name         string
@@ -72,8 +71,7 @@ func TestApp_GobalRateLimiter(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	tx := testhelper.NewTestPostgresTx(t)
-	app := api.NewApp(tx)
-	app.SetupMiddlewares()
+	app := testhelper.NewTestApp(tx)
 
 	app.Router.Get("/some-route", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -145,7 +143,7 @@ func TestApp_PutUserIDMiddleware(t *testing.T) {
 	a := assert.New(t)
 
 	tx := testhelper.NewTestPostgresTx(t)
-	app := api.NewApp(tx)
+	app := testhelper.NewTestApp(tx, testhelper.TestAppOpts{WithoutSetup: true})
 
 	userID := uuid.New()
 	token := auth.GenerateJWTToken(userID, time.Minute)
