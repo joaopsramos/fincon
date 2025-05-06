@@ -192,6 +192,7 @@ func TestPostgresExpense_AllByGoalID(t *testing.T) {
 
 	goals := []domain.Goal{{Name: domain.Goals}, {Name: domain.Pleasures}, {Name: domain.Comfort}}
 	for i := range len(goals) {
+		goals[i].UserID = user.ID
 		f.InsertGoal(&goals[i])
 	}
 

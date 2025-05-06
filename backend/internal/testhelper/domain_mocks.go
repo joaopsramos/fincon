@@ -1160,7 +1160,7 @@ func (_c *MockUserRepo_GetUserTokenByToken_Call) RunAndReturn(run func(ctx conte
 }
 
 // MarkTokenAsUsed provides a mock function for the type MockUserRepo
-func (_mock *MockUserRepo) MarkTokenAsUsed(ctx context.Context, tokenID uuid.UUID) error {
+func (_mock *MockUserRepo) MarkTokenAsUsed(ctx context.Context, tokenID uint) error {
 	ret := _mock.Called(ctx, tokenID)
 
 	if len(ret) == 0 {
@@ -1168,7 +1168,7 @@ func (_mock *MockUserRepo) MarkTokenAsUsed(ctx context.Context, tokenID uuid.UUI
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint) error); ok {
 		r0 = returnFunc(ctx, tokenID)
 	} else {
 		r0 = ret.Error(0)
@@ -1188,9 +1188,9 @@ func (_e *MockUserRepo_Expecter) MarkTokenAsUsed(ctx interface{}, tokenID interf
 	return &MockUserRepo_MarkTokenAsUsed_Call{Call: _e.mock.On("MarkTokenAsUsed", ctx, tokenID)}
 }
 
-func (_c *MockUserRepo_MarkTokenAsUsed_Call) Run(run func(ctx context.Context, tokenID uuid.UUID)) *MockUserRepo_MarkTokenAsUsed_Call {
+func (_c *MockUserRepo_MarkTokenAsUsed_Call) Run(run func(ctx context.Context, tokenID uint)) *MockUserRepo_MarkTokenAsUsed_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(uuid.UUID))
+		run(args[0].(context.Context), args[1].(uint))
 	})
 	return _c
 }
@@ -1200,7 +1200,7 @@ func (_c *MockUserRepo_MarkTokenAsUsed_Call) Return(err error) *MockUserRepo_Mar
 	return _c
 }
 
-func (_c *MockUserRepo_MarkTokenAsUsed_Call) RunAndReturn(run func(ctx context.Context, tokenID uuid.UUID) error) *MockUserRepo_MarkTokenAsUsed_Call {
+func (_c *MockUserRepo_MarkTokenAsUsed_Call) RunAndReturn(run func(ctx context.Context, tokenID uint) error) *MockUserRepo_MarkTokenAsUsed_Call {
 	_c.Call.Return(run)
 	return _c
 }

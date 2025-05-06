@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/google/uuid"
 	"github.com/joaopsramos/fincon/internal/domain"
 	"gorm.io/gorm"
 )
@@ -18,7 +19,7 @@ func NewFactory(tx *gorm.DB) *Factory {
 }
 
 func (f *Factory) InsertUser(u ...*domain.User) domain.User {
-	return insert(f, u, domain.User{Email: f.faker.Email()})
+	return insert(f, u, domain.User{ID: uuid.New(), Email: f.faker.Email()})
 }
 
 func (f *Factory) InsertSalary(s ...*domain.Salary) domain.Salary {
@@ -35,7 +36,10 @@ func (f *Factory) InsertExpense(e ...*domain.Expense) domain.Expense {
 
 func insert[T any](f *Factory, given []*T, fake T) T {
 	if len(given) < 1 {
-		f.tx.Create(&fake)
+		if err := f.tx.Create(&fake).Error; err != nil {
+			panic(err)
+		}
+
 		return fake
 	}
 
@@ -43,7 +47,13 @@ func insert[T any](f *Factory, given []*T, fake T) T {
 		mergeStructs(fake, given[i])
 	}
 
-	f.tx.Create(given)
+	if err := f.tx.Create(given).Error; err != nil {
+		panic(err)
+	}
+
+	if len(given) == 1 {
+		return *given[0]
+	}
 
 	var zero T
 	return zero

@@ -9,18 +9,18 @@ import (
 )
 
 type Expense struct {
-	ID    uint `gorm:"primaryKey"`
-	Name  string
-	Value int64
-	Date  time.Time `gorm:"type:timestamp without time zone"`
-
+	ID     uint `gorm:"primaryKey;autoIncrement"`
+	Name   string
+	Value  int64
+	Date   time.Time `gorm:"type:timestamp without time zone"`
 	UserID uuid.UUID `gorm:"type:uuid"`
-
 	GoalID uint
-	Goal   Goal
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	User User `gorm:"foreignKey:UserID"`
+	Goal Goal
 }
 
 type ExpenseDTO struct {

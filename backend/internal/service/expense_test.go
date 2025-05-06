@@ -81,6 +81,7 @@ func TestPostgresExpense_GetSummary(t *testing.T) {
 			Value:     int64(e.value * 100),
 			Date:      e.date,
 			GoalID:    goalsByName[e.goalName].ID,
+			UserID:    user.ID,
 			CreatedAt: now,
 		})
 	}

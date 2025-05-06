@@ -18,11 +18,12 @@ const (
 )
 
 type Goal struct {
-	ID         uint
+	ID         uint `gorm:"primaryKey;autoIncrement"`
 	Name       GoalName
 	Percentage uint
 	UserID     uuid.UUID
 
+	User     User `gorm:"foreignKey:UserID"`
 	Expenses []Expense
 }
 

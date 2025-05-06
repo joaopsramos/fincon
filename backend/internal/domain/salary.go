@@ -8,10 +8,11 @@ import (
 )
 
 type Salary struct {
-	ID     uint `gorm:"primaryKey"`
+	ID     uint `gorm:"primaryKey;autoIncrement"`
 	Amount int64
-
 	UserID uuid.UUID `gorm:"type:uuid"`
+
+	User User `gorm:"foreignKey:UserID"`
 }
 
 type SalaryDTO struct {

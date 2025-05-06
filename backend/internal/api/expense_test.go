@@ -174,7 +174,7 @@ func TestExpenseHandler_FindMatchingNames(t *testing.T) {
 		{Name: "Application", GoalID: goals[1].ID, UserID: user.ID, Date: now.AddDate(0, -1, 0)},
 		{Name: "Billó", GoalID: goals[1].ID, UserID: user.ID, Date: now},
 		// Random user
-		{Name: "Applic", GoalID: goals[1].ID, UserID: uuid.New(), Date: now},
+		{Name: "Applic", GoalID: goals[1].ID, UserID: f.InsertUser().ID, Date: now},
 	}...)
 
 	var respBody []string
@@ -420,7 +420,8 @@ func TestExpenseHandler_Delete(t *testing.T) {
 	user := f.InsertUser()
 	app := testhelper.NewTestApp(t, tx, testhelper.TestAppOpts{UserID: user.ID})
 
-	expense := domain.Expense{GoalID: f.InsertGoal().ID, UserID: user.ID}
+	goal := f.InsertGoal(&domain.Goal{UserID: user.ID})
+	expense := domain.Expense{GoalID: goal.ID, UserID: user.ID}
 	f.InsertExpense(&expense)
 
 	var respBody util.M
