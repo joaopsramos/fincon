@@ -22,7 +22,13 @@ func main() {
 	db.Exec("CREATE EXTENSION IF NOT EXISTS citext")
 
 	slog.Info("Auto migrating...")
-	err := db.AutoMigrate(&domain.User{}, &domain.Goal{}, &domain.Salary{}, &domain.Expense{})
+	err := db.AutoMigrate(
+		&domain.User{},
+		&domain.Goal{},
+		&domain.Salary{},
+		&domain.Expense{},
+		&domain.UserToken{},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

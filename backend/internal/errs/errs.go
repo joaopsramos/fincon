@@ -5,7 +5,10 @@ import (
 	"fmt"
 )
 
-var ErrInvalidCredentials = errors.New("invalid credentials")
+var (
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrInvalidToken       = errors.New("invalid or expired token")
+)
 
 type ErrNotFound struct {
 	resource string

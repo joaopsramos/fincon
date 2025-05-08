@@ -12,7 +12,8 @@ import (
 
 type Config struct {
 	AppEnv    string `env:"APP_ENV,required"`
-	AppURL    string `env:"APP_API_URL,required"`
+	ApiURL    string `env:"APP_API_URL,required"`
+	WebURL    string `env:"APP_WEB_URL,required"`
 	SecretKey string `env:"SECRET_KEY,required"`
 
 	// Honeybadger

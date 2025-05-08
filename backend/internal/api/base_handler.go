@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/httprate"
 	"github.com/google/uuid"
+	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/errs"
 	"github.com/joaopsramos/fincon/internal/util"
 )
@@ -40,12 +41,16 @@ func (h *BaseHandler) sendError(w http.ResponseWriter, status int, message strin
 }
 
 func (h *BaseHandler) HandleError(w http.ResponseWriter, err error) {
-	if errors.Is(err, errs.ErrNotFound{}) {
+	switch {
+	case errors.Is(err, errs.ErrNotFound{}):
 		h.sendError(w, http.StatusNotFound, err.Error())
 		return
-	}
 
-	if errors.Is(err, errs.ErrValidation{}) {
+	case errors.Is(err, errs.ErrValidation{}):
+		h.sendError(w, http.StatusBadRequest, err.Error())
+		return
+
+	case errors.Is(err, errs.ErrInvalidToken):
 		h.sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -58,6 +63,13 @@ func (h *BaseHandler) HandleZodError(w http.ResponseWriter, err util.M) {
 }
 
 func (h *BaseHandler) rateLimiter(limit int, windowLength time.Duration) func(http.Handler) http.Handler {
+	// TODO: Make rate limiter injectable
+	if config.Get().AppEnv == "test" {
+		return func(next http.Handler) http.Handler {
+			return next
+		}
+	}
+
 	rateLimiter := httprate.NewRateLimiter(
 		limit,
 		windowLength,

@@ -2,6 +2,7 @@ package testhelper
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
@@ -32,6 +33,10 @@ func (f *Factory) InsertGoal(g ...*domain.Goal) domain.Goal {
 
 func (f *Factory) InsertExpense(e ...*domain.Expense) domain.Expense {
 	return insert(f, e, domain.Expense{Name: f.faker.ProductName(), Value: f.faker.Int64(), Date: f.faker.Date()})
+}
+
+func (f *Factory) InsertUserToken(t ...*domain.UserToken) domain.UserToken {
+	return insert(f, t, domain.UserToken{Token: uuid.New(), ExpiresAt: time.Now().UTC().Add(24 * time.Hour)})
 }
 
 func insert[T any](f *Factory, given []*T, fake T) T {

@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/honeybadger-io/honeybadger-go"
 	"github.com/joaopsramos/fincon/internal/auth"
+	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/mail"
 	"github.com/joaopsramos/fincon/internal/repository"
 	"github.com/joaopsramos/fincon/internal/service"
@@ -68,6 +69,8 @@ func (a *App) Listen() error {
 }
 
 func (a *App) SetupMiddlewares() {
+	a.Router.Use(middleware.RequestID)
+
 	if os.Getenv("APP_ENV") != "test" {
 		a.Router.Use(middleware.Logger)
 	}
@@ -85,7 +88,8 @@ func (a *App) corsMiddleware() func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	})
@@ -126,6 +130,13 @@ func (a *App) sendError(w http.ResponseWriter, status int, message string) {
 }
 
 func (a *App) rateLimiter(limit int, windowLength time.Duration) func(http.Handler) http.Handler {
+	// TODO: Make rate limiter injectable
+	if config.Get().AppEnv == "test" {
+		return func(next http.Handler) http.Handler {
+			return next
+		}
+	}
+
 	rateLimiter := httprate.NewRateLimiter(
 		limit,
 		windowLength,

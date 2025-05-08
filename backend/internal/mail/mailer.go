@@ -7,6 +7,7 @@ import (
 
 	"github.com/joaopsramos/fincon/internal/config"
 	"github.com/joaopsramos/fincon/internal/types"
+	"github.com/joaopsramos/fincon/internal/util"
 )
 
 type (
@@ -25,7 +26,7 @@ type Email struct {
 	From     types.MailContact
 	Subject  EmailSubject
 	Template EmailTemplate
-	Data     any
+	Data     util.M
 }
 
 type Mailer interface {

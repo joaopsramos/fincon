@@ -58,11 +58,57 @@ func (r PostgresUserRepository) GetByEmail(ctx context.Context, email string) (*
 	var user domain.User
 	if err := r.db.Where("email = ?", email).Take(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &domain.User{}, errs.NewNotFound("user")
+			return nil, errs.NewNotFound("user")
 		}
 
-		return &domain.User{}, err
+		return nil, err
 	}
 
 	return &user, nil
+}
+
+func (r PostgresUserRepository) CreateToken(ctx context.Context, token *domain.UserToken) error {
+	return r.db.WithContext(ctx).Create(token).Error
+}
+
+func (r PostgresUserRepository) GetUserTokenByToken(ctx context.Context, token string) (*domain.UserToken, error) {
+	var userToken domain.UserToken
+	err := r.db.Where("token = ?", token).Take(&userToken).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errs.NewNotFound("token")
+		}
+
+		return nil, err
+	}
+
+	return &userToken, nil
+}
+
+func (r PostgresUserRepository) UpdateUserPassword(ctx context.Context, userID uuid.UUID, hashedPassword string) error {
+	result := r.db.WithContext(ctx).Model(&domain.User{}).Where("id = ?", userID).Update("hash_password", hashedPassword)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errs.NewNotFound("user")
+	}
+
+	return nil
+}
+
+func (r PostgresUserRepository) MarkTokenAsUsed(ctx context.Context, tokenID uint) error {
+	result := r.db.WithContext(ctx).Model(&domain.UserToken{}).Where("id = ?", tokenID).Update("used", true)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errs.NewNotFound("token")
+	}
+
+	return nil
 }

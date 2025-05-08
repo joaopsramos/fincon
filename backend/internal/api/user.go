@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
@@ -25,6 +26,29 @@ type UserHandler struct {
 	userService service.UserService
 }
 
+var (
+	passwordFieldSchema = z.String().Trim().
+				Min(8, z.Message("must contain at least 8 characters")).
+				Max(72, z.Message("must have at most 72 characters")).
+				Required()
+
+	userCreateSchema = z.Struct(z.Schema{
+		"email":    z.String().Trim().Max(160).Email(z.Message("must be valid")).Required(),
+		"password": passwordFieldSchema,
+		"salary":   z.Float().GT(0, z.Message("must be greater than 0")).Required(),
+	})
+
+	userLoginSchema = z.Struct(z.Schema{
+		"email":    z.String().Trim().Required(),
+		"password": z.String().Trim().Required(),
+	})
+
+	userResetPasswordSchema = z.Struct(z.Schema{
+		"token":    z.String().Trim().Required(),
+		"password": passwordFieldSchema,
+	})
+)
+
 func NewUserHandler(baseHandler *BaseHandler, userService service.UserService) *UserHandler {
 	return &UserHandler{
 		BaseHandler: baseHandler,
@@ -32,20 +56,11 @@ func NewUserHandler(baseHandler *BaseHandler, userService service.UserService) *
 	}
 }
 
-var userCreateSchema = z.Struct(z.Schema{
-	"email":    z.String().Trim().Max(160).Email(z.Message("must be valid")).Required(),
-	"password": z.String().Trim().Min(8, z.Message("must contain at least 8 characters")).Max(72, z.Message("must have at most 72 characters")).Required(),
-	"salary":   z.Float().GT(0, z.Message("must be greater than 0")).Required(),
-})
-
-var userLoginSchema = z.Struct(z.Schema{
-	"email":    z.String().Trim().Required(),
-	"password": z.String().Trim().Required(),
-})
-
 func (h *UserHandler) RegisterRoutes(r chi.Router) {
 	r.With(h.rateLimiter(5, time.Hour)).Post("/users", h.CreateUser)
 	r.With(h.rateLimiter(10, 5*time.Minute)).Post("/sessions", h.UserLogin)
+	r.With(h.rateLimiter(5, time.Hour)).Post("/password/forgot", h.ForgotPassword)
+	r.With(h.rateLimiter(5, time.Hour)).Post("/password/reset", h.ResetPassword)
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -107,4 +122,59 @@ func (h *UserHandler) UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.sendJSON(w, http.StatusCreated, util.M{"token": auth.GenerateJWTToken(user.ID, tokenExpiresIn)})
+}
+
+func (h *UserHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var params struct {
+		Email string `json:"email"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		h.HandleError(w, err)
+		return
+	}
+
+	user, err := h.userService.GetByEmail(r.Context(), params.Email)
+	if err != nil {
+		h.HandleError(w, err)
+		return
+	}
+
+	err = h.userService.SendForgotPasswordEmail(r.Context(), *user)
+	if err != nil {
+		h.HandleError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var params struct {
+		Token    string `json:"token"`
+		Password string `json:"password"`
+	}
+
+	if errs := util.ParseZodSchema(userResetPasswordSchema, r.Body, &params); errs != nil {
+		h.HandleZodError(w, errs)
+		return
+	}
+
+	dto := service.ResetPasswordDTO{
+		Token:    params.Token,
+		Password: params.Password,
+	}
+
+	err := h.userService.ResetPassword(r.Context(), dto)
+	if err != nil {
+		if errors.Is(err, errs.ErrNotFound{}) {
+			h.HandleError(w, errs.NewNotFound("user"))
+		} else {
+			h.HandleError(w, err)
+		}
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
