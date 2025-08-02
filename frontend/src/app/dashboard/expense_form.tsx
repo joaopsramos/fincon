@@ -46,6 +46,7 @@ export default function ExpenseForm({ date, goal, allGoals, expense, invalidateQ
   const queryClient = useQueryClient()
 
   const expenseDate = expense && new Date(expense.date)
+  const expenseUTCDate = expenseDate && new Date(expenseDate.getUTCFullYear(), expenseDate.getUTCMonth(), expenseDate.getUTCDate())
 
   const {
     register,
@@ -58,18 +59,17 @@ export default function ExpenseForm({ date, goal, allGoals, expense, invalidateQ
     resolver: zodResolver(formSchema),
     defaultValues: expense
       ? {
-          goal_id: expense.goal_id,
-          date:
-            expenseDate && new Date(expenseDate.getUTCFullYear(), expenseDate.getUTCMonth(), expenseDate.getUTCDate()),
-          name: expense.name,
-          value: expense.value,
-          installments: 1,
-        }
+        goal_id: expense.goal_id,
+        date: expenseUTCDate,
+        name: expense.name,
+        value: expense.value,
+        installments: 1,
+      }
       : {
-          goal_id: goal.id,
-          date: new Date(),
-          installments: 1,
-        },
+        goal_id: goal.id,
+        date: new Date(date),
+        installments: 1,
+      },
   })
 
   const name = watch("name", "")
@@ -206,6 +206,7 @@ export default function ExpenseForm({ date, goal, allGoals, expense, invalidateQ
                 <Calendar
                   mode="single"
                   selected={selectedDate}
+                  month={selectedDate}
                   onSelect={(date) => date && setValue("date", date as Date)}
                   disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                 />

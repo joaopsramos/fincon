@@ -63,7 +63,7 @@ const UpsertExpenseDialog = forwardRef<UpsertExpenseDialogRef, UpsertExpenseDial
             {/* used to not focus first form input */}
             <input className="fixed left-0 top-0 h-0 w-0" type="checkbox" autoFocus={true} />
 
-            <ExpenseForm {...props} onSuccess={() => setOpen(false)} />
+            <ExpenseForm {...props} />
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" className="mt-2 sm:mt-0" onClick={() => setOpen(false)}>
